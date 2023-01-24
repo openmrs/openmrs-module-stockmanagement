@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dataset>
+    <!-- PRIVILEGES-->
+    <!--* BASE PRIVILEGES *-->
+    <privilege  privilege="App: stockmanagement.dashboard"  description="Able to view stock management application dashboard"  uuid="cc9b0e0c-ecaf-479d-9d7c-3071c0c1bff2"/>
+
+    <privilege  privilege="App: stockmanagement.stockItems"  description="Able to view stock items"  uuid="ffeb0885-293e-433b-a279-8de6f98026b2"/>
+    <privilege  privilege="Task: stockmanagement.stockItems.mutate"  description="Able to create and update  stock items"  uuid="4a61b6db-03dd-43f2-969c-17dfa66ad41e"/>
+    <privilege  privilege="Task: stockmanagement.stockItems.dispense.qty"  description="Able to view stock item quantities at dispensing locations"  uuid="83871f7a-467e-11ed-8109-00155dcc3fc0"/>
+    <privilege  privilege="Task: stockmanagement.stockItems.dispense"  description="Able to dispense stock items"  uuid="6292e17d-4694-11ed-8109-00155dcc3fc0"/>
+
+    <privilege  privilege="App: stockmanagement.userRoleScopes"  description="Able to view stock management user role scope"  uuid="a627c62a-efa1-4ac9-88e8-b816facfce0a"/>
+    <privilege  privilege="Task: stockmanagement.userRoleScopes.mutate"  description="Able to create and update user role scopes"  uuid="cc5a7ba4-ee34-4c2f-98c7-ae65cacf0094"/>
+
+    <privilege  privilege="App: stockmanagement.stockoperations"  description="Able to view stock operations"  uuid="5d0d6f61-2188-11ed-9dff-507b9dea1806"/>
+    <privilege  privilege="Task: stockmanagement.stockoperations.mutate"  description="Able to create and update stock operations"  uuid="63b8815f-2188-11ed-9dff-507b9dea1806"/>
+    <privilege  privilege="Task: stockmanagement.stockoperations.approve"  description="Able to aprove stock operations"  uuid="7aef02ad-2189-11ed-9dff-507b9dea1806"/>
+    <privilege  privilege="Task: stockmanagement.stockoperations.receiveitems"  description="Able to receive dispatched stock items"  uuid="fd391f90-3335-11ed-a667-507b9dea1806"/>
+
+    <privilege  privilege="App: stockmanagement.stockSources"  description="Able to view stock sources"  uuid="4fec772e-262a-11ed-a544-507b9dea1806"/>
+    <privilege  privilege="Task: stockmanagement.stockSources.mutate"  description="Able to create and update stock sources"  uuid="557acdab-262a-11ed-a544-507b9dea1806"/>
+
+    <privilege  privilege="App: stockmanagement.stockOperationType"  description="Able to view stock operation types"  uuid="5a421e1a-28ad-11ed-bdcb-507b9dea1806"/>
+    <privilege  privilege="Task: stockmanagement.party.read"  description="Able to read party information"  uuid="55670834-28ad-11ed-bdcb-507b9dea1806"/>
+
+    <privilege  privilege="App: stockmanagement.reports"  description="Able to view stock reports"  uuid="27334ff0-698d-11ed-a1c5-806d973f13a9"/>
+    <privilege  privilege="Task: stockmanagement.reports.mutate"  description="Able to create stock reports"  uuid="8f0cecbb-6b11-11ed-93a2-806d973f13a9"/>
+
+    <!-- ROLES -->
+    <role  role="Stock Management Base Role"  description="This Role is the default Role for stock management with basic functionality with less privileges"  uuid="7d8d214d-2188-11ed-9dff-507b9dea1806"/>
+    <role  role="Inventory Manager" description="This enables managing stock management operations accross the stock management application"  uuid="cca4be4b-2188-11ed-9dff-507b9dea1806"/>
+    <role  role="Inventory Administrator" description="This Role enables full access to stock management application"  uuid="2083fd40-3391-11ed-a667-507b9dea1806"/>
+    <role  role="Inventory Clerk" description="This Role enables access to daily stock operations"  uuid="d210eb66-2188-11ed-9dff-507b9dea1806"/>
+    <role  role="Inventory Provider Access" description="This Role enables a provider to view inventory items and access quantities available"  uuid="8ee2f2ac-467f-11ed-8109-00155dcc3fc0"/>
+    <role  role="Inventory Dispensing" description="This Role enables a provider to dispence inventory items"  uuid="84bdd876-4694-11ed-8109-00155dcc3fc0"/>
+    <role  role="Inventory Reporting" description="This Role enables a provider to access reports"  uuid="a49be648-6b0a-11ed-93a2-806d973f13a9"/>
+
+    <!-- ROLE PRIVILEGES -->
+    <!--* BASE ROLE *-->
+    <role_privilege  role="Stock Management Base Role" privilege="App: stockmanagement.dashboard"/>
+    <role_privilege  role="Stock Management Base Role" privilege="App: stockmanagement.stockItems"/>
+    <role_privilege  role="Stock Management Base Role" privilege="App: stockmanagement.stockoperations"/>
+    <role_privilege  role="Stock Management Base Role" privilege="Get Concepts"/>
+    <role_privilege  role="Stock Management Base Role" privilege="Get Locations"/>
+    <role_privilege  role="Stock Management Base Role" privilege="Get Users"/>
+    <role_privilege  role="Stock Management Base Role" privilege="Get Roles"/>
+    <role_privilege  role="Stock Management Base Role" privilege="App: stockmanagement.stockSources"/>
+    <role_privilege  role="Stock Management Base Role" privilege="App: stockmanagement.stockOperationType"/>
+    <role_privilege  role="Stock Management Base Role" privilege="Task: stockmanagement.party.read"/>
+
+
+    <!--* Inventory Provider Access *-->
+    <role_privilege  role="Inventory Provider Access" privilege="App: stockmanagement.stockItems"/>
+    <role_privilege  role="Inventory Provider Access" privilege="Get Concepts"/>
+    <role_privilege  role="Inventory Provider Access" privilege="Get Locations"/>
+    <role_privilege  role="Inventory Provider Access" privilege="Get Users"/>
+    <role_privilege  role="Inventory Provider Access" privilege="App: stockmanagement.stockSources"/>
+    <role_privilege  role="Inventory Provider Access" privilege="App: stockmanagement.stockOperationType"/>
+    <role_privilege  role="Inventory Provider Access" privilege="Task: stockmanagement.party.read"/>
+    <role_privilege  role="Inventory Provider Access" privilege="Task: stockmanagement.stockItems.dispense.qty"/>
+
+
+    <!--* Inventory Dispense *-->
+    <role_role  parent_role="Inventory Provider Access"  child_role="Inventory Dispensing"/>
+    <role_privilege  role="Inventory Dispensing" privilege="Task: stockmanagement.stockItems.dispense"/>
+
+    <!--* Inventory Manager ROLE *-->
+    <role_role  parent_role="Stock Management Base Role"  child_role="Inventory Manager"/>
+    <role_privilege  role="Inventory Manager"  privilege="Task: stockmanagement.stockItems.mutate"/>
+    <role_privilege  role="Inventory Manager"  privilege="Task: stockmanagement.stockoperations.mutate"/>
+    <role_privilege  role="Inventory Manager"  privilege="Task: stockmanagement.stockoperations.approve"/>
+    <role_privilege  role="Inventory Manager"  privilege="Task: stockmanagement.stockSources.mutate"/>
+    <role_privilege  role="Inventory Manager"  privilege="Task: stockmanagement.stockoperations.receiveitems"/>
+
+    <!--* Inventory Clerk ROLE *-->
+    <role_role  parent_role="Stock Management Base Role"  child_role="Inventory Clerk"/>
+    <role_privilege  role="Inventory Clerk"  privilege="Task: stockmanagement.stockoperations.mutate"/>
+    <role_privilege  role="Inventory Clerk"  privilege="Task: stockmanagement.stockSources.mutate"/>
+    <role_privilege  role="Inventory Clerk"  privilege="Task: stockmanagement.stockoperations.receiveitems"/>
+
+    <!--* Inventory Administrator ROLE *-->
+    <role_role  parent_role="Inventory Manager"  child_role="Inventory Administrator"/>
+    <role_privilege  role="Inventory Administrator" privilege="App: stockmanagement.userRoleScopes"/>
+    <role_privilege  role="Inventory Administrator"  privilege="Task: stockmanagement.userRoleScopes.mutate"/>
+
+    <!--* Inventory Reporting ROLE *-->
+    <role_role  parent_role="Stock Management Base Role"  child_role="Inventory Reporting"/>
+    <role_privilege  role="Inventory Reporting"  privilege="App: stockmanagement.reports"/>
+    <role_privilege  role="Inventory Reporting"  privilege="Task: stockmanagement.reports.mutate"/>
+    <role_privilege  role="Inventory Reporting"  privilege="Manage Scheduler"/>
+    <role_privilege  role="Inventory Reporting"  privilege="Get Patients"/>
+
+</dataset>
+
+
+
+
+
+

@@ -1,0 +1,607 @@
+{
+  "stockmanagement": {
+    "title": "Stock Management",
+    "refapp": {
+      "title": "Stock Management Reference Application"
+    },
+    "accessdenied": {
+      "title": "Access Denied.",
+      "description": "The application denied your request because you do not have enough permissions.",
+      "refresh": "Refresh"
+    },
+    "notfound": {
+      "returnhome": "Return to home",
+      "description": "The page you are looking for might have been removed.",
+      "title": "Page not found."
+    },
+    "dashboard": {
+      "title": "Stock Management Dashboard",
+      "loaderror": "Failed to load extensions. "
+    },
+    "userrolescope": {
+      "name": "User Role Scope",
+      "currentrole": "Current Role",
+      "list": {
+        "title": "User Role Scopes",
+        "description": "User roles assigned to users in stock management are required to have been scoped by location and stock operation type.\r\nUsers will not be able to access stock management functionality unless their scopes are defined.",
+        "search": {
+          "placeholder": "Search"
+        },
+        "header": {
+          "name": "User",
+          "role": "Role",
+          "location": "Location(s)",
+          "stockoperations": "Stock Operations",
+          "permanent": "Permanent?",
+          "activeFrom": "Active From",
+          "activeTo": "Active To",
+          "enabled": "Enabled?"
+        },
+        "deleteselectedrows": "Delete the selected rows"
+      },
+      "locationsbelow": "Includes child locations",
+      "delete": {
+        "confirmText": "Are you sure you want to delete the selected scopes?",
+        "success": "Deleted user role scope(s) successfully.",
+        "failed": "Failed to delete user role scopes. "
+      },
+      "load": {
+        "failed": "Failed to load user role scope"
+      },
+      "new": {
+        "title": "New User Role Scope",
+        "new": "User Role Scope"
+      },
+      "edit": {
+        "pageTitle": "User Role Scope",
+        "title": "Editing user role scope",
+        "role": "Role",
+        "user": "User",
+        "stockoperations": "Stock Operations",
+        "stockoperationsdescription": "The role will be applicable to only selected stock operations.",
+        "locations": "Locations",
+        "locationsdescendantsdescription": "Use the toggle to apply this scope to the locations under the selected location."
+      },
+      "operationtypes": "Stock Operations",
+      "loadroleserror": "Failed to load roles",
+      "loadlocationserror": "Failed to load locations",
+      "loaduserserror": "Failed to load a list of users",
+      "createfailed": "Failed to create the user role scope",
+      "updatefailed": "Failed to update the user role scope",
+      "createsuccess": "Successfully created the user role scope ",
+      "updatesuccess": "Successfully updated the user role scope ",
+      "validation": {
+        "rolerequired": "Role is required",
+        "activefromrequired": "Active From is required",
+        "activefromnotinthepast": "Active From must not be in the past",
+        "activetorequired": "Active to is required",
+        "activetonotbeforeactivefrom": "Active To must be after Active From",
+        "operationtyperequired": "Select at least one stock operation type",
+        "locationrequired": "Select at least one location",
+        "userrequired": "Please select a user"
+      }
+    },
+    "operations": {
+      "title": "Stock Operations"
+    },
+    "import": "Import",
+    "drug": "Drug",
+    "item": "Item",
+    "other": "Other",
+    "by": "By",
+    "submitted": "Submitted",
+    "created": "Created",
+    "started": "Started",
+    "cancelled": "Cancelled",
+    "completed": "Completed",
+    "dispatched": "Dispatched",
+    "dispatch": "Dispatch",
+    "rejected": "Rejected",
+    "returned": "Returned",
+    "goback": "Go Back",
+    "status": "Status",
+    "yes": "Yes",
+    "no": "No",
+    "na": "N/A",
+    "addnew": "Add New",
+    "startnew": "Start New",
+    "delete": "Delete",
+    "continue": "Continue",
+    "next": "Next",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "save": "Save",
+    "pleasespecify": "Please specify:",
+    "filtertable": "Filter Table",
+    "approve": "Approve",
+    "return": "Return",
+    "reject": "Reject",
+    "canceltransaction": "Cancel",
+    "issuestock": "Issue Stock",
+    "patientrelated": "Patient Dispense",
+    "print": "Print",
+    "field": {
+      "required": "Required",
+      "noexceed255": "Should not exceed 255 characters",
+      "greaterthanorequaltozero": "Must be greater than or equal to zero",
+      "greaterthanzero": "Must be greater than zero"
+    },
+    "loadstockoperationtypeserror": "Failed to load stock operation types",
+    "nopackagingunitsdefined": "No packaging units defined for stock item",
+    "nostockbatchesdefined": "No stock batch numbers defined. Do a initial/receipt stock operation first.",
+    "stockitem": {
+      "name": "Stock Item",
+      "list": {
+        "title": "Stock Items",
+        "description": "Drugs and other stock items managed by the system.",
+        "search": {
+          "placeholder": "Search",
+          "isdrug": {
+            "all": "All Items",
+            "drugs": "Drugs",
+            "other": "Other"
+          }
+        },
+        "header": {
+          "type": "Type",
+          "genericname": "Generic Name",
+          "tradename": "Trade Name",
+          "isdrug": "Drug?",
+          "retired": "Retired?",
+          "hasexpiration": "Expires?",
+          "preferredVendorName": "Pref. Vendor",
+          "dispensingUnitName": "Dispensing UoM",
+          "dispensingUnitPackagingUoMName": "Dispensing Packaging UoM",
+          "defaultStockOperationsUoMName": "Bulk Packaging",
+          "reorderLevel": "Reorder Level"
+        },
+        "deleteselectedrows": "Delete the selected rows"
+      },
+      "locationsbelow": "Includes child locations",
+      "delete": {
+        "confirmText": "Are you sure you want to delete the selected stock item?",
+        "success": "Deleted stock item(s) successfully.",
+        "failed": "Failed to delete stock items. "
+      },
+      "load": {
+        "failed": "Failed to load stock item"
+      },
+      "new": {
+        "title": "New Stock Item",
+        "new": "Stock Item"
+      },
+      "edit": {
+        "pageTitle": "Stock Item",
+        "title": "Editing stock item",
+        "itemtype": "Item Type:",
+        "itemname": "Item Name:",
+        "commonname": "Common name:",
+        "abbreviation": "Abbreviation:",
+        "hasexpiration": "Does the item expire?",
+        "hasheader": "Does the csv file include headers?",
+        "preferredvendor": "Who is the preferred vendor?",
+        "drugholder": "Choose a drug",
+        "conceptholder": "Choose the item",
+        "vendorholder": "Choose vendor",
+        "dispensingunitholder": "Choose a dispensing unit",
+        "dispensingunit": "Dispensing Unit:",
+        "categoryholder": "Choose a category",
+        "category": "Category:",
+        "choosepackaginguom": "Choose a packaging UoM",
+        "dispensingunitpackaginguom": "Dispensing packaging unit of measurement:",
+        "nopackaginguomtitle": "No packaging units",
+        "nopackaginguomsubtitle": "After you defined packaging units, you will be able to update this field",
+        "defaultstockoperationsuom": "Default stock operations packaging unit:",
+        "reorderlevel": "Reorder level:",
+        "reorderleveluom": "Reorder level packaging unit:",
+        "purchasepriceuom": "Purchase price packaging unit",
+        "purchaseprice": "Purchase price",
+        "expirynotice": "Expiration Notice (days)"
+      },
+      "confirm": {
+        "reason": "Please explain the reason:",
+        "back": {
+          "text": "Are you sure you want to go back to the stock items list?\r\n\r\nAny changes you may have made will be lost.",
+          "heading": "Go Back",
+          "label": ""
+        },
+        "removepackagingunit": {
+          "text": "Would you really like to remove the packaging unit %item.name% from the stock item?",
+          "heading": "Remove Packaging Unit",
+          "label": ""
+        },
+        "removestockrule": {
+          "text": "Would you really like to remove the stock rule %item.name% from the stock item?",
+          "heading": "Remove Stock Rule",
+          "label": ""
+        }
+      },
+      "units": {
+        "packingunit": "Packaging Unit",
+        "factor": "Pack Size",
+        "oneitemrequired": "At least one packaging unit is required",
+        "itemsnotvalid": "Validation failed for packaging units"
+      },
+      "batchinfo": {
+        "location": "Location",
+        "batchno": "Batch Number",
+        "quantity": "Quantity",
+        "quantityuom": "Packaging Unit",
+        "expiration": "Expires"
+      },
+      "transactions": {
+        "datecreated": "Date",
+        "location": "Location",
+        "transactiontype": "Transaction",
+        "quantity": "Quantity",
+        "quantityin": "IN",
+        "quantityout": "OUT",
+        "batchno": "Batch",
+        "reference": "Reference",
+        "status": "Status"
+      },
+      "import": {
+        "success": "Imported the stock items successfully",
+        "failed": "Import was not fully successful"
+      },
+      "stockrule": {
+        "description": "The stock rule will be evaluated by checking if the stock quantities have lowered to the threshold or below and a notification will be sent to personnel with specified role in the given location. The notification will only be sent once per specified notification frequency.",
+        "new": {
+          "title": "New Stock Rule"
+        },
+        "edit": {
+          "evaluationfrequency": "Frequency Check (Minutes)",
+          "actionfrequency": "Notification Frequency (Minutes)",
+          "title": "",
+          "enableeescendants": "Applies to child locations"
+        },
+        "location": "Location",
+        "name": "Rule Name",
+        "quantity": "Quantity Threshold",
+        "quantityunit": "Quantity Unit",
+        "evaluationfrequency": "Frequency Check",
+        "actionfrequency": "Notification Frequency",
+        "alertrole": "Alert Role",
+        "mailrole": "Mail Role",
+        "enable": "Enabled?",
+        "actions": "",
+        "lastevaluation": "Last Checked",
+        "nextevaluation": "Next Check",
+        "lastactiondate": "Last Notification",
+        "nextactiondate": "Next Notification After"
+      },
+      "alllocations": "All location(s)",
+      "filterbylocation": "Filter location",
+      "createfailed": "Failed to create the stock item",
+      "updatefailed": "Failed to update the stock item",
+      "createsuccess": "Successfully created the stock item ",
+      "updatesuccess": "Successfully updated the stock item ",
+      "nomutateprivilegescopes": "You have not been assigned permissions to modify or create stock items",
+      "noaccessprivilegescopes": "You have not been assigned permissions to view this stock item",
+      "itemexists": "Item already exists",
+      "packagingunitcreatefailed": "Failed to create the packaging unit",
+      "packagingunitupdatefailed": "Failed to update the packaging unit",
+      "packagingunitcreatesuccess": "Successfully added the packaging unit",
+      "packagingunitupdatesuccess": "Successfully updated the packaging unit",
+      "deletepackagingunitfailed": "Failed to remove the packaging unit",
+      "deletepackagingunitsuccess": "Successfully removed the packaging unit",
+      "deletestockrulefailed": "Failed to remove the stock rule",
+      "deletestockrulesuccess": "Successfully removed the stock rule",
+      "stockrulecreatefailed": "Failed to create the stock rule",
+      "stockruleupdatefailed": "Failed to update the stock rule",
+      "stockrulecreatesuccess": "Successfully added the stock rule",
+      "stockruleupdatesuccess": "Successfully updated the stock rule"
+    },
+    "stockoperation": {
+      "name": "Stock Operation",
+      "list": {
+        "title": "Stock Operations",
+        "description": "Stock operations to track movement of stock.",
+        "search": {
+          "placeholder": "Search"
+        },
+        "header": {
+          "operationTypeName": "Type",
+          "operationNumber": "Number",
+          "status": "Status",
+          "source": "Source",
+          "destination": "Destination",
+          "location": "Location",
+          "consignmentCategoryName": "Consignment",
+          "responsiblePerson": "Responsible Person",
+          "operationDate": "Date"
+        },
+        "deleteselectedrows": "Delete the selected rows"
+      },
+      "locationsbelow": "Includes child locations",
+      "delete": {
+        "confirmText": "Are you sure you want to delete the selected stock operation?",
+        "success": "Deleted stock operation(s) successfully.",
+        "failed": "Failed to delete stock operations. "
+      },
+      "load": {
+        "failed": "Failed to load stock operation"
+      },
+      "new": {
+        "title": "New",
+        "new": "Stock Operation",
+        "description": "Complete the required information and continue to add items",
+        "stockoperationtype": "What stock operation do you want to record?",
+        "stockoperationtypeplaceholder": "Choose a stock operation",
+        "sourceplaceholder": "Choose a source",
+        "locationplaceholder": "Choose a location",
+        "destinationplaceholder": "Choose a destination",
+        "reasonplaceholder": "Choose a reason"
+      },
+      "edit": {
+        "pageTitle": "Stock Operation",
+        "title": "Editing stock operation",
+        "stockoperationtype": "Stock Operation:",
+        "operationdate": "Operation Date:",
+        "source": "From:",
+        "destination": "To:",
+        "location": "Location:",
+        "operationnumber": "Operation Number:",
+        "responsibleperson": "Responsible Person:",
+        "remarks": "Remarks:",
+        "reason": "Reason:",
+        "submit": "Submit For Review",
+        "complete": "Complete",
+        "dispatch": "Dispatch",
+        "approvalrequired": "Does the transaction require approval?",
+        "oneitemrequired": "At least one stock item is required",
+        "itemsnotvalid": "Validation failed for stock items",
+        "receiveditemsnotvalid": "Validation failed for received items",
+        "qtyuomplaceholder": "Select"
+      },
+      "section": {
+        "requestinformation": "Request Information",
+        "items": "Stock Items"
+      },
+      "validation": {
+        "operationtyperequired": "Please specify the operation type.",
+        "operationdaterequired": "Operation date is required",
+        "operationdatenotinthefuture": "Operation date must not be in the future"
+      },
+      "filter": {
+        "operation": "Operation",
+        "sources": "Sources"
+      },
+      "items": {
+        "item": "Item",
+        "batch": "Batch No",
+        "expiry": "Expiry",
+        "quantity": "Quantity",
+        "quantityuom": "Qty UoM",
+        "purchaseprice": "Purchase Price",
+        "purchasepriceuom": "Price UoM",
+        "sentquantity": "Qty Sent",
+        "quantityreceived": "Qty Received",
+        "quantityreceiveduom": "Qty UoM",
+        "quantityrequested": "Requested",
+        "qtyissuied": "Qty Issued"
+      },
+      "confirm": {
+        "reason": "Please explain the reason:",
+        "back": {
+          "text": "Are you sure you want to go back to the stock operations list?\r\n\r\nAny changes you may have made will be lost.",
+          "heading": "Go Back",
+          "label": ""
+        },
+        "cancel": {
+          "text": "Would you really like to cancel the operation?",
+          "heading": "Cancel Operation",
+          "label": ""
+        },
+        "submit": {
+          "text": "Would you really like to submit the operation for approval?",
+          "heading": "Submit for approval",
+          "label": ""
+        },
+        "complete": {
+          "text": "Would you really like to complete the operation?",
+          "heading": "Complete operation",
+          "label": ""
+        },
+        "dispatch": {
+          "text": "Would you really like to dispatch the transaction?",
+          "heading": "Dispatch transaction",
+          "label": ""
+        },
+        "reject": {
+          "text": "Would you really like to reject the operation?",
+          "heading": "Reject operation",
+          "label": ""
+        },
+        "return": {
+          "text": "Would you really like to return the operation for modification?",
+          "heading": "Return Operation",
+          "label": ""
+        },
+        "approve": {
+          "text": "Would you really like to approve the operation?",
+          "heading": "Approve Operation",
+          "label": ""
+        },
+        "removeitem": {
+          "text": "Would you really like to remove the stock item %item.name% from the operation?",
+          "heading": "Remove Stock Item",
+          "label": ""
+        }
+      },
+      "deletefailed": "Failed to delete the stock operation item",
+      "deletesuccess": "Successfully deleted the stock operation item",
+      "qtyreceivedfailed": "Failed to update quantities for items received",
+      "qtyreceivedsuccess": "Successfully updated quantities for items received",
+      "createfailed": "Failed to create the stock operation",
+      "updatefailed": "Failed to update the stock operation",
+      "createsuccess": "Successfully created the stock operation ",
+      "updatesuccess": "Successfully updated the stock operation ",
+      "nomutateprivilegescopes": "You have not been assigned permissions to modify or create stock operations",
+      "noaccessprivilegescopes": "You have not been assigned permissions to view this stock operation",
+      "operationtypelocationtyperequired": "Misconfiguration of operation types. At least either the source or destination must be a location type.",
+      "operationtypelocationtagsnomatch": "No locations found matching the stock operation required tags or you have not been give access to locations this operation required",
+      "submitfailed": "Submission of the stock operation failed",
+      "submitsuccess": "Submitted stock operation successfully",
+      "cancelfailed": "Cancellation of the stock operation failed",
+      "cancelsuccess": "Cancelled stock operation successfully",
+      "rejectfailed": "Rejection of the stock operation failed",
+      "rejectsuccess": "Rejected stock operation successfully",
+      "returnfailed": "Returning of the stock operation to the requestor failed",
+      "returnsuccess": "Returning of the stock operation to the requestor completed successfully",
+      "approvefailed": "Approval of the stock operation failed",
+      "approvesuccess": "Approval of the stock operation is successfull",
+      "completefailed": "Completing of the stock operation failed",
+      "completesuccess": "Completed stock operation successfully",
+      "dispatchfailed": "Dispatching of the transaction failed",
+      "dispatchsuccess": "Dispatched transaction successfully"
+    },
+    "stocksource": {
+      "name": "Stock Source",
+      "currentrole": "Current Role",
+      "list": {
+        "title": "Stock Sources",
+        "description": "List of partners who provide stock to the facility.",
+        "search": {
+          "placeholder": "Search"
+        },
+        "header": {
+          "name": "Name",
+          "acronym": "Acronym/Code",
+          "sourcetype": "Source type"
+        },
+        "deleteselectedrows": "Delete the selected rows"
+      },
+      "locationsbelow": "Includes child locations",
+      "delete": {
+        "confirmText": "Are you sure you want to delete the selected stock sources?",
+        "success": "Deleted stock source(s) successfully.",
+        "failed": "Failed to delete stock source(s). "
+      },
+      "load": {
+        "failed": "Failed to load stock source"
+      },
+      "new": {
+        "title": "New Stock Source",
+        "new": "Stock Source"
+      },
+      "edit": {
+        "pageTitle": "Stock Source",
+        "title": "Editing stock source",
+        "name": "Full Name",
+        "acronym": "Acronym/Code",
+        "sourceType": "Source type"
+      },
+      "loadsourceTypeserror": "Failed to load stock source types",
+      "createfailed": "Failed to create the stock source",
+      "updatefailed": "Failed to update the stock source",
+      "createsuccess": "Successfully created the stock source ",
+      "updatesuccess": "Successfully updated the stock source ",
+      "validation": {
+        "namerequired": "Name is required",
+        "acronymrequired": "Acronym is required",
+        "sourcetyperequired": "Please select a source type"
+      }
+    },
+    "location": {
+      "name": "Locations",
+      "list": {
+        "title": "Facility Locations",
+        "description": "Stock holding areas should have one of the tags:- Main Store, Main Pharmacy, Dispensary",
+        "search": {
+          "placeholder": "Search"
+        },
+        "header": {
+          "name": "Name",
+          "tags": "Location Tags",
+          "childlocations": "Child Locations"
+        },
+        "deleteselectedrows": "Delete the selected rows"
+      },
+      "locationsbelow": "Includes child locations",
+      "delete": {
+        "confirmText": "Are you sure you want to delete",
+        "success": "Deleted location successfully.",
+        "failed": "Failed to delete location. "
+      },
+      "load": {
+        "failed": "Failed to load location"
+      }
+    },
+    "report": {
+      "description": "The stock rule will be evaluated by checking if the stock quantities have lowered to the threshold or below and a notification will be sent to personnel with specified role in the given location. The notification will only be sent once per specified notification frequency.",
+      "new": {
+        "title": "New Stock Rule"
+      },
+      "edit": {
+        "stockitemcategory": "Stock Item Category",
+        "location": "Location",
+        "childlocation": "Include Child Locations",
+        "date": "Date",
+        "startdate": "Start Date",
+        "enddate": "End Date",
+        "reportname": "Report",
+        "stockitemcategoryholder": "Choose a category",
+        "title": "New Report",
+        "stocksource": "Stock Source",
+        "stocksourcedestination": "Destination",
+        "inventorygroupby": "Inventory By",
+        "maxreorderlevelratio": "Max. Ratio of Reorder Level",
+        "patient": "Patient",
+        "stockitem": "Stock Item",
+        "mostleastmoving": "Rank",
+        "limit": "Limit",
+        "months": "Months",
+        "historicalstartdate": "Historical Start Date",
+        "historicalenddate": "End Date",
+        "fullfillment": "Fullfillment",
+        "allfullfillment": "All",
+        "fullfullfillment": "Full Fullfillment",
+        "partialfullfillment": "Partial Fullfillment",
+        "nonefullfillment": "Non Fullfillment"
+      },
+      "batchjobcreatefailed": "Failed to queue report for generation",
+      "batchjobcreatesuccess": "Successfully queued report for generation",
+      "title": "Report",
+      "parameters": "Parameters",
+      "started": "Started",
+      "ended": "Ended",
+      "expires": "Expires",
+      "executionstate": "Execution State",
+      "completed": "Completed",
+      "exitmessage": "Message",
+      "addnew": "New Report",
+      "cancelreport": "Cancel Report",
+      "locationstockitem": "Location and stock item",
+      "locationstockitembatchno": "Location and batch number",
+      "stockitemonly": "Stock Item",
+      "selectinventorygroupby": "Select ...",
+      "selectmostleastmoving": "Select ...",
+      "mostmoving": "Most Moving",
+      "leastmoving": "Least Moving",
+      "cancelled": {
+        "confirmText": "Are you sure you want to cancel the selected reports?",
+        "success": "Cancelled report(s) successfully.",
+        "failed": "Failed to cancel report(s). "
+      },
+      "filter": {
+        "requesteddate": "Requested",
+        "completeddate": "Completed"
+      },
+      "list": {
+        "title": "Reports",
+        "description": "List of reports requested by users",
+        "header": {
+          "checkbox": "",
+          "description": "Report",
+          "parameters": "Parameters",
+          "owners": "Requested By",
+          "status": "Status",
+          "details": "",
+          "requesteddate": "Date Requested",
+          "completeddate": "Date Completed"
+        }
+      }
+    }
+  }
+}

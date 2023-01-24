@@ -1,0 +1,14 @@
+# Generated automatically by openmrs SDK
+version: '2'
+
+services:
+  web:
+    environment:
+      DEBUG: 'true'
+    ports:
+      - "${TOMCAT_DEV_PORT}:8080"
+      - "${TOMCAT_DEV_DEBUG_PORT}:1044"
+
+  db:
+    ports:
+      - "${MYSQL_DEV_PORT}:3306"

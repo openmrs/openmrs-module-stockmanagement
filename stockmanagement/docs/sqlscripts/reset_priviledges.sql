@@ -1,0 +1,2 @@
+select * from role where lower(role) like 'inventory%' or lower(role) like 'stock management%';
+delete from role_privilege where role in (select role from role where lower(role) like '%inventory%' or lower(role) like 'stock management%')

@@ -1,0 +1,3 @@
+[submodule "ugandaemr/openmrs-module-ugandaemr"]
+	path = ugandaemr/openmrs-module-ugandaemr
+	url = git@bitbucket.org:dev1_komusoft/ugandaemr.git
