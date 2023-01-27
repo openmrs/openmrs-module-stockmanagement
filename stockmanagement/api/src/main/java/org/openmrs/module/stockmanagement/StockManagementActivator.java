@@ -12,7 +12,6 @@ package org.openmrs.module.stockmanagement;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.BaseModuleActivator;
-import org.openmrs.module.stockmanagement.api.model.LocationTree;
 import org.openmrs.module.stockmanagement.tasks.*;
 
 import java.util.ArrayList;

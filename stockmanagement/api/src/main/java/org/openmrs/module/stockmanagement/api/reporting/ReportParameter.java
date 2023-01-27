@@ -39,7 +39,7 @@ public enum ReportParameter {
 	
 	private boolean fullfillment;
 	
-	private ReportParameter(boolean isDate, boolean isStockItemCategory, boolean isLocation, boolean isBoolean,
+	ReportParameter(boolean isDate, boolean isStockItemCategory, boolean isLocation, boolean isBoolean,
 	    boolean isStockSource, boolean isInventoryGroupBy, boolean isMaxReorderLevelRatio, boolean isPatient,
 	    boolean isStockItem, boolean isMostLeastMoving, boolean isUint, boolean fullfillment) {
 		this.isDate = isDate;

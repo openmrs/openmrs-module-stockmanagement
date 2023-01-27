@@ -13,7 +13,6 @@ public class StockOperationLineItem {
 	
 	private Integer stockOperationId;
 	
-	// Stock Operation Item
 	private Integer stockItemId;
 	
 	private Integer stockItemDrugId;

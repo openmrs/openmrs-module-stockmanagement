@@ -426,7 +426,7 @@ public interface StockManagementService extends OpenmrsService {
 	Map<Integer, String> getStockItemNames(List<Integer> stockItemIds);
 	
 	@Transactional(readOnly = true)
-	public Map<Integer, String> getConceptNames(List<Integer> conceptIds);
+	Map<Integer, String> getConceptNames(List<Integer> conceptIds);
 	
 	@Transactional(readOnly = true)
 	Map<Integer, String> getLocationNames(List<Integer> locationIds);

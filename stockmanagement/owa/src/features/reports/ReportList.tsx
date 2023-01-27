@@ -80,7 +80,7 @@ export const ReportList = () => {
             return [];
         }
         let locationUuids = userPrivilegeScopes?.filter(p => p.locationUuid && p.privilege === TASK_STOCKMANAGEMENT_REPORTS_MUTATE).map(p => p.locationUuid);
-        return partyList.results.filter(p => locationUuids.includes(p.locationUuid));
+        return partyList.results.filter(p => locationUuids.includes(p.locationUuid)).sort((a, b) => a.name.toLocaleLowerCase().localeCompare(b.name.toLocaleLowerCase()));
     }, [userPrivilegeScopes, partyList]);
 
     const stockSourceList = useMemo(() => {

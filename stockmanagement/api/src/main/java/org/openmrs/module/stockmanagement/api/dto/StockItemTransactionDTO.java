@@ -247,4 +247,4 @@ public class StockItemTransactionDTO {
 	public void setOrderId(Integer orderId) {
 		this.orderId = orderId;
 	}
-};
+}

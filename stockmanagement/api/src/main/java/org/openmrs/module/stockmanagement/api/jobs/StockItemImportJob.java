@@ -362,20 +362,20 @@ public class StockItemImportJob {
             stockItemPackagingUoms = stockManagementService.getStockItemPackagingUOMs(
                     rowsToUpdate.entrySet().stream().map(p -> {
                         Integer stockItemId = ((Optional<StockItemDTO>) (p.getValue().get(0)[1])).get().getId();
-                        Object[] updates = stockItems.get((Integer) p.getKey());
+                        Object[] updates = stockItems.get(p.getKey());
                         List<Integer> conceptIdsForUom = new ArrayList<Integer>();
                         if (DISPENSING_PUOM < updates.length && updates[DISPENSING_PUOM] != null) {
                             conceptIdsForUom.add((Integer) updates[DISPENSING_PUOM]);
                         }
                         if (REORDER_LVEL_PUOM < updates.length && updates[REORDER_LVEL_PUOM] != null) {
-                            if (conceptIdsForUom.isEmpty() || !conceptIdsForUom.get(0).equals((Integer) updates[REORDER_LVEL_PUOM])) {
+                            if (conceptIdsForUom.isEmpty() || !conceptIdsForUom.get(0).equals(updates[REORDER_LVEL_PUOM])) {
                                 conceptIdsForUom.add((Integer) updates[REORDER_LVEL_PUOM]);
                             }
                         }
 
                         if (PURCHASE_PRICE_PUOM < updates.length && updates[PURCHASE_PRICE_PUOM] != null) {
-                            if (conceptIdsForUom.isEmpty() || (!conceptIdsForUom.get(0).equals((Integer) updates[PURCHASE_PRICE_PUOM]) && (
-                                    conceptIdsForUom.size() < 2 || !conceptIdsForUom.get(1).equals((Integer) updates[PURCHASE_PRICE_PUOM])
+                            if (conceptIdsForUom.isEmpty() || (!conceptIdsForUom.get(0).equals(updates[PURCHASE_PRICE_PUOM]) && (
+                                    conceptIdsForUom.size() < 2 || !conceptIdsForUom.get(1).equals(updates[PURCHASE_PRICE_PUOM])
                             ))) {
                                 conceptIdsForUom.add((Integer) updates[PURCHASE_PRICE_PUOM]);
                             }
@@ -422,7 +422,7 @@ public class StockItemImportJob {
                         if (drugCollection == null) {
                             result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                                     String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.drugnofound"),
-                                            ((Integer) updates[DRUG_ID]).toString())));
+                                            updates[DRUG_ID].toString())));
                             continue;
                         }
                         stockItem.setDrug(drugCollection.get(0));
@@ -440,7 +440,7 @@ public class StockItemImportJob {
                         if (conceptCollection == null) {
                             result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                                     String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.conceptnofound"),
-                                            ((Integer) updates[CONCEPT_ID]).toString())));
+                                            updates[CONCEPT_ID].toString())));
                             continue;
                         }
                         stockItem.setConcept(conceptCollection.get(0));
@@ -489,11 +489,11 @@ public class StockItemImportJob {
             }
 
             if (updates[CATEGORY] != null && (stockItem.getCategory() == null || !stockItem.getCategory().getId().equals(updates[CATEGORY]))) {
-                List<Concept> conceptCollection = concepts.getOrDefault((Integer) updates[CATEGORY], null);
+                List<Concept> conceptCollection = concepts.getOrDefault(updates[CATEGORY], null);
                 if (conceptCollection == null) {
                     result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                             String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.conceptnofound"),
-                                    ((Integer) updates[CATEGORY]).toString())));
+                                    updates[CATEGORY].toString())));
                     continue;
                 }
                categoryConceptToSet = conceptCollection.get(0);
@@ -505,11 +505,11 @@ public class StockItemImportJob {
             }
 
             if (DISPENSING_UNIT < updates.length && updates[DISPENSING_UNIT] != null) {
-                List<Concept> conceptCollection = concepts.getOrDefault((Integer) updates[DISPENSING_UNIT], null);
+                List<Concept> conceptCollection = concepts.getOrDefault(updates[DISPENSING_UNIT], null);
                 if (conceptCollection == null) {
                     result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                             String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.conceptnofound"),
-                                    ((Integer) updates[DISPENSING_UNIT]).toString())));
+                                    updates[DISPENSING_UNIT].toString())));
                     continue;
                 }
                 if (stockItem.getDispensingUnit() == null || !stockItem.getDispensingUnit().getUuid().equals(conceptCollection.get(0).getUuid())) {
@@ -518,11 +518,11 @@ public class StockItemImportJob {
             }
 
             if (DISPENSING_PUOM < updates.length && updates[DISPENSING_PUOM] != null) {
-                List<Concept> conceptCollection = concepts.getOrDefault((Integer) updates[DISPENSING_PUOM], null);
+                List<Concept> conceptCollection = concepts.getOrDefault(updates[DISPENSING_PUOM], null);
                 if (conceptCollection == null) {
                     result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                             String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.conceptnofound"),
-                                    ((Integer) updates[DISPENSING_PUOM]).toString())));
+                                    updates[DISPENSING_PUOM].toString())));
                     continue;
                 }
 
@@ -634,11 +634,11 @@ public class StockItemImportJob {
             }
 
             if (REORDER_LVEL_PUOM < updates.length && updates[REORDER_LVEL_PUOM] != null) {
-                List<Concept> conceptCollection = concepts.getOrDefault((Integer) updates[REORDER_LVEL_PUOM], null);
+                List<Concept> conceptCollection = concepts.getOrDefault(updates[REORDER_LVEL_PUOM], null);
                 if (conceptCollection == null) {
                     result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                             String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.conceptnofound"),
-                                    ((Integer) updates[REORDER_LVEL_PUOM]).toString())));
+                                    updates[REORDER_LVEL_PUOM].toString())));
                     continue;
                 }
 
@@ -656,7 +656,7 @@ public class StockItemImportJob {
                     } else {
                         result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                                 String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.packagingunitwithconceptnoyfound"),
-                                        ((Integer) updates[REORDER_LVEL_PUOM]).toString())));
+                                        updates[REORDER_LVEL_PUOM].toString())));
                         continue;
                     }
                 }
@@ -674,11 +674,11 @@ public class StockItemImportJob {
             }
 
             if (PURCHASE_PRICE_PUOM < updates.length && updates[PURCHASE_PRICE_PUOM] != null) {
-                List<Concept> conceptCollection = concepts.getOrDefault((Integer) updates[PURCHASE_PRICE_PUOM], null);
+                List<Concept> conceptCollection = concepts.getOrDefault(updates[PURCHASE_PRICE_PUOM], null);
                 if (conceptCollection == null) {
                     result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                             String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.conceptnofound"),
-                                    ((Integer) updates[PURCHASE_PRICE_PUOM]).toString())));
+                                    updates[PURCHASE_PRICE_PUOM].toString())));
                     continue;
                 }
 
@@ -696,7 +696,7 @@ public class StockItemImportJob {
                     } else {
                         result.getErrors().add(String.format("Row %1s: %2s", recordToProcess.getKey(),
                                 String.format(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.packagingunitwithconceptnoyfound"),
-                                        ((Integer) updates[PURCHASE_PRICE_PUOM]).toString())));
+                                        updates[PURCHASE_PRICE_PUOM].toString())));
                         continue;
                     }
                 }

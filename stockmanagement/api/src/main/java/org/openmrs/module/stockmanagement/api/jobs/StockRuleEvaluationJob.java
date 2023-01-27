@@ -11,27 +11,18 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleNotificationUser;
-import org.openmrs.module.stockmanagement.api.model.StockRule;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 import org.openmrs.module.stockmanagement.api.utils.NumberFormatUtil;
 import org.openmrs.module.stockmanagement.api.utils.Pair;
 import org.openmrs.module.stockmanagement.api.utils.SmtpUtil;
-import org.openmrs.notification.*;
+import org.openmrs.notification.Alert;
+import org.openmrs.notification.Template;
 import org.openmrs.scheduler.tasks.AbstractTask;
-import org.openmrs.util.OpenmrsConstants;
 
-import javax.activation.DataHandler;
 import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeMessage;
-import javax.mail.util.ByteArrayDataSource;
-import javax.swing.text.html.Option;
-import java.lang.reflect.Array;
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -365,10 +356,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
                                                   StockManagementService stockManagementService) {
         List<StockRuleNotificationUser> rulesWithEnoughQuantites = rules.stream().filter(p -> {
             List<StockRuleCurrentQuantity> stockRuleCurrentQuantity = stockItemLocationEnableDescendantsBalanceMap.getOrDefault(p.getStockItemLocationEnableDescendantsHashCode(), null);
-            if (stockRuleCurrentQuantity != null && stockRuleCurrentQuantity.get(0).getQuantity().compareTo(p.getQuantity()) > 0) {
-                return true;
-            }
-            return false;
+            return stockRuleCurrentQuantity != null && stockRuleCurrentQuantity.get(0).getQuantity().compareTo(p.getQuantity()) > 0;
         }).collect(Collectors.toList());
 
         if (rulesWithEnoughQuantites.isEmpty()) {

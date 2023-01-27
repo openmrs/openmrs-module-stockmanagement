@@ -23,7 +23,6 @@ import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
-import org.openmrs.module.stockmanagement.Item;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -101,24 +100,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	@Before
 	public void setupMocks() {
 		MockitoAnnotations.initMocks(this);
-	}
-	
-	@Test
-	public void saveItem_shouldSetOwnerIfNotSet() {
-		//Given
-		//		Item item = new Item();
-		//		item.setDescription("some description");
-		//
-		//		when(dao.saveItem(item)).thenReturn(item);
-		//
-		//		User user = new User();
-		//		when(userService.getUser(1)).thenReturn(user);
-		//
-		//		//When
-		//		basicModuleService.saveItem(item);
-		//
-		//		//Then
-		//		assertThat(item, hasProperty("owner", is(user)));
 	}
 	
 	@Test

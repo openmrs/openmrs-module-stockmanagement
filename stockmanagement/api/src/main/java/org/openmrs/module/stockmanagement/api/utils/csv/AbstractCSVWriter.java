@@ -3,8 +3,6 @@ package org.openmrs.module.stockmanagement.api.utils.csv;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Writer;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * The AbstractCSVWriter was created to prevent duplication of code between the CSVWriter and the

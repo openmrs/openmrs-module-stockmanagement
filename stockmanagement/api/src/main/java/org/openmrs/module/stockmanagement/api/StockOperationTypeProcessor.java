@@ -8,27 +8,27 @@ import java.math.BigDecimal;
 
 public interface StockOperationTypeProcessor {
 	
-	abstract boolean requiresReason();
+	boolean requiresReason();
 	
-	abstract boolean userCanProcess(User user, Location location);
+	boolean userCanProcess(User user, Location location);
 	
-	abstract boolean userCanProcess(User user, Location location, String privilege);
+	boolean userCanProcess(User user, Location location, String privilege);
 	
-	abstract boolean requiresBatchUuid();
+	boolean requiresBatchUuid();
 	
-	abstract boolean requiresActualBatchInformation();
+	boolean requiresActualBatchInformation();
 	
-	abstract boolean requiresDispatchAcknowledgement();
+	boolean requiresDispatchAcknowledgement();
 	
-	abstract boolean isQuantityOptional();
+	boolean isQuantityOptional();
 	
-	abstract boolean canBeRelatedToRequisition();
+	boolean canBeRelatedToRequisition();
 	
-	abstract boolean canCapturePurchasePrice();
+	boolean canCapturePurchasePrice();
 	
-	abstract boolean shouldVerifyNegativeStockAmountsAtSource();
+	boolean shouldVerifyNegativeStockAmountsAtSource();
 	
-	abstract BigDecimal getQuantityToApplyAtSource(BigDecimal quantity);
+	BigDecimal getQuantityToApplyAtSource(BigDecimal quantity);
 	
 	/**
 	 * Called when the {@link StockOperation} status is initially created and the status is
@@ -36,26 +36,26 @@ public interface StockOperationTypeProcessor {
 	 * 
 	 * @param operation The associated stock operation.
 	 */
-	abstract void onPending(StockOperation operation);
+	void onPending(StockOperation operation);
 	
 	/**
 	 * Called when the {@link StockOperation} status is changed to StockOperationStatus.CANCELLED.
 	 * 
 	 * @param operation The associated stock operation.
 	 */
-	abstract void onCancelled(StockOperation operation);
+	void onCancelled(StockOperation operation);
 	
 	/**
 	 * Called when the {@link StockOperation} status is changed to StockOperationStatus.COMPLETED.
 	 * 
 	 * @param operation The associated stock operation.
 	 */
-	abstract void onCompleted(StockOperation operation);
+	void onCompleted(StockOperation operation);
 	
 	/**
 	 * Determines weather or not negative quantities for items are allowed
 	 * 
 	 * @return true if negative quantities are allowed, else false
 	 */
-	abstract boolean isNegativeItemQuantityAllowed();
+	boolean isNegativeItemQuantityAllowed();
 }

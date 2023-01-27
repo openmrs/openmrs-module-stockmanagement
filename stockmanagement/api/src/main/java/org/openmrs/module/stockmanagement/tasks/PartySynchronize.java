@@ -25,7 +25,7 @@ public class PartySynchronize implements StartupTask {
             List<Location> locations = Context.getLocationService().getAllLocations();
             int countLocations = 0;
             for(Location location : locations){
-                if(!partyList.stream().anyMatch(p -> p.getLocation().getId() == location.getLocationId())){
+                if(!partyList.stream().anyMatch(p -> p.getLocation().getId().equals(location.getLocationId()))){
                     Party party=new Party();
                     party.setLocation(location);
                     party.setDateCreated(new Date());

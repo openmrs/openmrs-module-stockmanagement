@@ -497,7 +497,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         .getPurchasePriceUoMUuid());
                 if (stockItemPackagingUOM == null) {
                     invalidRequest("stockmanagement.stockitem.purchasepriceuomnoexist");
-                } else if (stockItemPackagingUOM.getStockItem().getId() != stockItem.getId()) {
+                } else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
                     invalidRequest("stockmanagement.stockitem.purchasepriceuomnotrelatedtostockitem");
                 }
                 stockItem.setPurchasePriceUoM(stockItemPackagingUOM);
@@ -512,7 +512,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         .getReorderLevelUoMUuid());
                 if (stockItemPackagingUOM == null) {
                     invalidRequest("stockmanagement.stockitem.reorderleveluomnoexist");
-                } else if (stockItemPackagingUOM.getStockItem().getId() != stockItem.getId()) {
+                } else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
                     invalidRequest("stockmanagement.stockitem.reorderleveluomnotrelatedtostockitem");
                 }
                 stockItem.setReorderLevelUOM(stockItemPackagingUOM);
@@ -527,7 +527,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         .getDispensingUnitPackagingUoMUuid());
                 if (stockItemPackagingUOM == null) {
                     invalidRequest("stockmanagement.stockitem.dispensingunituomnoexist");
-                } else if (stockItemPackagingUOM.getStockItem().getId() != stockItem.getId()) {
+                } else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
                     invalidRequest("stockmanagement.stockitem.dispensingunituomnotrelatedtostockitem");
                 }
                 stockItem.setDispensingUnitPackagingUoM(stockItemPackagingUOM);
@@ -540,7 +540,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         .getDefaultStockOperationsUoMUuid());
                 if (stockItemPackagingUOM == null) {
                     throw new StockManagementException("stockmanagement.stockitem.defaultstockoperationsuomnoexist");
-                } else if (stockItemPackagingUOM.getStockItem().getId() != stockItem.getId()) {
+                } else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
                     invalidRequest("stockmanagement.stockitem.defaultstockoperationsuomnotrelatedtostockitem");
                 }
                 stockItem.setDefaultStockOperationsUoM(stockItemPackagingUOM);
@@ -802,7 +802,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public HashSet<PrivilegeScope> getPrivilegeScopes(User user, Location location,
                                                       StockOperationType stockOperationType,
                                                       String stockManagementPrivilege) {
-        return getPrivilegeScopes(user, location, stockOperationType, stockManagementPrivilege == null ? (List) null
+        return getPrivilegeScopes(user, location, stockOperationType, stockManagementPrivilege == null ? null
                 : Arrays.asList(stockManagementPrivilege));
     }
 
@@ -1069,7 +1069,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         stockItemSearchFilter.setIncludeVoided(true);
         Map<Integer, List<StockItemDTO>> stockItems = findStockItems(stockItemSearchFilter).getData().stream()
                 .collect(Collectors.groupingBy(StockItemDTO::getId));
-        ;
         if (stockItems.isEmpty()) {
             return new Result<>(new ArrayList<>(), 0);
         }

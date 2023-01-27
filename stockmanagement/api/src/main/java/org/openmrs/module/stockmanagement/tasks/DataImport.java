@@ -5,8 +5,6 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.dataexchange.DataImporter;
 
-//import org.openmrs.module.dataexchange.DataImporter;
-
 public class DataImport implements StartupTask {
 	
 	private Log log = LogFactory.getLog(this.getClass());

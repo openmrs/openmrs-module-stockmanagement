@@ -50,7 +50,7 @@ public enum StockOperationStatus {
 	 */
 	COMPLETED();
 	
-	private StockOperationStatus() {
+	StockOperationStatus() {
 	}
 	
 	public static boolean IsUpdateable(StockOperationStatus stockOperationStatus) {

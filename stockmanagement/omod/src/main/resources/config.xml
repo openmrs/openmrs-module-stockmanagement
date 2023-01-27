@@ -43,12 +43,6 @@
         </require_module>
     </require_modules>
 
-    <!-- Extensions -->
-    <extension>
-        <point>org.openmrs.admin.list</point>
-        <class>org.openmrs.module.stockmanagement.extension.html.AdminList</class>
-    </extension>
-
     <aware_of_modules>
         <aware_of_module>org.openmrs.module.legacyui</aware_of_module>
     </aware_of_modules>
@@ -146,7 +140,7 @@
 
     <globalProperty>
         <property>stockmanagement.stockSourceCodeConceptId</property>
-        <defaultValue>382a3ade-a8f0-47d8-8c16-163012ab1fae</defaultValue>
+        <defaultValue>2e1e8049-9cbe-4a2d-b1e5-8a91e5d7d97d</defaultValue>
         <description>
             The code concept for stock source types.
         </description>
@@ -154,7 +148,7 @@
 
     <globalProperty>
         <property>stockmanagement.stockAdjustmentReasonCodeConceptId</property>
-        <defaultValue>953d208b-7faa-46ac-ae02-c6316b136a36</defaultValue>
+        <defaultValue>3bbfaa44-d5b8-404d-b4c1-2bf49ad8ce25</defaultValue>
         <description>
             The code concept for stock adjustment reasons.
         </description>
@@ -170,7 +164,7 @@
 
     <globalProperty>
         <property>stockmanagement.packagingUnitsConceptId</property>
-        <defaultValue>0ecc516c-a122-4a98-a7d4-a50415a3e231</defaultValue>
+        <defaultValue>bce2b1af-98b1-48a2-98a2-3e4ffb3c79c2</defaultValue>
         <description>
             The concept for packaging units.
         </description>
@@ -178,7 +172,7 @@
 
     <globalProperty>
         <property>stockmanagement.stockItemCategoryConceptId</property>
-        <defaultValue>3a1b9c32-75d2-4e62-ba02-77511b75af69</defaultValue>
+        <defaultValue>6d24eb6e-b42f-4706-ab2d-ae4472161f6a</defaultValue>
         <description>
             The concept for stock item categories.
         </description>
@@ -324,7 +318,7 @@
         <property>stockmanagement.applicationRootUrl</property>
         <defaultValue></defaultValue>
         <description>
-            The application root url including its context path e.g. https://hospitala.co.ug/openmrs
+            The application root url including its context path e.g. https://hospital.gov.co.ug/openmrs
         </description>
     </globalProperty>
 

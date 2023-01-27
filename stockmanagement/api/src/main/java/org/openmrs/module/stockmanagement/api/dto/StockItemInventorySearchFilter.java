@@ -6,11 +6,11 @@ import java.util.List;
 
 public class StockItemInventorySearchFilter {
 	
-	public static enum InventoryMode {
-		Total(), Consumption(), MostMoving(), LeastMoving();
+	public enum InventoryMode {
+		Total(), Consumption(), MostMoving(), LeastMoving()
 	}
 	
-	public static enum InventoryGroupBy {
+	public enum InventoryGroupBy {
 		LocationStockItemBatchNo(), LocationStockItem(), StockItemOnly();
 		
 		public static InventoryGroupBy findByName(String name) {

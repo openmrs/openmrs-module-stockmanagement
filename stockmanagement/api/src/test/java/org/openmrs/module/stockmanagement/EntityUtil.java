@@ -60,12 +60,6 @@ public class EntityUtil {
 		return Context.getEncounterService().getEncounter(encounters[index]);
 	}
 	
-	public Item newItem() {
-		Item item = new Item();
-		item.setDescription("sfsdf");
-		return item;
-	}
-	
 	public boolean getRandomBool() {
 		return random.nextBoolean();
 	}

@@ -28,7 +28,7 @@ public enum BatchJobType {
 	 */
 	Other();
 	
-	private BatchJobType() {
+	BatchJobType() {
 	}
 	
 	public static BatchJobType findByName(String name) {

@@ -1,21 +1,13 @@
 package org.openmrs.module.stockmanagement.api.validator;
 
 import org.apache.commons.lang.StringUtils;
-import org.openmrs.Location;
-import org.openmrs.LocationTag;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
-import org.openmrs.module.stockmanagement.api.dto.*;
-import org.openmrs.module.stockmanagement.api.model.*;
-import org.openmrs.module.stockmanagement.api.utils.DateUtil;
+import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
+import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
-
-import java.math.BigDecimal;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Handler(supports = { StockOperationDTO.class }, order = 50)
 public class StockOperationActionValidator implements Validator {

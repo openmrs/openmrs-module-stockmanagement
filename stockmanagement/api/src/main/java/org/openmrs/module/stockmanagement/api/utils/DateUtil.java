@@ -9,16 +9,15 @@
  */
 package org.openmrs.module.stockmanagement.api.utils;
 
-import org.apache.commons.lang.time.DateUtils;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
+import org.openmrs.util.OpenmrsUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.openmrs.util.OpenmrsUtil;
 
 public class DateUtil {
 	

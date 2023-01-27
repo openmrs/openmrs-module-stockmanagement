@@ -26,7 +26,7 @@ public class LocationTreeSynchronize implements StartupTask {
             for (LocationTree locationTree : expectedTree) {
                 LocationTree found = null;
                 for (LocationTree dbLocationTree : completeLocationTree) {
-                    if (dbLocationTree.getChildLocationId() == locationTree.getChildLocationId() && dbLocationTree.getParentLocationId() == locationTree.getParentLocationId() && locationTree.getDepth() == dbLocationTree.getDepth()) {
+                    if (dbLocationTree.getChildLocationId().equals(locationTree.getChildLocationId()) && dbLocationTree.getParentLocationId().equals(locationTree.getParentLocationId()) && locationTree.getDepth() == dbLocationTree.getDepth()) {
                         found = dbLocationTree;
                         break;
                     }

@@ -1,9 +1,7 @@
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
-import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
-import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 
 import java.math.BigDecimal;
 

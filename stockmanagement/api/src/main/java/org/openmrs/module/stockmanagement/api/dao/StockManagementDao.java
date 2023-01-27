@@ -18,40 +18,25 @@ import org.hibernate.criterion.*;
 import org.hibernate.criterion.Order;
 import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.type.IntegerType;
-import org.hibernate.type.Type;
 import org.openmrs.*;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.search.LuceneQuery;
-import org.openmrs.module.stockmanagement.Item;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
-import org.openmrs.module.stockmanagement.api.model.LocationTree;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.Period;
 import java.time.ZoneId;
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @SuppressWarnings({ "unchecked" })
 public class StockManagementDao extends DaoBase {
-	
-	public Item getItemByUuid(String uuid) {
-		return (Item) getSession().createCriteria(Item.class).add(Restrictions.eq("uuid", uuid)).uniqueResult();
-	}
-	
-	public Item saveItem(Item item) {
-		getSession().saveOrUpdate(item);
-		return item;
-	}
 	
 	public List<LocationTree> getCompleteLocationTree() {
 		Criteria criteria = getSession().createCriteria(LocationTree.class);
@@ -441,7 +426,7 @@ public class StockManagementDao extends DaoBase {
 	public List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems) {
         LuceneQuery commonNameAcronyQuery = this.newStockItemQuery(text, isDrugSearch, includeAll);
         if (commonNameAcronyQuery == null) return new ArrayList<>();
-        List stockItemIds = commonNameAcronyQuery.listProjection(new String[]{"id"});
+        List stockItemIds = commonNameAcronyQuery.listProjection("id");
         if (!stockItemIds.isEmpty()) {
             CollectionUtils.transform(stockItemIds, new Transformer() {
                 public Object transform(Object input) {
@@ -1207,7 +1192,7 @@ public class StockManagementDao extends DaoBase {
         List<Integer> result = new ArrayList<>();
         List partialResult = query.list();
         for (Iterator it = partialResult.iterator(); it.hasNext(); ) {
-            Object row = (Object) it.next();
+            Object row = it.next();
             Integer integer = ((Number) row).intValue();
             result.add(integer);
         }
@@ -2226,7 +2211,7 @@ public class StockManagementDao extends DaoBase {
 					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
 				}
 				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> p != 0).collect(Collectors.toList());
+					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
 					if (foundPartyIds.isEmpty()) {
 						continue;
 					}
@@ -2442,7 +2427,7 @@ public class StockManagementDao extends DaoBase {
 					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
 				}
 				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> p != 0).collect(Collectors.toList());
+					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
 					if (foundPartyIds.isEmpty()) {
 						continue;
 					}
@@ -2854,7 +2839,7 @@ public class StockManagementDao extends DaoBase {
 					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
 				}
 				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> p != 0).collect(Collectors.toList());
+					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
 					if (foundPartyIds.isEmpty()) {
 						// return new StockInventoryResult(new ArrayList<>(), 0);
 						continue;
@@ -3983,7 +3968,7 @@ public class StockManagementDao extends DaoBase {
                 List<ConceptNameDTO> conceptNameDTOList = conceptNameDTOs.getOrDefault(value, null);
                 if (conceptNameDTOList != null && conceptNameDTOList.isEmpty()) {
                     stockItemNames.putIfAbsent(Integer.valueOf(((Number) (((Object[]) object)[0])).intValue()),
-                            String.format("%1s %2s", (String) ((Object[]) object)[1], conceptNameDTOList.get(0).getName()));
+                            String.format("%1s %2s", ((Object[]) object)[1], conceptNameDTOList.get(0).getName()));
                 } else {
                     stockItemNames.putIfAbsent(Integer.valueOf(((Number) (((Object[]) object)[0])).intValue()), (String) ((Object[]) object)[1]);
                 }

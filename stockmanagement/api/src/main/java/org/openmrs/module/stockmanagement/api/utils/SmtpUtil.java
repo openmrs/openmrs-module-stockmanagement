@@ -5,7 +5,6 @@ import org.openmrs.api.context.Context;
 
 import javax.activation.DataHandler;
 import javax.mail.*;
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.util.ByteArrayDataSource;
@@ -43,7 +42,6 @@ public class SmtpUtil {
 				propertyValue = Context.getAdministrationService().getGlobalProperty("mail.smtp_host");
 				return org.apache.commons.lang.StringUtils.isNotBlank(propertyValue);
 			}
-			;
 		}
 		return true;
 	}

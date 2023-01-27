@@ -44,6 +44,6 @@ public enum BatchJobStatus {
 	 */
 	Expired();
 	
-	private BatchJobStatus() {
+	BatchJobStatus() {
 	}
 }
