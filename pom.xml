@@ -9,7 +9,7 @@
 
     <groupId>org.openmrs.module</groupId>
     <artifactId>stockmanagement</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Stock Management</name>
     <description>Manage Stock</description>
@@ -20,7 +20,7 @@
         <connection>scm:git:git@github.com:METS-Programme/openmrs-module-ugandaemr-commodity.git</connection>
         <developerConnection>scm:git:git@github.com:METS-Programme/openmrs-module-ugandaemr-commodity.git</developerConnection>
         <url>scm:git:https://github.com/METS-Programme/openmrs-module-ugandaemr-commodity</url>
-      <tag>1.0.0</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <modules>
