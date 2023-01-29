@@ -45,11 +45,7 @@ public class SpaPageController {
 	
 	private static String BodyContent = null;
 	
-	/**
-	 * Initially called after the getUsers method to get the landing form name
-	 * 
-	 * @return String form view name
-	 */
+	
 	public void controller(UiUtils ui, PageRequest pageRequest, PageModel model) {
 		try {
 			pageRequest.getResponse().addHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
