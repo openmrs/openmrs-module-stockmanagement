@@ -20,7 +20,7 @@
     <scm>
         <connection>scm:git@github.com:METS-Programme/openmrs-module-ugandaemr-commodity.git</connection>
         <developerConnection>scm:git@github.com:METS-Programme/openmrs-module-ugandaemr-commodity.git</developerConnection>
-        <url>https://github.com/METS-Programme/openmrs-module-ugandaemr-commodity</url>
+        <url>scm:git:https://github.com/METS-Programme/openmrs-module-ugandaemr-commodity</url>
     </scm>
 
     <modules>
