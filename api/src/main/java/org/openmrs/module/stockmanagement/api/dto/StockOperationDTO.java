@@ -607,6 +607,12 @@ public class StockOperationDTO {
 		        && StockOperationStatus.isCompleted(getStatus());
 	}
 	
+	public boolean canUpdateBatchInformation(StockOperationType stockOperationType) {
+		return (!getVoided()) && StockOperationStatus.canUpdateBatchInformation(getStatus())
+		        && stockOperationType.getOperationType().equals(getOperationType())
+		        && stockOperationType.getAllowBatchInfoUpdate();
+	}
+	
 	public Date getDispatchedDate() {
 		return dispatchedDate;
 	}

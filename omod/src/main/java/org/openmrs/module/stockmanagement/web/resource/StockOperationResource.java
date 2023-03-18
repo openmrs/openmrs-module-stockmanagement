@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
+	private Map<String, SimpleObject> permissionCache;
+	
 	public StockOperationResource() {
 	}
 	
@@ -299,8 +301,8 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		}
 		
 		if (rep instanceof FullRepresentation) {
-			description.addProperty("stockOperationItems");
 			description.addProperty("permission");
+			description.addProperty("stockOperationItems");
 			description.addSelfLink();
 		}
 		
@@ -378,6 +380,9 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
 	@PropertyGetter("permission")
     public SimpleObject getPermission(StockOperationDTO stockOperationDTO) {
+        if(permissionCache != null && permissionCache.containsKey(stockOperationDTO.getUuid()))
+            return permissionCache.get(stockOperationDTO.getUuid());
+
         SimpleObject simpleObject = new SimpleObject();
         simpleObject.add("canView", true);
 
@@ -386,6 +391,9 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
         boolean canReceiveItems = stockOperationDTO.canReceiveItems();
         boolean canDisplayReceivedItems = stockOperationDTO.canDisplayReceivedItems();
         boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock();
+        StockOperationType stockOperationType = getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid());
+        boolean canUpdateBatchInformation = stockOperationDTO.canUpdateBatchInformation(stockOperationType);
+        Boolean userHasEditPermissions = null;
 
         if (canEdit || canApprove) {
             HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
@@ -395,7 +403,11 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
                     Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE)
             );
 
-            canEdit = canEdit && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+            if(canEdit) {
+                canEdit = canEdit && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+            }else{
+                userHasEditPermissions = Boolean.valueOf(privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)));
+            }
             canApprove = canApprove && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
         }
 
@@ -430,11 +442,30 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
             }
         }
 
+        if(canUpdateBatchInformation){
+            if(userHasEditPermissions == null){
+                HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
+                        Context.getAuthenticatedUser(),
+                        Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
+                        getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+                        Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
+                );
+                userHasEditPermissions = Boolean.valueOf(!privilegeScopes.isEmpty());
+            }
+            canUpdateBatchInformation = userHasEditPermissions.booleanValue();
+        }
+
         simpleObject.add("canEdit", canEdit);
         simpleObject.add("canApprove", canApprove);
         simpleObject.add("canReceiveItems", canReceiveItems);
         simpleObject.add("canDisplayReceivedItems", canDisplayReceivedItems);
         simpleObject.add("isRequisitionAndCanIssueStock", isRequisitionAndCanIssueStock);
+        simpleObject.add("canUpdateBatchInformation", canUpdateBatchInformation);
+
+        if(permissionCache == null){
+            permissionCache=new HashMap<>();
+            permissionCache.put(stockOperationDTO.getUuid(), simpleObject);
+        }
         return simpleObject;
     }
 	
@@ -452,12 +483,29 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
         filter.setIncludeVoided(false);
         filter.setStockItemUuids(items.getData().stream().map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList()));
         List<StockItemPackagingUOMDTO> packagingUnits = getStockManagementService().findStockItemPackagingUOMs(filter).getData();
+
+        boolean canUpdateBatchInformation = false;
+        SimpleObject permissions = getPermission(stockOperationDTO);
+        Map<Integer, Boolean> stockBatchHasTransactions = null;
+        if(permissions != null){
+            if(permissions.containsKey("canUpdateBatchInformation")) {
+                canUpdateBatchInformation = (boolean)permissions.get("canUpdateBatchInformation");
+                if(canUpdateBatchInformation){
+                    stockBatchHasTransactions = getStockManagementService().checkStockBatchHasTransactionsAfterOperation(stockOperationDTO.getId(), items.getData().stream().filter(p->p.getStockBatchId() != null).map(p -> p.getStockBatchId()).distinct().collect(Collectors.toList()));
+                }
+            }
+        }
+
         for (StockOperationItemDTO itemDTO : items.getData()) {
             List<StockItemPackagingUOMDTO> units = packagingUnits.stream().filter(p -> p.getStockItemUuid().equals(itemDTO.getStockItemUuid())).collect(Collectors.toList());
             if (!units.isEmpty()) {
                 itemDTO.setPackagingUnits(units);
             }
+            if(canUpdateBatchInformation){
+                itemDTO.setCanUpdateBatchInformation( stockBatchHasTransactions != null && !stockBatchHasTransactions.containsKey(itemDTO.getStockBatchId()));
+            }
         }
+
         return items.getData();
     }
 	

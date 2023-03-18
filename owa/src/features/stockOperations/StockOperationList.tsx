@@ -233,7 +233,7 @@ const StockOperationList = () => {
             items={stockItemSearchResult}
             onChange={onStockItemChanged}
             onInputChange={handleStockItemsSearch}
-            itemToString={item => item ? (item?.display ?? (item?.drugName ? `${item?.drugName}${item?.conceptName ? (` (${item?.conceptName})`) : ""}` : null) ?? item?.conceptName ?? '') : ""}
+            itemToString={item => item ? (item?.display ?? (item?.drugName ? `${item?.drugName}${(item?.commonName ?? item?.conceptName) ? (` (${(item?.commonName ?? item?.conceptName)})`) : ""}` : null) ?? item?.conceptName ?? '') : ""}
             placeholder={'Filter stock item...'}
           />
         </div>

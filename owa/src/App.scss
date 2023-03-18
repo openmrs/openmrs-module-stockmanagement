@@ -833,4 +833,9 @@ form input[type="checkbox"],
     }
 
   }
+
+  .small-placeholder-text input[type=number]::placeholder {
+    font-size: 0.8rem;
+    opacity: 0.5;
+  }
 }

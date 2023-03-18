@@ -350,8 +350,10 @@ export const EditReport: React.FC<EditReportProps> = ({
                 await formikRef.current.validateForm().then((e) => {
                     if (!!!formikRef.current?.isValid) {
                         success = false;
-                        Object.keys(e).forEach(p => {
-                            formikRef.current?.setFieldTouched(p, true, true);
+                        setTimeout(() => {
+                            Object.keys(e).forEach(p => {
+                                formikRef.current?.setFieldTouched(p, true, true);
+                            });
                         });
                     }
 
@@ -523,7 +525,7 @@ export const EditReport: React.FC<EditReportProps> = ({
         let newValue = data.selectedItem;
         setModel(
             produce((draft) => {
-                draft.stockItemName = newValue ? `${newValue?.drugName}${newValue?.conceptName ? (` (${newValue?.conceptName})`) : ""}` : undefined;
+                draft.stockItemName = newValue ? `${newValue?.drugName}${(newValue?.commonName ?? newValue?.conceptName) ? (` (${(newValue?.commonName ?? newValue?.conceptName)})`) : ""}` : undefined;
                 draft.stockItemUuid = newValue?.uuid;
             })
         );
@@ -554,7 +556,7 @@ export const EditReport: React.FC<EditReportProps> = ({
         let newValue = data.selectedItem;
         setModel(
             produce((draft) => {
-                draft.patientName = newValue ? (newValue?.display ?? (newValue?.drugName ? `${newValue?.drugName}${newValue?.conceptName ? (` (${newValue?.conceptName})`) : ""}` : null) ?? newValue?.conceptName ?? '') : undefined;
+                draft.patientName = newValue ? (newValue?.display ?? (newValue?.drugName ? `${newValue?.drugName}${(newValue?.commonName ?? newValue?.conceptName) ? (` (${(newValue?.commonName ?? newValue?.conceptName)})`) : ""}` : null) ?? newValue?.conceptName ?? '') : undefined;
                 draft.patientUuid = newValue?.uuid;
             })
         );
@@ -683,7 +685,7 @@ export const EditReport: React.FC<EditReportProps> = ({
                                         items={stockItemSearchResult}
                                         onChange={onStockItemChanged}
                                         onInputChange={handleStockItemsSearch}
-                                        itemToString={item => item ? (item?.display ?? (item?.drugName ? `${item?.drugName}${item?.conceptName ? (` (${item?.conceptName})`) : ""}` : null) ?? item?.conceptName ?? '') : ""}
+                                        itemToString={item => item ? (item?.display ?? (item?.drugName ? `${item?.drugName}${(item?.commonName ?? item?.conceptName) ? (` (${(item?.commonName ?? item?.conceptName)})`) : ""}` : null) ?? item?.conceptName ?? '') : ""}
                                         placeholder={'Filter stock item...'}
                                     />
                                 </>

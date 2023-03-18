@@ -16,7 +16,7 @@ import { selectUserId } from '../../features/auth/authSlice';
 import { Formik, FormikProps, FormikValues } from 'formik';
 import { editValidationSchema, createValidationSchema } from './validationSchema';
 import { ResourceRepresentation } from '../../core/api/api';
-import { cloneDeep } from 'lodash-es';
+import { cloneDeep, debounce } from 'lodash-es';
 import { INVENTORY_ROLE_NAME } from '../../core/consts';
 
 export interface EditUserScopeProps {
@@ -42,7 +42,7 @@ export const EditUserScope: React.FC<EditUserScopeProps> = ({
         return "";
     }
     const currentUserId = useAppSelector(selectUserId);
-    const [getUsers, { data: users, error: loadUsersError, isFetching: isFetchingUsers, isSuccess: loadedUsers }] = useLazyGetUsersQuery();
+    const [getUsers, { data: users, error: loadUsersError, isLoading: isLoadingUsers }] = useLazyGetUsersQuery();
     const [getUser, { data: user, error: loadUserError, isFetching: isFetchingUser, isSuccess: loadedUser }] = useLazyGetUserQuery();
     const [roles, setRoles] = useState<Role[]>([]);
     const { data: locations, error: loadLocationsError, isLoading: isLoadingLocations, isFetching: isFetchingLocations, isSuccess: loadedLocations } = useGetLocationsQuery({ v: ResourceRepresentation.Default });
@@ -51,9 +51,13 @@ export const EditUserScope: React.FC<EditUserScopeProps> = ({
     const formikRef = useRef<FormikProps<FormikValues>>(null);
     const [formikErrors, setFormikErrors] = useState<any>(null);
 
+    const handleUsersSearch = useMemo(() => debounce((searchTerm) => {
+        getUsers({ v: ResourceRepresentation.Default, q: searchTerm } as any as UserFilterCriteria);
+    }, 300), [getUsers]);
+
     useEffect(() => {
-        onFormLoading?.(isFetchingUser || isFetchingUsers || isFetchingStockOperationTypes || isLoadingLocations);
-    }, [isFetchingUser, isFetchingUsers, isFetchingStockOperationTypes, isLoadingLocations, onFormLoading])
+        onFormLoading?.(isFetchingUser || isLoadingUsers || isFetchingStockOperationTypes || isLoadingLocations);
+    }, [isFetchingUser, isLoadingUsers, isFetchingStockOperationTypes, isLoadingLocations, onFormLoading])
 
     useEffect(() => {
         if (isNew) {
@@ -155,8 +159,8 @@ export const EditUserScope: React.FC<EditUserScopeProps> = ({
         let selectedLocation = formModel.locations?.find(x => x.locationUuid === cvt.target.value);
         if (selectedLocation) {
             let newLocations = [...(formModel.locations?.filter(x => x.locationUuid !== selectedLocation?.locationUuid) ?? [])];
-            setFormModel({ ...formModel, locations: newLocations })
-            formikRef?.current?.setFieldValue("location", newLocations.map(x => x.uuid));
+            setFormModel({ ...formModel, locations: newLocations });
+            formikRef?.current?.setFieldValue("location", newLocations.map(x => x.locationUuid));
         }
         else {
             let loc = locations?.results?.find(x => x.uuid === cvt.target.value);
@@ -165,8 +169,9 @@ export const EditUserScope: React.FC<EditUserScopeProps> = ({
                 locationUuid: loc?.uuid,
                 enableDescendants: false
             } as unknown as UserRoleScopeLocation;
-            setFormModel({ ...formModel, locations: [...(formModel.locations ?? []), newLocation] })
-            formikRef?.current?.setFieldValue("location", [loc?.uuid])
+            let newLocations = [...(formModel.locations ?? []), newLocation];
+            setFormModel({ ...formModel, locations: newLocations })
+            formikRef?.current?.setFieldValue("location", newLocations.map(x => x.locationUuid));
         }
         if (formikErrors?.location) {
             setFormikErrors({ ...formikErrors, location: null });
@@ -229,15 +234,25 @@ export const EditUserScope: React.FC<EditUserScopeProps> = ({
         {({ errors, touched, validateField, validateForm }) => (
             <Form className='user-role-scope-edit smt-form' onSubmit={onFormSubmit}>
                 {
-                    isNew && isFetchingUsers && <SelectSkeleton hideLabel />
+                    isNew && isLoadingUsers && <SelectSkeleton hideLabel />
                 }
                 {
-                    isNew && !isFetchingUsers && !loadedUsers &&
+                    isNew && !isLoadingUsers && loadUsersError &&
                     <span className="error-text">{t('stockmanagement.useruserscope.loaduserserror')} {toErrorMessage(loadUsersError)}</span>
                 }
                 {
-                    isNew && !isFetchingUsers && loadedUsers && <>
-                        <ComboBox titleText={t('stockmanagement.userrolescope.edit.user')} invalid={!!(formikErrors?.user)} invalidText={t(formikErrors?.user)} name="user" id="select-user" light items={users!.results?.filter(x => x.uuid !== currentUserId)} onChange={onUserChanged} itemToString={item => (item?.person?.display ?? item?.display ?? '')} placeholder={'Filter...'} />
+                    isNew && !isLoadingUsers && <>
+                        <ComboBox titleText={t('stockmanagement.userrolescope.edit.user')}
+                            invalid={!!(formikErrors?.user)} invalidText={t(formikErrors?.user)}
+                            name="user" id="select-user" light
+                            items={(users?.results ?? []).filter(x => x.uuid !== currentUserId)}
+                            onChange={onUserChanged}
+                            shouldFilterItem={(data) => true}
+                            onFocus={() => users?.results || handleUsersSearch("")}
+                            onToggleClick={() => users?.results || handleUsersSearch("")}
+                            onInputChange={(e) => handleUsersSearch(e)}
+                            itemToString={item => (`${item?.person?.display ?? item?.display ?? ''}`)}
+                            placeholder={'Filter...'} />
                     </>
                 }
                 {

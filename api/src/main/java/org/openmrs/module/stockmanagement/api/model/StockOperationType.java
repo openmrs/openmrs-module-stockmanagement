@@ -77,6 +77,9 @@ public class StockOperationType extends BaseChangeableOpenmrsData implements Ser
 	@Column(name = "allow_expired_batch_numbers")
 	private Boolean allowExpiredBatchNumbers;
 	
+	@Column(name = "allow_batch_info_update")
+	private Boolean allowBatchInfoUpdate;
+	
 	//bi-directional many-to-one association to StockOperationTypeLocationScope
 	@OneToMany(mappedBy = "stockOperationType")
 	private Set<StockOperationTypeLocationScope> stockOperationTypeLocationScopes;
@@ -389,5 +392,13 @@ public class StockOperationType extends BaseChangeableOpenmrsData implements Ser
 	
 	public void setAllowExpiredBatchNumbers(Boolean allowExpiredBatchNumbers) {
 		this.allowExpiredBatchNumbers = allowExpiredBatchNumbers;
+	}
+	
+	public Boolean getAllowBatchInfoUpdate() {
+		return allowBatchInfoUpdate;
+	}
+	
+	public void setAllowBatchInfoUpdate(Boolean allowBatchInfoUpdate) {
+		this.allowBatchInfoUpdate = allowBatchInfoUpdate;
 	}
 }

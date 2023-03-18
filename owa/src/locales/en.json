@@ -120,6 +120,7 @@
     "issuestock": "Issue Stock",
     "patientrelated": "Patient Dispense",
     "print": "Print",
+    "notset": "Not Set",
     "field": {
       "required": "Required",
       "noexceed255": "Should not exceed 255 characters",
@@ -145,6 +146,7 @@
         "header": {
           "type": "Type",
           "genericname": "Generic Name",
+          "commonname": "Common Name",
           "tradename": "Trade Name",
           "isdrug": "Drug?",
           "retired": "Retired?",
@@ -454,7 +456,10 @@
       "completefailed": "Completing of the stock operation failed",
       "completesuccess": "Completed stock operation successfully",
       "dispatchfailed": "Dispatching of the transaction failed",
-      "dispatchsuccess": "Dispatched transaction successfully"
+      "dispatchsuccess": "Dispatched transaction successfully",
+      "updatebatchinfo": "Update Batch Information",
+      "updatebatchinfofailed": "Failed to update the batch information",
+      "updatebatchinfosuccess": "Successfully updated the batch information"
     },
     "stocksource": {
       "name": "Stock Source",

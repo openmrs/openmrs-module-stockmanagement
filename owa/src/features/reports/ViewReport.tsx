@@ -206,8 +206,10 @@ export const ViewReport: React.FC<ViewReportProps> = ({
                 await formikRef.current.validateForm().then((e) => {
                     if (!!!formikRef.current?.isValid) {
                         success = false;
-                        Object.keys(e).forEach(p => {
-                            formikRef.current?.setFieldTouched(p, true, true);
+                        setTimeout(() => {
+                            Object.keys(e).forEach(p => {
+                                formikRef.current?.setFieldTouched(p, true, true);
+                            });
                         });
                     }
 

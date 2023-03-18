@@ -76,4 +76,9 @@ public enum StockOperationStatus {
 	public static boolean isCompleted(StockOperationStatus stockOperationStatus) {
 		return stockOperationStatus != null && stockOperationStatus == COMPLETED;
 	}
+	
+	public static boolean canUpdateBatchInformation(StockOperationStatus stockOperationStatus) {
+		return (!IsUpdateable(stockOperationStatus))
+		        && (isCompleted(stockOperationStatus) || IsApproveable(stockOperationStatus));
+	}
 }

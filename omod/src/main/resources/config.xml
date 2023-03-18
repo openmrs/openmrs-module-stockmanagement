@@ -354,6 +354,14 @@
         </description>
     </globalProperty>
 
+    <globalProperty>
+        <property>stockmanagement.packagingUnitPackSizePriorityIsBigToSmall</property>
+        <defaultValue>true</defaultValue>
+        <description>
+            Packaging unit priority when default stock operation unit is not set is big to small pack size
+        </description>
+    </globalProperty>
+
     <!-- /Global Properties -->
 </module>
 

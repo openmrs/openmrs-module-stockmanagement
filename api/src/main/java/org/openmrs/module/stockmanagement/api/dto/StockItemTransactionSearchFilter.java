@@ -20,6 +20,8 @@ public class StockItemTransactionSearchFilter {
 	
 	Date transactionDateMax;
 	
+	public Integer afterLastStockOperationId;
+	
 	public String getUuid() {
 		return uuid;
 	}
@@ -82,5 +84,13 @@ public class StockItemTransactionSearchFilter {
 	
 	public void setTransactionDateMax(Date transactionDateMax) {
 		this.transactionDateMax = transactionDateMax;
+	}
+	
+	public Integer getAfterLastStockOperationId() {
+		return afterLastStockOperationId;
+	}
+	
+	public void setAfterLastStockOperationId(Integer afterLastStockOperationId) {
+		this.afterLastStockOperationId = afterLastStockOperationId;
 	}
 }

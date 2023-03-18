@@ -75,12 +75,12 @@ const editOnlyValidationSchema = {
 
 const stockRulesCommonValidationSchema = {
     name: Yup.string().required('stockmanagement.field.required').max(255, "stockmanagement.field.noexceed255"),
-    quantity: Yup.number().required('stockmanagement.field.required').min(0, "greaterthanorequaltozero"),
-    stockItemPackagingUOMUuid: Yup.string().required('stockmanagement.field.required'),
-    evaluationFrequency: Yup.number().required('stockmanagement.field.required'),
-    actionFrequency: Yup.number().required('stockmanagement.field.required'),
-    alertRole: Yup.string().required('stockmanagement.field.required'),
-    mailRole: Yup.string().required('stockmanagement.field.required')
+    quantity: Yup.number().required('stockmanagement.field.required').min(0, "greaterthanorequaltozero").nullable(),
+    stockItemPackagingUOMUuid: Yup.string().required('stockmanagement.field.required').nullable(),
+    evaluationFrequency: Yup.number().required('stockmanagement.field.required').nullable(),
+    actionFrequency: Yup.number().required('stockmanagement.field.required').nullable(),
+    alertRole: Yup.string().required('stockmanagement.field.required').nullable(),
+    mailRole: Yup.string().required('stockmanagement.field.required').nullable()
 }
 
 const stockRulesCreateOnlyValidationSchema = {

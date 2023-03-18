@@ -191,8 +191,10 @@ export const EditStockRule: React.FC<EditStockRuleProps> = ({
                 await formikRef.current.validateForm().then((e) => {
                     if (!!!formikRef.current?.isValid) {
                         success = false;
-                        Object.keys(e).forEach(p => {
-                            formikRef.current?.setFieldTouched(p, true, true);
+                        setTimeout(() => {
+                            Object.keys(e).forEach(p => {
+                                formikRef.current?.setFieldTouched(p, true, true);
+                            });
                         });
                     }
 
@@ -428,7 +430,7 @@ export const EditStockRule: React.FC<EditStockRuleProps> = ({
                                 <NumberInput id="stockRuleQtyactionFrequency" allowEmpty={true} readOnly={!canEdit}
                                     onChange={(e: any, d: any) => onActionFrequencyFieldChange(e?.target?.value)}
                                     value={model?.actionFrequency ?? ""} label={t('stockmanagement.stockitem.stockrule.edit.actionfrequency')}
-                                    invalid={touched.evaluationFrequency && !!errors.evaluationFrequency} invalidText={t2(errors.evaluationFrequency)}
+                                    invalid={touched.actionFrequency && !!errors.actionFrequency} invalidText={t2(errors.actionFrequency)}
                                 />
                             </div>
                         </div>

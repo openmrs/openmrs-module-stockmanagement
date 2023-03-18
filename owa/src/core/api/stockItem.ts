@@ -24,18 +24,21 @@ export interface StockItemTransactionFilter extends ResourceFilterCriteria {
   includeBatchNo?: boolean | null;
   dateMin?: string | null;
   dateMax?: string | null;
+  stockBatchUuid?: string | null | undefined;
 }
 
 export interface StockItemInventoryFilter extends ResourceFilterCriteria {
   stockItemUuid?: string | null;
   partyUuid?: string | null;
   locationUuid?: string | null;
+  includeBatchNo?: boolean | null;
   stockBatchUuid?: string | null;
   groupBy?: InventoryGroupBy | null;
   totalBy?: InventoryGroupBy | null;
   stockOperationUuid?: string | null;
   date?: string | null;
   includeStockItemName?: "true" | "false" | "0" | "1";
+  excludeExpired?: boolean | null;
 }
 
 export interface StockItemPackagingUOMFilter extends ResourceFilterCriteria {
@@ -84,7 +87,7 @@ const stockItemsApi = api.injectEndpoints({
         return [{ type: StockItemTransactionsTag, id: LIST_ID }];
       }
     }),
-    getStockItemInventory: build.query<StockInventoryResult, StockItemTransactionFilter>({
+    getStockItemInventory: build.query<StockInventoryResult, StockItemInventoryFilter>({
       query: (filter) => ({
         url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockiteminventory${toQueryParams(filter)}`,
         method: 'GET'

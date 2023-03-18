@@ -131,6 +131,18 @@ const stockOperationsApi = api.injectEndpoints({
         return [{ type: StockOperationsTag, id: id.uuid }];
       }
     }),
+    updateStockOperationBatchNumbers: build.mutation<StockOperationDTO, { model: any, uuid: string }>({
+      query: (stockOperation) => {
+        return {
+          url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockoperationbatchnumbers/${stockOperation.uuid}`,
+          method: 'POST',
+          body: stockOperation.model
+        }
+      },
+      invalidatesTags: (_result, _err, id) => {
+        return [{ type: StockOperationsTag, id: id.uuid }];
+      }
+    }),
   }),
   overrideExisting: false,
 })
@@ -147,5 +159,6 @@ export const {
   useDeleteStockOperationItemMutation,
   useExecuteStockOperationActionMutation,
   useGetStockOperationLinksQuery,
-  useLazyGetStockOperationLinksQuery
+  useLazyGetStockOperationLinksQuery,
+  useUpdateStockOperationBatchNumbersMutation
 } = stockOperationsApi

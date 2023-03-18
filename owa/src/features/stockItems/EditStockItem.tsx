@@ -209,8 +209,8 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
     const onPreferredVendorChange = (data: { selectedItem: StockSource }) => {
         let party = data.selectedItem;
         setModel(produce((draft) => {
-            draft.preferredVendorUuid = party?.uuid;
-            draft.preferredVendorName = party?.name;
+            draft.preferredVendorUuid = party?.uuid ?? null;
+            draft.preferredVendorName = party?.name ?? null;
         })
         );
         formikRef?.current?.setFieldValue("preferredVendorUuid", party?.uuid);
@@ -219,8 +219,8 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
     const onDispensingUnitChange = (data: { selectedItem: Concept }) => {
         let concept = data.selectedItem;
         setModel(produce((draft) => {
-            draft.dispensingUnitUuid = concept?.uuid;
-            draft.dispensingUnitName = concept?.display;
+            draft.dispensingUnitUuid = concept?.uuid ?? null;
+            draft.dispensingUnitName = concept?.display ?? null;
         })
         );
         formikRef?.current?.setFieldValue("dispensingUnitUuid", concept?.uuid);
@@ -229,8 +229,8 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
     const onCategoryChange = (data: { selectedItem: Concept }) => {
         let concept = data.selectedItem;
         setModel(produce((draft) => {
-            draft.categoryUuid = concept?.uuid;
-            draft.categoryName = concept?.display;
+            draft.categoryUuid = concept?.uuid ?? null;
+            draft.categoryName = concept?.display ?? null;
         })
         );
         formikRef?.current?.setFieldValue("categoryUuid", concept?.uuid);
@@ -239,8 +239,8 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
     const onDispensingUnitPackagingUoMChange = (evt: ChangeEvent<HTMLSelectElement>) => {
         let selected = packagingUnits.find(x => x.uuid === evt.target.value);
         setModel(produce((draft) => {
-            draft.dispensingUnitPackagingUoMUuid = selected?.uuid;
-            draft.dispensingUnitPackagingUoMName = selected?.packagingUomName;
+            draft.dispensingUnitPackagingUoMUuid = selected?.uuid ?? null;
+            draft.dispensingUnitPackagingUoMName = selected?.packagingUomName ?? null;
         })
         );
         formikRef?.current?.setFieldValue("dispensingUnitPackagingUoMUuid", selected?.uuid);
@@ -249,8 +249,8 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
     const onDefaultStockOperationsUoMChange = (evt: ChangeEvent<HTMLSelectElement>) => {
         let selected = packagingUnits.find(x => x.uuid === evt.target.value);
         setModel(produce((draft) => {
-            draft.defaultStockOperationsUoMUuid = selected?.uuid;
-            draft.defaultStockOperationsUoMName = selected?.packagingUomName;
+            draft.defaultStockOperationsUoMUuid = selected?.uuid ?? null;
+            draft.defaultStockOperationsUoMName = selected?.packagingUomName ?? null;
         })
         );
         formikRef?.current?.setFieldValue("defaultStockOperationsUoMUuid", selected?.uuid);
@@ -280,8 +280,8 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
     const onReorderLevelUoMChange = (evt: ChangeEvent<HTMLSelectElement>) => {
         let selected = packagingUnits.find(x => x.uuid === evt.target.value);
         setModel(produce((draft) => {
-            draft.reorderLevelUoMUuid = selected?.uuid;
-            draft.reorderLevelUoMName = selected?.packagingUomName;
+            draft.reorderLevelUoMUuid = selected?.uuid ?? null;
+            draft.reorderLevelUoMName = selected?.packagingUomName ?? null;
         })
         );
         formikRef?.current?.setFieldValue("reorderLevelUoMUuid", selected?.uuid);
@@ -332,8 +332,8 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
     const onPurchasePriceUoMChange = (evt: ChangeEvent<HTMLSelectElement>) => {
         let selected = packagingUnits.find(x => x.uuid === evt.target.value);
         setModel(produce((draft) => {
-            draft.purchasePriceUoMUuid = selected?.uuid;
-            draft.purchasePriceUoMName = selected?.packagingUomName;
+            draft.purchasePriceUoMUuid = selected?.uuid ?? null;
+            draft.purchasePriceUoMName = selected?.packagingUomName ?? null;
         })
         );
         formikRef?.current?.setFieldValue("purchasePriceUoMUuid", selected?.uuid);
@@ -347,8 +347,12 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                 await formikRef.current.validateForm().then((e) => {
                     if (!!!formikRef.current?.isValid) {
                         success = false;
+                        setTimeout(() => {
+                            Object.keys(e).forEach(p => {
+                                formikRef.current?.setFieldTouched(p, true, true);
+                            });
+                        });
                     }
-                    console.log(e);
                 }, (f) => {
                     success = false;
                 });
@@ -480,6 +484,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                                     onChange={onPreferredVendorChange}
                                     initialSelectedItem={stockSourceList?.results?.find(p => p.uuid === model.preferredVendorUuid)}
                                     itemToString={item => item ? `${item?.name}` : ""}
+                                    shouldFilterItem={(data) => true}
                                     placeholder={t("stockmanagement.stockitem.edit.vendorholder")} />
                             </>
                         }
@@ -500,6 +505,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                                     onChange={onCategoryChange}
                                     initialSelectedItem={(categories?.answers && categories?.answers.length > 0 ? categories?.answers : categories?.setMembers)?.find(p => p.uuid === model.categoryUuid) ?? {} as any}
                                     itemToString={item => item && item?.display ? `${item?.display}` : ""}
+                                    shouldFilterItem={(data) => true}
                                     placeholder={t("stockmanagement.stockitem.edit.categoryholder")} />
                             </>
                         }
@@ -520,6 +526,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                                     onChange={onDispensingUnitChange}
                                     initialSelectedItem={(dispensingUnits?.answers && dispensingUnits?.answers.length > 0 ? dispensingUnits?.answers : dispensingUnits?.setMembers)?.find(p => p.uuid === model.dispensingUnitUuid) ?? {} as any}
                                     itemToString={item => item && item?.display ? `${item?.display}` : ""}
+                                    shouldFilterItem={(data) => true}
                                     placeholder={t("stockmanagement.stockitem.edit.dispensingunitholder")} />
                             </>
                         }
@@ -599,7 +606,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                             <Select invalid={touched.reorderLevelUoMUuid && !!errors.reorderLevelUoMUuid} invalidText={t2(errors.reorderLevelUoMUuid)}
                                 name='reorderLevelUoMUuid' className='select-field' labelText={t('stockmanagement.stockitem.edit.reorderleveluom')}
                                 id="reorderLevelUoMUuid" value={model.reorderLevelUoMUuid ?? "placeholder-item"} onChange={onReorderLevelUoMChange}>
-                                <SelectItem disabled hidden value="placeholder-item" text={t("stockmanagement.stockitem.edit.choosepackaginguom")} />
+                                <SelectItem value="placeholder-item" text={t("stockmanagement.notset")} />
                                 {packagingUnits?.map(uom => {
                                     return <SelectItem key={uom.uuid} value={uom.uuid} text={uom.packagingUomName ?? ""} />
                                 })}
@@ -634,7 +641,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                             <Select invalid={touched.purchasePriceUoMUuid && !!errors.purchasePriceUoMUuid} invalidText={t2(errors.purchasePriceUoMUuid)}
                                 name='purchasePriceUoMUuid' className='select-field' labelText={t('stockmanagement.stockitem.edit.purchasepriceuom')}
                                 id="purchasePriceUoMUuid" value={model.purchasePriceUoMUuid ?? "placeholder-item"} onChange={onPurchasePriceUoMChange}>
-                                <SelectItem disabled hidden value="placeholder-item" text={t("stockmanagement.stockitem.edit.choosepackaginguom")} />
+                                <SelectItem value="placeholder-item" text={t("stockmanagement.notset")} />
                                 {packagingUnits?.map(uom => {
                                     return <SelectItem key={uom.uuid} value={uom.uuid} text={uom.packagingUomName ?? ""} />
                                 })}

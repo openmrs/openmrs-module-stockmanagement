@@ -45,7 +45,6 @@ public class SpaPageController {
 	
 	private static String BodyContent = null;
 	
-	
 	public void controller(UiUtils ui, PageRequest pageRequest, PageModel model) {
 		try {
 			pageRequest.getResponse().addHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");

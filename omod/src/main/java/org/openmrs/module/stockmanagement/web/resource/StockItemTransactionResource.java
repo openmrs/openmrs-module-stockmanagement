@@ -131,6 +131,7 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			description.addProperty("quantity");
 			description.addProperty("stockBatchUuid");
 			description.addProperty("stockBatchNo");
+			description.addProperty("expiration");
 			description.addProperty("stockItemUuid");
 			description.addProperty("stockOperationUuid");
 			description.addProperty("stockOperationStatus");
@@ -174,7 +175,8 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			        .property("partyUuid", new StringProperty()).property("partyName", new StringProperty())
 			        .property("isPatientTransaction", new BooleanProperty()).property("quantity", new DecimalProperty())
 			        .property("stockBatchUuid", new StringProperty()).property("stockBatchNo", new StringProperty())
-			        .property("stockItemUuid", new StringProperty()).property("stockOperationUuid", new StringProperty())
+			        .property("expiration", new StringProperty()).property("stockItemUuid", new StringProperty())
+			        .property("stockOperationUuid", new StringProperty())
 			        .property("stockOperationStatus", new StringProperty())
 			        .property("stockOperationNumber", new StringProperty())
 			        .property("stockOperationTypeName", new StringProperty())
