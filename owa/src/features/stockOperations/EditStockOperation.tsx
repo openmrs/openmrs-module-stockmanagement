@@ -15,6 +15,8 @@ import { useLazyGetUsersQuery, UserFilterCriteria, useLazyGetConceptByIdQuery } 
 import { ResourceRepresentation } from '../../core/api/api';
 import { debounce } from 'lodash-es';
 import { User } from '../../core/api/types/identity/User';
+import { StockItemInventory } from '../../core/api/types/stockItem/StockItemInventory';
+import { LocationTypeLocation } from '../../core/api/types/stockOperation/LocationType';
 
 export interface EditStockOperationProps {
     model: StockOperationDTO;
@@ -22,6 +24,9 @@ export interface EditStockOperationProps {
     isNew: boolean;
     hasItems: boolean;
     locked: boolean;
+    atLocation: string | null | undefined;
+    setAtLocation: React.Dispatch<React.SetStateAction<string | null | undefined>>;
+    setBatchBalance: React.Dispatch<React.SetStateAction<{ [key: string]: StockItemInventory }>>;
     setShowSplash: React.Dispatch<React.SetStateAction<boolean>>;
     setShowItems: React.Dispatch<React.SetStateAction<boolean>>;
     setSelectedTab: React.Dispatch<React.SetStateAction<number>>;
@@ -61,7 +66,9 @@ export const EditStockOperation: React.FC<EditStockOperationProps> = ({
     setSelectedTab,
     actions,
     requireStockAdjustmentReason,
-
+    atLocation,
+    setAtLocation,
+    setBatchBalance
 
 }) => {
     const { t } = useTranslation();
@@ -91,11 +98,28 @@ export const EditStockOperation: React.FC<EditStockOperationProps> = ({
         formikRef?.current?.setFieldValue("operationDate", dates[0]);
     }
 
+    const updateAtLocation = (locationUuid: string, isSource: boolean) => {
+        if (isSource && atLocation !== locationUuid) {
+            if (currentStockOperationType?.hasSource && LocationTypeLocation === currentStockOperationType?.sourceType) {
+                setAtLocation(locationUuid);
+                setBatchBalance({});
+            }
+        }
+        if (!isSource && atLocation !== locationUuid) {
+            if ((!(currentStockOperationType?.hasSource && LocationTypeLocation === currentStockOperationType?.sourceType)) &&
+                currentStockOperationType?.hasDestination && LocationTypeLocation === currentStockOperationType?.destinationType) {
+                setAtLocation(locationUuid);
+                setBatchBalance({});
+            }
+        }
+    }
+
     const onSourceChange = (data: { selectedItem: Party }) => {
         setShowItems(false);
         let party = data.selectedItem;
         setModel({ ...model, sourceUuid: party?.uuid, sourceName: party?.name });
         formikRef?.current?.setFieldValue("sourceUuid", party?.uuid);
+        updateAtLocation(party?.locationUuid, true);
     }
 
     const onDestinationChange = (data: { selectedItem: Party }) => {
@@ -103,6 +127,7 @@ export const EditStockOperation: React.FC<EditStockOperationProps> = ({
         let party = data.selectedItem;
         setModel({ ...model, destinationUuid: party?.uuid, destinationName: party?.name });
         formikRef?.current?.setFieldValue("destinationUuid", party?.uuid);
+        updateAtLocation(party?.locationUuid, false);
     }
 
     const onResponsiblePersonChanged = (data: { selectedItem: User }) => {
@@ -252,6 +277,7 @@ export const EditStockOperation: React.FC<EditStockOperationProps> = ({
                             onChange={onResponsiblePersonChanged}
                             shouldFilterItem={(data) => true}
                             onFocus={() => usersList?.results || handleUsersSearch("")}
+                            onToggleClick={() => usersList?.results || handleUsersSearch("")}
                             onInputChange={(e) => handleUsersSearch(e, model?.responsiblePersonFamilyName)}
                             itemToString={item => (`${item?.person?.display ?? item?.display ?? ''}`)}
                             placeholder={'Filter...'} />

@@ -24,7 +24,7 @@ import { errorAlert } from '../../core/utils/alert'
 import { getStockOperationUniqueId, toErrorMessage } from '../../core/utils/stringUtils';
 import { StockItemDTO } from '../../core/api/types/stockItem/StockItem';
 import { StockOperationItemDTO } from '../../core/api/types/stockOperation/StockOperationItemDTO';
-import { useLazyGetStockItemsQuery, StockItemFilter, useLazyGetStockItemPackagingUOMsQuery, useLazyGetStockBatchesQuery } from '../../core/api/stockItem';
+import { useLazyGetStockItemsQuery, StockItemFilter, useLazyGetStockItemPackagingUOMsQuery, useLazyGetStockBatchesQuery, useLazyGetStockItemInventoryQuery } from '../../core/api/stockItem';
 import { ResourceRepresentation } from '../../core/api/api';
 import { DATE_PICKER_CONTROL_FORMAT, DATE_PICKER_FORMAT, formatForDatePicker, ParseDate, today } from '../../core/utils/datetimeUtils';
 import produce from "immer";
@@ -34,6 +34,7 @@ import { StockItemPackagingUOMDTO } from '../../core/api/types/stockItem/StockIt
 import { StockBatchDTO } from '../../core/api/types/stockItem/StockBatchDTO';
 import { Link } from 'react-router-dom';
 import { URL_STOCK_ITEM } from '../../config';
+import { StockItemInventory } from '../../core/api/types/stockItem/StockItemInventory';
 
 interface StockOperationItemTableProps {
     items: StockOperationItemDTO[];
@@ -51,6 +52,7 @@ interface StockOperationItemTableProps {
         onGoBack: () => void;
         onSave: () => void;
         onRemoveItem: (itemDto: StockOperationItemDTO) => void;
+        onBatchInfoSave: () => void;
     },
     setSelectedTab: React.Dispatch<React.SetStateAction<number>>;
     errors: { [key: string]: { [key: string]: boolean } };
@@ -58,6 +60,10 @@ interface StockOperationItemTableProps {
     validateItems: () => boolean;
     showQuantityRequested?: boolean;
     allowExpiredBatchNumbers: boolean;
+    canUpdateBatchInformation: boolean;
+    atLocation: string | null | undefined;
+    batchBalance: { [key: string]: StockItemInventory };
+    setBatchBalance: React.Dispatch<React.SetStateAction<{ [key: string]: StockItemInventory }>>;
 }
 
 const minDate: Date = today();
@@ -80,7 +86,11 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
     setItemValidity,
     validateItems,
     showQuantityRequested,
-    allowExpiredBatchNumbers
+    allowExpiredBatchNumbers,
+    canUpdateBatchInformation,
+    atLocation,
+    batchBalance,
+    setBatchBalance
 }) => {
     const { t } = useTranslation();
     const isDesktop = isDesktopLayout(useLayoutType());
@@ -90,6 +100,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
     const [itemBatchNos, setItemBatchNos] = useState<{ [key: string]: StockBatchDTO[] }>({});
     const [noItemBatchNos, setNoItemBatchNos] = useState<{ [key: string]: boolean }>({});
     const [getStockItems] = useLazyGetStockItemsQuery();
+    const [getStockItemInventory] = useLazyGetStockItemInventoryQuery();
     const [getStockItemPackagingUOMs] = useLazyGetStockItemPackagingUOMsQuery();
     const [getStockBatchesQuery] = useLazyGetStockBatchesQuery();
 
@@ -100,7 +111,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                 const item = draft.find((p) => p.uuid === row.uuid);
                 if (item) {
                     if (data.selectedItem) {
-                        item.stockItemName = data.selectedItem?.display ?? (data.selectedItem?.drugName ? `${data.selectedItem?.drugName}${data.selectedItem?.conceptName ? (` (${data.selectedItem?.conceptName})`) : ""}` : null) ?? data.selectedItem?.conceptName;
+                        item.stockItemName = data.selectedItem?.display ?? (data.selectedItem?.drugName ? `${data.selectedItem?.drugName}${(data.selectedItem?.commonName ?? data.selectedItem?.conceptName) ? (` (${(data.selectedItem?.commonName ?? data.selectedItem?.conceptName)})`) : ""}` : null) ?? data.selectedItem?.conceptName;
 
                         let configureExpiration = data.selectedItem?.hasExpiration ?? true;
                         item.hasExpiration = configureExpiration;
@@ -140,6 +151,10 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
         }));
     }
 
+    const hasItemsWithUpdateableBatchInfo = useMemo(() => {
+        return canUpdateBatchInformation && items?.some(p => p?.permission?.canUpdateBatchInformation);
+    }, [items, canUpdateBatchInformation])
+
     const handleStockItemsSearch = useMemo(() => debounce((row: any, searchTerm) => {
         if (row && row.stockItemName) {
             if (searchTerm === row.stockItemName) {
@@ -166,6 +181,35 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
 
     }
         , 300), [getStockItems]);
+
+    const handleBatchBalanceSearch = useMemo(() => debounce((stockItemUuid: string | null | undefined, stockBatchUuid: string | null | undefined) => {
+        if (!stockItemUuid || !atLocation || !stockBatchUuid || (stockBatchUuid in batchBalance)) {
+            return;
+        }
+        getStockItemInventory({ stockItemUuid: stockItemUuid, locationUuid: atLocation, stockBatchUuid: stockBatchUuid, startIndex: 0, v: ResourceRepresentation.Default, groupBy: 'LocationStockItemBatchNo', excludeExpired: !allowExpiredBatchNumbers })
+            .unwrap().then(
+                (payload: any) => {
+                    if ((payload as any).error) {
+                        var errorMessage = toErrorMessage(payload);
+                        errorAlert(`Batch balance load failed ${errorMessage}`);
+                        return;
+                    } else {
+                        let inventory: StockItemInventory = (payload?.results as StockItemInventory[])?.[0];
+                        if (!inventory) {
+                            inventory = ({ quantity: 0, quantityUoM: null } as any as StockItemInventory);
+                        }
+                        setBatchBalance(produce((draft) => {
+                            draft[stockBatchUuid] = inventory;
+                        }));
+                    }
+                })
+            .catch((error) => {
+                var errorMessage = toErrorMessage(error);
+                errorAlert(`Batch balance load failed ${errorMessage}`);
+                return;
+            })
+    }
+        , 300), [allowExpiredBatchNumbers, atLocation, batchBalance, getStockItemInventory, setBatchBalance]);
 
 
 
@@ -268,14 +312,16 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
         , 300), [getStockBatchesQuery, itemBatchNos, noItemBatchNos, t, allowExpiredBatchNumbers]);
 
     const onBatchNoChange = (row: any, evt: React.ChangeEvent<HTMLInputElement>) => {
-        setShowComplete(false);
+        if (canEdit) {
+            setShowComplete(false);
+        }
         let newValue = evt.target.value;
         setStockOperationItems(
             produce((draft) => {
                 const item = draft.find((p) => p.uuid === row.uuid);
                 if (item) {
                     item.batchNo = newValue;
-                    if (item.uuid === draft[draft.length - 1].uuid) {
+                    if (canEdit && item.uuid === draft[draft.length - 1].uuid) {
                         let itemId = `new-item-${getStockOperationUniqueId()}`;
                         draft.push({ uuid: itemId, id: itemId });
                     }
@@ -307,13 +353,15 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
     }
 
     const onExpirationDateChange = (row: StockOperationItemDTO, dates: Date[], skipValiditySet?: boolean): void => {
-        setShowComplete(false);
+        if (canEdit) {
+            setShowComplete(false);
+        }
         setStockOperationItems(
             produce((draft) => {
                 const item = draft.find((p) => p.uuid === row.uuid);
                 if (item) {
                     item.expiration = dates[0];
-                    if (item.uuid === draft[draft.length - 1].uuid) {
+                    if (canEdit && item.uuid === draft[draft.length - 1].uuid) {
                         let itemId = `new-item-${getStockOperationUniqueId()}`;
                         draft.push({ uuid: itemId, id: itemId });
                     }
@@ -395,7 +443,6 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
             produce((draft) => {
                 const item = draft.find((p) => p.uuid === row.uuid);
                 if (item) {
-                    console.log(data.selectedItem?.expiration);
                     item.stockBatchUuid = data.selectedItem?.uuid;
                     item.batchNo = data.selectedItem?.batchNo;
                     item.expiration = data.selectedItem?.expiration;
@@ -411,6 +458,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
             if (!(row.uuid! in draft)) draft[row.uuid!] = {};
             draft[row.uuid!]["stockBatchUuid"] = true;
         }));
+        handleBatchBalanceSearch(row?.stockItemUuid, data?.selectedItem?.uuid);
     }
 
 
@@ -466,6 +514,13 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
         }
     }
 
+    const handleBatchInfoSave = async () => {
+        try {
+            actions.onBatchInfoSave();
+        } finally {
+        }
+    }
+
     return <>
         <div className={`${styles.tableOverride} stkpg-operation-items`}>
             <DataTable rows={items as any} headers={headers} isSortable={false} useZebraStyles={true}
@@ -511,7 +566,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                         onChange={(data: { selectedItem: any }) => onStockItemChanged(row, data)}
                                                         shouldFilterItem={(data) => true}
                                                         onInputChange={(q) => handleStockItemsSearch(row, q)}
-                                                        itemToString={item => (item?.display ?? (item?.drugName ? `${item?.drugName}${item?.conceptName ? (` (${item?.conceptName})`) : ""}` : null) ?? item?.conceptName ?? '')}
+                                                        itemToString={item => (item?.display ?? (item?.drugName ? `${item?.drugName}${(item?.commonName ?? item?.conceptName) ? (` (${(item?.commonName ?? item?.conceptName)})`) : ""}` : null) ?? item?.conceptName ?? '')}
                                                         placeholder={'Type to search...'}
                                                         invalid={(row.uuid in errors) && ("stockItemUuid" in errors[row.uuid]) && !errors[row.uuid]["stockItemUuid"]}
                                                     />
@@ -525,7 +580,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                             }
                                             {(requiresActualBatchInformation || requiresBatchUuid) && <TableCell>
                                                 {
-                                                    requiresActualBatchInformation && canEdit && <TextInput size='sm' id={`batch-${row.uuid}`}
+                                                    requiresActualBatchInformation && (canEdit || (canUpdateBatchInformation && row?.permission?.canUpdateBatchInformation)) && <TextInput size='sm' id={`batch-${row.uuid}`}
                                                         maxLength={50} onChange={(e) => onBatchNoChange(row, e)}
                                                         value={row?.batchNo ?? ""} labelText=""
                                                         invalidText=""
@@ -536,22 +591,24 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                     requiresBatchUuid && !requiresActualBatchInformation && canEdit && <ComboBox titleText="" size='sm' id={`batchuuid-${row.uuid}`}
                                                         initialSelectedItem={(row?.stockBatchUuid) ? {
                                                             uuid: row?.stockBatchUuid,
-                                                            batchNo: row?.batchNo ?? ''
+                                                            batchNo: row?.batchNo ?? '',
+                                                            expiration: row?.expiration
                                                         } as any : null}
                                                         items={row?.stockBatchUuid ? [...((row.stockItemUuid in itemBatchNos && itemBatchNos[row.stockItemUuid] && itemBatchNos[row.stockItemUuid].some(x => x.uuid === row.stockBatchUuid)) ? [] : [{ uuid: row?.stockBatchUuid, display: row?.batchNo }]), ...((row.stockItemUuid && (row.stockItemUuid in itemBatchNos) ? itemBatchNos[row.stockItemUuid] : null) ?? [])] : ((row.stockItemUuid && (row.stockItemUuid in itemBatchNos) ? itemBatchNos[row.stockItemUuid] : null) ?? [])}
                                                         onChange={(data: { selectedItem: any }) => onBatchUuidFieldChanged(row, data)}
                                                         onFocus={(e => handleStockBatchSearch(row, ""))}
+                                                        onToggleClick={(e => handleStockBatchSearch(row, ""))}
                                                         shouldFilterItem={(data) => true}
                                                         onInputChange={(q) => handleStockBatchSearch(row, q)}
                                                         itemToString={item => item?.batchNo ?? ''}
                                                         placeholder={'Filter...'}
                                                         invalid={(row.uuid in errors) && ("stockBatchUuid" in errors[row.uuid]) && !errors[row.uuid]["stockBatchUuid"]} />
                                                 }
-                                                {!canEdit && row?.batchNo}
+                                                {(!(canUpdateBatchInformation && row?.permission?.canUpdateBatchInformation) && !canEdit) && row?.batchNo}
                                             </TableCell>
                                             }
                                             {(requiresActualBatchInformation || requiresBatchUuid) && <TableCell>
-                                                {canEdit && requiresActualBatchInformation && <DatePicker id={`expiration-${row.uuid}`} datePickerType="single" minDate={formatForDatePicker(minDate)} locale="en" dateFormat={DATE_PICKER_CONTROL_FORMAT}
+                                                {(canEdit || (canUpdateBatchInformation && row?.permission?.canUpdateBatchInformation)) && requiresActualBatchInformation && <DatePicker id={`expiration-${row.uuid}`} datePickerType="single" minDate={formatForDatePicker(minDate)} locale="en" dateFormat={DATE_PICKER_CONTROL_FORMAT}
                                                     onChange={(e) => onExpirationDateChange(row, e)}
                                                 >
                                                     <DatePickerInput size='sm' autoComplete="off"
@@ -564,14 +621,15 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                         invalid={(row.uuid in errors) && ("expiration" in errors[row.uuid]) && !errors[row.uuid]["expiration"]}
                                                     />
                                                 </DatePicker>}
-                                                {(!canEdit || requiresBatchUuid) && formatForDatePicker(row?.expiration)}
+                                                {((!(canUpdateBatchInformation && row?.permission?.canUpdateBatchInformation) && !canEdit) || requiresBatchUuid) && formatForDatePicker(row?.expiration)}
                                             </TableCell>
                                             }
                                             <TableCell>
-                                                {canEdit && <NumberInput size='sm' id={`qty-${row.uuid}`} allowEmpty={true}
+                                                {canEdit && <NumberInput className='small-placeholder-text' size='sm' id={`qty-${row.uuid}`} allowEmpty={true}
                                                     onChange={(e: any, d: any) => onQuantityFieldChange(row, e?.target?.value)}
-                                                    value={row?.quantity ?? ""} title=""
+                                                    value={row?.quantity ?? ""}
                                                     invalidText=""
+                                                    placeholder={requiresBatchUuid && !requiresActualBatchInformation && (row?.stockBatchUuid in batchBalance) ? `Bal: ${batchBalance[row?.stockBatchUuid]?.quantity?.toLocaleString() ?? ""} ${batchBalance[row?.stockBatchUuid]?.quantityUoM ?? ""}` : ""}
                                                     invalid={(row.uuid in errors) && ("quantity" in errors[row.uuid]) && !errors[row.uuid]["quantity"]}
                                                 />}
                                                 {!canEdit && row?.quantity?.toLocaleString()}
@@ -587,6 +645,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                     items={row?.packagingUnits ? row.packagingUnits : (row?.stockItemPackagingUOMUuid ? [...((row.stockItemUuid in itemUoM && itemUoM[row.stockItemUuid] && itemUoM[row.stockItemUuid].some(x => x.uuid === row.stockItemPackagingUOMUuid)) ? [] : [{ uuid: row?.stockItemPackagingUOMUuid, display: row?.stockItemPackagingUOMName }]), ...(row.packagingUnits ?? (row.stockItemUuid && (row.stockItemUuid in itemUoM) ? itemUoM[row.stockItemUuid] : null) ?? [])] : (row.packagingUnits ?? (row.stockItemUuid && (row.stockItemUuid in itemUoM) ? itemUoM[row.stockItemUuid] : null) ?? []))}
                                                     onChange={(data: { selectedItem: any }) => onQuantityUomFieldChanged(row, data)}
                                                     onFocus={(e => handleStockItemPackagingUoMsSearch(row, ""))}
+                                                    onToggleClick={(e => handleStockItemPackagingUoMsSearch(row, ""))}
                                                     shouldFilterItem={(data) => true}
                                                     onInputChange={(q) => handleStockItemPackagingUoMsSearch(row, q)}
                                                     itemToString={item => (item?.display ?? item?.packagingUomName ?? '')}
@@ -623,6 +682,10 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                 <Button name="continue" type="submit" className="submitButton" onClick={onContinue} kind="primary" renderIcon={ArrowRight24}>{t("stockmanagement.next")}</Button>
                 <Button name="save" type="submit" className="submitButton" onClick={handleSave} kind="secondary" renderIcon={Save24}>{t("stockmanagement.save")}</Button>
                 <Button type="button" className="cancelButton" kind="tertiary" onClick={onGoBack} renderIcon={Undo24}>{t("stockmanagement.goback")}</Button>
+            </div>
+        }{!canEdit && canUpdateBatchInformation && hasItemsWithUpdateableBatchInfo &&
+            <div className='stkpg-form-buttons'>
+                <Button name="updateBatchInfo" type="submit" onClick={handleBatchInfoSave} kind="danger--primary" renderIcon={Save24}>{t("stockmanagement.stockoperation.updatebatchinfo")}</Button>
             </div>
         }
     </>;

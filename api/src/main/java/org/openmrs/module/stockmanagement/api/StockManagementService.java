@@ -522,4 +522,11 @@ public interface StockManagementService extends OpenmrsService {
 	
 	@Transactional
 	void deleteBatchJob(BatchJob batchJob);
+	
+	@Transactional(readOnly = true)
+	Map<Integer, Boolean> checkStockBatchHasTransactionsAfterOperation(Integer stockOperationId, List<Integer> stockBatchIds);
+	
+	@Transactional
+	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
+	StockOperationBatchNumbersDTO saveStockOperationBatchNumbers(StockOperationBatchNumbersDTO stockOperationBatchNumbers);
 }

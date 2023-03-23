@@ -23,7 +23,7 @@ import { PrivilegeScope } from '../../core/api/types/identity/PriviledgeScope';
 import StockOperationItemsTable from './StockOperationItemsTable';
 import { StockOperationItemDTO } from '../../core/api/types/stockOperation/StockOperationItemDTO';
 import { SubmitApproval } from './SubmitApproval';
-import { useCreateStockOperationMutation, useUpdateStockOperationMutation } from '../../core/api/stockOperation'
+import { useCreateStockOperationMutation, useUpdateStockOperationMutation, useUpdateStockOperationBatchNumbersMutation } from '../../core/api/stockOperation'
 import { ConfirmModalPopup } from '../../components/dialog/ConfirmModalPopup';
 import { cloneDeep } from 'lodash-es';
 import produce from 'immer';
@@ -90,6 +90,7 @@ export const Edit = () => {
   const [canCapturePurchasePrice, setCanCapturePurchasePrice] = useState(false);
   const [createStockOperation] = useCreateStockOperationMutation();
   const [updateStockOperation] = useUpdateStockOperationMutation();
+  const [updateStockOperationBatchNumbers] = useUpdateStockOperationBatchNumbersMutation();
   const [deleteStockOperationItem] = useDeleteStockOperationItemMutation();
   const [executeStockOperationAction] = useExecuteStockOperationActionMutation();
   const [showConfirm, setShowConfirm] = useState(false);
@@ -105,6 +106,9 @@ export const Edit = () => {
   const [requisitionUuid, setRequisitionUuid] = useState<string | null>(null);
   const [showQuantityRequested, setShowQuantityRequested] = useState(false);
   const [getStockItemInventory] = useLazyGetStockItemInventoryQuery();
+  const [canUpdateBatchInformation, setCanUpdateBatchInformation] = useState(false);
+  const [atLocation, setAtLocation] = useState<string | null>();
+  const [batchBalance, setBatchBalance] = useState<{ [key: string]: StockItemInventory }>({});
 
   useEffect(() => {
     async function loadStockOperation() {
@@ -123,6 +127,7 @@ export const Edit = () => {
               return;
             }
             stockOperation = cloneDeep(payload) as StockOperationDTO;
+            setAtLocation(stockOperation.atLocationUuid);
             if (!stockOperation.responsiblePersonUuid && stockOperation.responsiblePersonOther) {
               stockOperation.responsiblePersonUuid = "Other";
             }
@@ -253,10 +258,13 @@ export const Edit = () => {
         let canIssueStock = stockOperation?.permission?.isRequisitionAndCanIssueStock ?? false;
         let canReceiveItems = stockOperation?.permission?.canReceiveItems ?? false;
         let canDisplayReceivedItems = stockOperation?.permission?.canDisplayReceivedItems ?? false;
+        let canUpdateItemsBatchInformation = stockOperation?.permission?.canUpdateBatchInformation ?? false;
+
         setCanEdit(canEditModel);
         setCanApprove(canApproveModel);
         setCanReceiveItems(canReceiveItems);
         setCanDisplayReceivedItems(canDisplayReceivedItems);
+        setCanUpdateBatchInformation(canUpdateItemsBatchInformation);
 
         setIsRequisitionAndCanIssueStock(canIssueStock);
         setCanPrint(canIssueStock || StockOperationTypeHasPrint(stockOperation?.operationType!));
@@ -324,6 +332,7 @@ export const Edit = () => {
             let party = result[0];
             stockOperation.sourceUuid = party.uuid;
             stockOperation.sourceName = party.name;
+            setAtLocation(party?.locationUuid);
           }
         }
 
@@ -508,6 +517,47 @@ export const Edit = () => {
     breadCrumbs.generateBreadcrumbHtml();
   }, [t, id, isNew, stockOperationType?.name, editableModel?.operationTypeName, editableModel?.operationNumber, stockOperationType?.operationType]);
 
+
+  const validatItemsBatchInformation = useCallback(() => {
+    let validItems = true;
+    let validationStatus: { [key: string]: { [key: string]: boolean } } = {};
+    let emptyCount = 0;
+    stockOperationItems.forEach(p => {
+      validationStatus[p.uuid!] = {};
+      if (requiresActualBatchInformation) {
+        if (isNullOrEmptryOrWhiteSpace(p.batchNo)) {
+          validationStatus[p.uuid!]["batchNo"] = false;
+          validItems = false;
+        }
+        if (p.hasExpiration && (!p.expiration || !isDateAfterToday(p.expiration))) {
+          validationStatus[p.uuid!]["expiration"] = false;
+          validItems = false;
+        }
+      }
+
+    });
+    if (emptyCount === stockOperationItems.length) {
+      validItems = false;
+      errorAlert(t("stockmanagement.stockoperation.edit.oneitemrequired"));
+    } else if (!validItems) {
+      errorAlert(t("stockmanagement.stockoperation.edit.itemsnotvalid"));
+    }
+    setItemValidity(validationStatus);
+    return validItems;
+  }, [requiresActualBatchInformation, stockOperationItems, t])
+
+  useEffect(() => {
+    let breadCrumbs = new BreadCrumbs().withHome()
+      .withLabel(t("stockmanagement.dashboard.title"), URL_STOCK_HOME)
+      .withLabel(t("stockmanagement.stockoperation.list.title"), URL_STOCK_OPERATIONS);
+    if (isNew) {
+      breadCrumbs.withLabel(`${t("stockmanagement.stockoperation.new.title")}: ${stockOperationType?.name ?? ""}`, URL_STOCK_OPERATIONS_NEW_OPERATION(stockOperationType?.operationType ?? ""));
+    } else {
+      breadCrumbs.withLabel(`${editableModel?.operationTypeName ?? ""}: ${editableModel?.operationNumber ?? ""}`, URL_STOCK_OPERATION(id!))
+    }
+    breadCrumbs.generateBreadcrumbHtml();
+  }, [t, id, isNew, stockOperationType?.name, editableModel?.operationTypeName, editableModel?.operationNumber, stockOperationType?.operationType]);
+
   const addNewStockOperationItem = useCallback(() => {
     let newId = getStockOperationUniqueId();
     let newItems = [...stockOperationItems, {
@@ -561,6 +611,21 @@ export const Edit = () => {
     stockOperation["stockOperationItems"] = items;
     return stockOperation;
   }, [editableModel.approvalRequired, editableModel.destinationUuid, editableModel.externalReference, editableModel.operationDate, editableModel.operationTypeUuid, editableModel.reasonUuid, editableModel.remarks, editableModel.responsiblePersonOther, editableModel.responsiblePersonUuid, editableModel.sourceUuid, isNew, isStockOperationItemEmpty, requisitionUuid, stockOperationItems, stockOperationType?.operationType]);
+
+  const getUpdateBatchInfoStockOperationModel = useCallback((): any => {
+    let items: any[] = []
+    stockOperationItems.forEach(p => {
+      if (p?.permission?.canUpdateBatchInformation) {
+        let newItem = {
+          uuid: p.uuid,
+          batchNo: p.batchNo ?? null,
+          expiration: p.expiration ?? null,
+        } as any;
+        items.push(newItem)
+      }
+    });
+    return { batchNumbers: items };
+  }, [stockOperationItems]);
 
   const completeDispatch = useCallback(async () => {
     setShowSplash(true);
@@ -704,6 +769,44 @@ export const Edit = () => {
     }
 
   }, [validateItems, getUpdateStockOperationModel, isNew, createStockOperation, updateStockOperation, editableModel.uuid, t, navigate, selectedTab]);
+
+  const handleBatchInfoSave = useCallback(async () => {
+    setShowSplash(true);
+    if (!validatItemsBatchInformation()) {
+      setShowSplash(false);
+      return;
+    }
+    let hideSplash = true;
+    try {
+      let stockOperationBatchInfo = getUpdateBatchInfoStockOperationModel();
+      if (stockOperationBatchInfo.batchNumbers.length === 0) return;
+      await (updateStockOperationBatchNumbers({ model: stockOperationBatchInfo, uuid: editableModel.uuid! })).unwrap().then(
+        (payload: any) => {
+          if ((payload as any).error) {
+            var errorToken = toErrorMessage(payload);
+            errorAlert(`${t("stockmanagement.stockoperation.updatebatchinfofailed")} ${errorToken}`);
+            return;
+          } else {
+
+            setShowSplash(false);
+            hideSplash = false;
+            successAlert(`${t("stockmanagement.stockoperation.updatebatchinfosuccess")}`);
+            navigate(URL_STOCK_OPERATIONS_REDIRECT(editableModel.uuid!, selectedTab?.toString() ?? ""));
+          }
+        })
+        .catch((error) => {
+          var errorToken = toErrorMessage(error);
+          errorAlert(`${t("stockmanagement.stockoperation.updatebatchinfofailed")} ${errorToken}`);
+          return;
+        });
+    } finally {
+      if (hideSplash) {
+        setShowSplash(false);
+      }
+    }
+
+  }, [validatItemsBatchInformation, getUpdateBatchInfoStockOperationModel, updateStockOperationBatchNumbers, editableModel.uuid, t, navigate, selectedTab]);
+
 
   const handleGoBack = useCallback(() => {
     setConfirmText("stockmanagement.stockoperation.confirm.back.text");
@@ -1293,6 +1396,9 @@ export const Edit = () => {
               lockDestination={lockDestination}
               actions={{ onSave: handleSave, onGoBack: handleGoBack }}
               requireStockAdjustmentReason={requireStockAdjustmentReason}
+              atLocation={atLocation}
+              setAtLocation={setAtLocation}
+              setBatchBalance={setBatchBalance}
             />
           </Tab>
           <Tab label="Stock Items" disabled={!showItems}>
@@ -1305,12 +1411,16 @@ export const Edit = () => {
               isQuantityOptional={isQuantityOptional}
               canCapturePurchasePrice={canCapturePurchasePrice}
               setSelectedTab={setSelectedTab}
-              actions={{ onSave: handleSave, onGoBack: handleGoBack, onRemoveItem: handleRemoveItem }}
+              actions={{ onSave: handleSave, onGoBack: handleGoBack, onRemoveItem: handleRemoveItem, onBatchInfoSave: handleBatchInfoSave }}
               errors={itemValidity}
               setItemValidity={setItemValidity}
               validateItems={validateItems}
               showQuantityRequested={showQuantityRequested}
               allowExpiredBatchNumbers={allowExpiredBatchNumbers}
+              canUpdateBatchInformation={canUpdateBatchInformation}
+              atLocation={atLocation}
+              batchBalance={batchBalance}
+              setBatchBalance={setBatchBalance}
             />
           </Tab>
           <Tab label={requiresDispatchAcknowledgement ? "Submit/Dispatch" : "Submit/Complete"} disabled={!showItems || !showComplete} >

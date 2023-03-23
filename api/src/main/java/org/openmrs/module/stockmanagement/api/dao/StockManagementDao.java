@@ -1532,7 +1532,9 @@ public class StockManagementDao extends DaoBase {
                             }
                         }
 
-                        if (drugName != null && conceptName != null) {
+						if (drugName != null && StringUtils.isNotBlank(stockOperationItemDTO.getCommonName())) {
+							stockOperationItemDTO.setStockItemName(String.format("%1s (%2s)", drugName, stockOperationItemDTO.getCommonName()));
+						} else if (drugName != null && conceptName != null) {
                             stockOperationItemDTO.setStockItemName(String.format("%1s (%2s)", drugName, conceptName));
                         } else if (drugName != null)
                             stockOperationItemDTO.setStockItemName(drugName);
@@ -1802,6 +1804,11 @@ public class StockManagementDao extends DaoBase {
             appendFilter(hqlFilter, "sb.id in (:sbIds)");
             parameterWithList.putIfAbsent("sbIds", filter.getStockBatchIds());
         }
+
+		if (StringUtils.isNotBlank(filter.getStockBatchUuid())) {
+			appendFilter(hqlFilter, "sb.uuid = :sbuuid");
+			parameterList.putIfAbsent("sbuuid", filter.getStockBatchUuid());
+		}
 
         if (filter.getStockItemId() != null) {
             appendFilter(hqlFilter, "sb.stockItem.id = :stockItemId");
@@ -3084,6 +3091,7 @@ public class StockManagementDao extends DaoBase {
                 "sipu.packagingUom.conceptId as packagingUoMId,\n" +
                 "sb.uuid as stockBatchUuid,\n" +
                 "sb.batchNo as stockBatchNo,\n" +
+				"sb.expiration as expiration,\n" +
                 "so.uuid as stockOperationUuid,\n" +
                 "so.status as stockOperationStatus,\n" +
                 "so.operationNumber as stockOperationNumber,\n" +
@@ -5234,5 +5242,34 @@ hqlQuery.append(" left join stockmgmt_stock_item_transaction sit on o.order_id=s
 		query = session.createQuery("DELETE FROM stockmanagement.BatchJob WHERE id = :p");
 		query.setParameter("p", batchJob.getId());
 		query.executeUpdate();
+	}
+	
+	public Map<Integer, Boolean> checkStockBatchHasTransactionsAfterOperation(Integer stockOperationId, List<Integer> stockBatchIds){
+		if(stockOperationId == null || stockBatchIds == null || stockBatchIds.isEmpty() ){
+			return new HashMap<>();
+		}
+
+		DbSession session = getSession();
+		Query query = session.createQuery("SELECT max(sit.id) as id from stockmanagement.StockItemTransaction sit where sit.stockOperation.id = :soid");
+		query.setParameter("soid", stockOperationId);
+		List result = query.list();
+		if(result.isEmpty() || (result.get(0) == null)){
+			return new HashMap<>();
+		}
+		int maxStockOperationItemTransactionId = ((Number)result.get(0)).intValue();
+		query = session.createQuery("SELECT sit.stockBatch.id as id from stockmanagement.StockItemTransaction sit where sit.id > :id and sit.stockBatch.id in (:batchids) group by sit.stockBatch.id");
+		query.setParameter("id", maxStockOperationItemTransactionId);
+		query.setParameterList("batchids", stockBatchIds);
+		result = query.list();
+		if(result.isEmpty()){
+			return new HashMap<>();
+		}
+
+		Map<Integer,Boolean> mapResult = new HashMap<>();
+		for(Object object : result){
+			mapResult.put(((Number)object).intValue(), Boolean.TRUE);
+		}
+
+		return mapResult;
 	}
 }

@@ -24,7 +24,7 @@ import { StockItemTransactionFilter, useGetStockItemTransactionsQuery } from '..
 import { Link } from 'react-router-dom';
 import { URL_STOCK_OPERATION } from '../../config';
 import { Party } from '../../core/api/types/Party';
-import { DATE_PICKER_CONTROL_FORMAT, DATE_PICKER_FORMAT, formatDisplayDateTime, formatForDatePicker, today } from '../../core/utils/datetimeUtils';
+import { DATE_PICKER_CONTROL_FORMAT, DATE_PICKER_FORMAT, formatDisplayDate, formatDisplayDateTime, formatForDatePicker, today } from '../../core/utils/datetimeUtils';
 import { ResourceRepresentation } from '../../core/api/api';
 import { ArrowLeft16, ArrowRight16 } from '@carbon/icons-react';
 
@@ -87,7 +87,7 @@ const StockItemTransactionsTable: React.FC<StockItemTransactionsTableProps> = ({
         : stockItemTransaction?.partyName,
       transactiontype: stockItemTransaction?.isPatientTransaction ? t("stockmanagement.patientrelated") : stockItemTransaction.stockOperationTypeName,
       quantity: `${stockItemTransaction?.quantity?.toLocaleString()} ${stockItemTransaction?.packagingUomName ?? ""}`,
-      batchno: stockItemTransaction.stockBatchNo ?? "",
+      batchno: stockItemTransaction.stockBatchNo ? `${stockItemTransaction.stockBatchNo}${stockItemTransaction.expiration ? ` (${formatDisplayDate(stockItemTransaction.expiration)})` : ""}` : "",
       reference: stockItemTransaction?.stockOperationUuid ? <Link to={URL_STOCK_OPERATION(stockItemTransaction?.stockOperationUuid!)} target={"_blank"}>{`${stockItemTransaction?.stockOperationNumber}`}</Link> : <></>,
       status: stockItemTransaction?.stockOperationStatus ?? "",
       qtyin: stockItemTransaction?.quantity >= 0 ? `${stockItemTransaction?.quantity?.toLocaleString()} ${stockItemTransaction?.packagingUomName ?? ""}` : "",

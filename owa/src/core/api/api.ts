@@ -100,7 +100,7 @@ export function toQueryParams<T extends ResourceFilterCriteria>(filterCriteria?:
   if (!filterCriteria) return "";
   let queryParams: string = Object.keys(filterCriteria)?.map(key => {
     let value: Object = (filterCriteria as any)[key];
-    return (skipEmptyString && value) || (!skipEmptyString && (value === "" || value)) ? `${encodeURIComponent(key)}=${encodeURIComponent(value.toString())}` : null
+    return (skipEmptyString && ((value === false || value === true) ? true : value)) || (!skipEmptyString && (value === "" || ((value === false || value === true) ? true : value))) ? `${encodeURIComponent(key)}=${encodeURIComponent(value.toString())}` : null
   }).filter(o => o != null).join("&");
   return queryParams.length > 0 ? ("?" + queryParams) : "";
 }

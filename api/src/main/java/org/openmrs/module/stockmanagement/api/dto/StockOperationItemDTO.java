@@ -68,6 +68,8 @@ public class StockOperationItemDTO {
 	
 	private List<StockItemPackagingUOMDTO> packagingUnits;
 	
+	private Boolean canUpdateBatchInformation;
+	
 	public Integer getStockItemId() {
 		return stockItemId;
 	}
@@ -314,5 +316,13 @@ public class StockOperationItemDTO {
 	
 	public void setAcronym(String acronym) {
 		this.acronym = acronym;
+	}
+	
+	public Boolean getCanUpdateBatchInformation() {
+		return canUpdateBatchInformation;
+	}
+	
+	public void setCanUpdateBatchInformation(Boolean canUpdateBatchInformation) {
+		this.canUpdateBatchInformation = canUpdateBatchInformation;
 	}
 }

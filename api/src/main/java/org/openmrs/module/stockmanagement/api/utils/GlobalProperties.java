@@ -352,4 +352,15 @@ public class GlobalProperties {
 		catch (Exception exception) {}
 		return null;
 	}
+	
+	public static boolean uomPriorityIsBigToSmall() {
+		try {
+			String property = getGlobalProperty("stockmanagement.packagingUnitPackSizePriorityIsBigToSmall");
+			if (StringUtils.isBlank(property))
+				return true;
+			return Boolean.parseBoolean(property);
+		}
+		catch (Exception exception) {}
+		return true;
+	}
 }

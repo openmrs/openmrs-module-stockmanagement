@@ -5,4 +5,5 @@ export interface RecordPermission {
     canReceiveItems: boolean | undefined | null;
     canDisplayReceivedItems: boolean | undefined | null;
     isRequisitionAndCanIssueStock: boolean | undefined | null;
+    canUpdateBatchInformation: boolean | undefined | null;
 }

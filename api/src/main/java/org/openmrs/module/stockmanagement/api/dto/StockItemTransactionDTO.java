@@ -30,6 +30,8 @@ public class StockItemTransactionDTO {
 	
 	private String stockBatchNo;
 	
+	private Date expiration;
+	
 	private String stockItemUuid;
 	
 	private Integer stockItemId;
@@ -246,5 +248,13 @@ public class StockItemTransactionDTO {
 	
 	public void setOrderId(Integer orderId) {
 		this.orderId = orderId;
+	}
+	
+	public Date getExpiration() {
+		return expiration;
+	}
+	
+	public void setExpiration(Date expiration) {
+		this.expiration = expiration;
 	}
 }

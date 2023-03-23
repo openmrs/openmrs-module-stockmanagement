@@ -10,6 +10,7 @@ export interface StockItemTransactionDTO {
     quantity: number;
     stockBatchUuid: string;
     stockBatchNo: string;
+    expiration: Date;
     stockItemUuid: string;
     stockOperationUuid: string;
     stockOperationStatus: StockOperationStatus;

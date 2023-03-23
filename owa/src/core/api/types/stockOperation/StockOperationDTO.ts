@@ -57,8 +57,8 @@ export interface StockOperationDTO {
     rejectedByGivenName: string | null | undefined;
     rejectedByFamilyName: string | null | undefined;
     rejectedDate: Date;
-    dispatchedByGivenName: string | null | undefined;	
-	dispatchedByFamilyName: string | null | undefined;	
-	dispatchedDate: Date;
+    dispatchedByGivenName: string | null | undefined;
+    dispatchedByFamilyName: string | null | undefined;
+    dispatchedDate: Date;
     requisitionStockOperationUuid: string;
 }

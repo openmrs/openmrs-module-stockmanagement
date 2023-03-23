@@ -61,6 +61,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
         boolean includeStockItemName = false;
         boolean emptyBatch = false;
         Integer emptyBatchPartyId = null;
+        boolean requireNonExpiredStockBatches=true;
         Date date = null;
         String param = context.getParameter("date");
         if (!StringUtils.isBlank(param)) {
@@ -177,9 +178,17 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 
                     List<PartyDTO> partyList = getStockManagementService().getCompleteStockDispensingLocationPartyList(location.getLocationId());
                     partyIds = partyList.stream().map(p -> p.getId()).collect(Collectors.toList());
-                    List<PartyDTO> mainPharmacies = getStockManagementService().getMainPharmacyPartyList();
-                    if (!mainPharmacies.isEmpty()) {
-                        partyIds.addAll(mainPharmacies.stream().map(p -> p.getId()).collect(Collectors.toList()));
+
+                    boolean includeDefaultMainPharmacy = true;
+                    String dispenseAtLocation = context.getParameter("dispenseAtLocation");
+                    if (StringUtils.isNotBlank(dispenseAtLocation) && (dispenseAtLocation.equalsIgnoreCase("true") || dispenseAtLocation.equalsIgnoreCase("1"))) {
+                        includeDefaultMainPharmacy=false;
+                    }
+                    if(includeDefaultMainPharmacy) {
+                        List<PartyDTO> mainPharmacies = getStockManagementService().getMainPharmacyPartyList();
+                        if (!mainPharmacies.isEmpty()) {
+                            partyIds.addAll(mainPharmacies.stream().map(p -> p.getId()).collect(Collectors.toList()));
+                        }
                     }
                     partyIds = partyIds.stream().distinct().collect(Collectors.toList());
                     if (partyIds.isEmpty()) {
@@ -233,6 +242,11 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
             includeConceptRefIds = param.equalsIgnoreCase("true") || param.equalsIgnoreCase("1");
         }
 
+        param = context.getParameter("excludeExpired");
+        if (!StringUtils.isBlank(param)) {
+            requireNonExpiredStockBatches = param.equalsIgnoreCase("true") || param.equalsIgnoreCase("1");
+        }
+
         param = context.getParameter("stockBatchUuid");
         if (!StringUtils.isBlank(param)) {
             withBatchInfo = true;
@@ -275,6 +289,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
         filter.setDoSetPartyNameField(true);
         filter.setDoSetQuantityUoM(true);
         filter.setIncludeStockItemName(includeStockItemName);
+        filter.setRequireNonExpiredStockBatches(requireNonExpiredStockBatches);
         filter.setDate(date);
         List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = new ArrayList<>();
         if (stockItemId != null) {

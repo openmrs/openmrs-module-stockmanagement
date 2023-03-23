@@ -4,12 +4,18 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
+import org.apache.commons.lang.StringUtils;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
+import org.openmrs.module.stockmanagement.api.model.Party;
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
+import org.openmrs.module.webservices.rest.web.annotation.PropertyGetter;
 import org.openmrs.module.webservices.rest.web.annotation.PropertySetter;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
@@ -22,6 +28,9 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperationitem", supportedClass = StockOperationItemDTO.class, supportedOpenmrsVersions = {
@@ -121,6 +130,16 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 		}
 	}
 	
+	@PropertyGetter("permission")
+	public SimpleObject getPermission(StockOperationItemDTO stockOperationItemDTO) {
+		SimpleObject simpleObject = new SimpleObject();
+		simpleObject.add(
+		    "canUpdateBatchInformation",
+		    stockOperationItemDTO.getCanUpdateBatchInformation() == null ? Boolean.FALSE : stockOperationItemDTO
+		            .getCanUpdateBatchInformation());
+		return simpleObject;
+	}
+	
 	@Override
 	public DelegatingResourceDescription getRepresentationDescription(Representation rep) {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
@@ -146,6 +165,7 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 			description.addProperty("packagingUnits");
 			description.addProperty("commonName");
 			description.addProperty("acronym");
+			description.addProperty("permission");
 		}
 		
 		if (rep instanceof DefaultRepresentation) {}

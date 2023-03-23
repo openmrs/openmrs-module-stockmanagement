@@ -100,6 +100,10 @@ const StockItemTable: React.FC<StockItemTableProps> = ({
       header: t('stockmanagement.stockitem.list.header.genericname'),
     },
     {
+      key: 'commonname',
+      header: t('stockmanagement.stockitem.list.header.commonname'),
+    },
+    {
       key: 'tradename',
       header: t('stockmanagement.stockitem.list.header.tradename'),
     },
@@ -137,6 +141,7 @@ const StockItemTable: React.FC<StockItemTableProps> = ({
       uuid: `${stockItem?.uuid}`,
       type: stockItem?.drugUuid ? t("stockmanagement.drug") : t("stockmanagement.other"),
       genericname: <Link to={URL_STOCK_ITEM(stockItem?.uuid!)}>{`${stockItem?.drugName ?? stockItem.conceptName}`}</Link>,
+      commonname: stockItem?.commonName,
       tradename: stockItem?.drugUuid ? stockItem?.conceptName : "",
       retired: stockItem?.voided ? t("stockmanagement.yes") : t("stockmanagement.no"),
       isdrug: stockItem?.drugUuid ? t("stockmanagement.yes") : t("stockmanagement.no"),

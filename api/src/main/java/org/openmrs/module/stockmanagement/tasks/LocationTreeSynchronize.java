@@ -60,21 +60,21 @@ public class LocationTreeSynchronize implements StartupTask {
             node.setChildLocationId(location.getLocationId());
             node.setDepth(0);
             locationTree.add(node);
-            addChildNodes(location, locations, locationTree, node.getDepth(), 1000);
+            addChildNodes(location, location, locations, locationTree, node.getDepth(), 1000);
         }
         return locationTree;
     }
 	
-	private void addChildNodes(Location currentNode, List<Location> allLocations, List<LocationTree> tree, int currentDepth, int maxDepth){
+	private void addChildNodes(Location currentNode, Location rootNode, List<Location> allLocations, List<LocationTree> tree, int currentDepth, int maxDepth){
         allLocations.stream().filter(p -> p.getParentLocation() != null && p.getParentLocation().getLocationId().equals(currentNode.getLocationId()))
                 .forEach(childNode ->{
                     LocationTree node = new LocationTree();
-                    node.setParentLocationId(currentNode.getLocationId());
+                    node.setParentLocationId(rootNode.getLocationId());
                     node.setChildLocationId(childNode.getLocationId());
                     node.setDepth(currentDepth + 1);
                     tree.add(node);
                     if(node.getDepth() == maxDepth) return;
-                    addChildNodes(childNode, allLocations, tree, node.getDepth(), maxDepth);
+                    addChildNodes(childNode, rootNode, allLocations, tree, node.getDepth(), maxDepth);
                 });
     }
 	

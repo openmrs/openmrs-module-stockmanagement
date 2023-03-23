@@ -739,6 +739,7 @@ template {
     margin-left:6.95pt;
     font-size:12.5pt;
     width: 99%;
+    page-break-inside: auto;
   }
   .table-data td, .table-data th {
     padding:0 5.75pt 0 5.15pt;

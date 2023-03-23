@@ -157,7 +157,7 @@ const UserRoleScopeTable: React.FC<UserRoleScopeTableProps> = ({
       activeFrom: formatDisplayDate(userRoleScope?.activeFrom),
       activeTo: formatDisplayDate(userRoleScope?.activeTo),
       enabled: userRoleScope?.enabled ? t('stockmanagement.yes') : t('stockmanagement.no'),
-      actions: canCreateModifyUserRoleScopes ?
+      actions: (canCreateModifyUserRoleScopes && currentUserId !== userRoleScope.userUuid) ?
         <Button type="button" size="sm" className="submitButton clear-padding-margin" iconDescription={"View"} kind="ghost" renderIcon={Edit16} onClick={(e) => onViewItem(userRoleScope?.uuid, e)} /> :
         ""
     })),

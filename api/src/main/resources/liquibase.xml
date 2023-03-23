@@ -4547,4 +4547,21 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <where>operation_type in ('disposed')</where>
     </update>
   </changeSet>
+  <changeSet author="dev" id="stockmanagement-1758855877841-333">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_stock_operation_type"/>
+      <not>
+        <columnExists tableName="stockmgmt_stock_operation_type" columnName="allow_batch_info_update"/>
+      </not>
+    </preConditions>
+    <addColumn tableName="stockmgmt_stock_operation_type">
+      <column defaultValueBoolean="false" name="allow_batch_info_update" type="BIT">
+        <constraints nullable="false" />
+      </column>
+    </addColumn>
+    <update tableName="stockmgmt_stock_operation_type">
+      <column name="allow_batch_info_update" valueBoolean="true" />
+      <where>operation_type in ('receipt', 'initial')</where>
+    </update>
+  </changeSet>
 </databaseChangeLog>
