@@ -12,7 +12,7 @@
     <version>1.0.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Stock Management</name>
-    <description>Manage Stock</description>
+    <description>This module supports stock management of medical supplies at health facilities</description>
 
     <url>https://wiki.openmrs.org/x/FQ4z</url>
 
