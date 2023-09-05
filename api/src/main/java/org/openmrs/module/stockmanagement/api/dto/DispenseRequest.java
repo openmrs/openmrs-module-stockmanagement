@@ -2,9 +2,10 @@ package org.openmrs.module.stockmanagement.api.dto;
 
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 
+import java.io.Serializable;
 import java.math.BigDecimal;
 
-public class DispenseRequest {
+public class DispenseRequest implements Serializable {
 	
 	private String locationUuid;
 	
