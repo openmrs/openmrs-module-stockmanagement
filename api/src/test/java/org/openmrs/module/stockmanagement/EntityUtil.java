@@ -20,7 +20,7 @@ public class EntityUtil {
 	
 	public static final String STOCK_OPERATION_TYPE_DATA_SET = BASE_DATASET_DIR + "StockOperationType.xml";
 	
-	public static final String STOCK_ITEMS_IMPORT_CSV = BASE_DATASET_DIR + "StockItemsImport.csv";
+	public static final String STOCK_ITEMS_IMPORT_CSV = BASE_DATASET_DIR + "StockItemsImport2.csv";
 	
 	private static Random random = new Random();
 	

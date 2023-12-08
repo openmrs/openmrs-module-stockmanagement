@@ -735,9 +735,9 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		dao().saveStockItem(stockItem);
 		
 		stockManagementService.setDao(dao());
-		StockItem stockItemLeft = stockManagementService.getStockItemByDrug(stockItem.getDrug().getId());
+        List<StockItem> stockItemLeft = stockManagementService.getStockItemByDrug(stockItem.getDrug().getId());
 		assertNotNull(stockItemLeft);
-		assertEquals(stockItem.getUuid(), stockItemLeft.getUuid());
+        assertTrue(stockItemLeft.stream().map(StockItem::getUuid).collect(Collectors.toList()).contains(stockItem.getUuid()));
 	}
 	
 	@Test
@@ -747,9 +747,9 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		dao().saveStockItem(stockItem);
 		
 		stockManagementService.setDao(dao());
-		StockItem stockItemLeft = stockManagementService.getStockItemByConcept(stockItem.getConcept().getId());
+        List<StockItem> stockItemLeft = stockManagementService.getStockItemByConcept(stockItem.getConcept().getId());
 		assertNotNull(stockItemLeft);
-		assertEquals(stockItem.getUuid(), stockItemLeft.getUuid());
+        assertTrue(stockItemLeft.stream().map(StockItem::getUuid).collect(Collectors.toList()).contains(stockItem.getUuid()));
 	}
 	
 	@Test

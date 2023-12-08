@@ -4564,4 +4564,82 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <where>operation_type in ('receipt', 'initial')</where>
     </update>
   </changeSet>
+    <changeSet id="stockmanagement-06-12-0700" author="slubwama">
+      <preConditions onFail="MARK_RAN">
+        <not>
+          <tableExists tableName="stockmgmt_stock_item_reference" />
+        </not>
+      </preConditions>
+      <comment>
+        Creating the stockmgmt_batch_job_owner table
+      </comment>
+      <createTable tableName="stockmgmt_stock_item_reference">
+        <column name="stock_item_reference_id" type="int" autoIncrement="true">
+          <constraints primaryKey="true" nullable="false"/>
+        </column>
+        <column name="stock_source_id" type="int">
+          <constraints nullable="false"/>
+        </column>
+        <column name="stock_item_id" type="int">
+          <constraints nullable="false"/>
+        </column>
+        <column name="stock_reference_code" type="varchar(255)">
+          <constraints nullable="false"/>
+        </column>
+        <column name="creator" type="int">
+          <constraints nullable="false"/>
+        </column>
+        <column name="date_created" type="date">
+          <constraints nullable="true"/>
+        </column>
+        <column name="changed_by" type="int">
+          <constraints nullable="true"/>
+        </column>
+        <column name="date_changed" type="date">
+          <constraints nullable="true"/>
+        </column>
+        <column name="voided" type="tinyint(1)">
+          <constraints nullable="true"/>
+        </column>
+        <column name="date_voided" type="date">
+          <constraints nullable="true"/>
+        </column>
+        <column name="voided_by" type="int">
+          <constraints nullable="true"/>
+        </column>
+        <column name="void_reason" type="varchar(255)">
+          <constraints nullable="true"/>
+        </column>
+      </createTable>
+
+      <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_reference"
+                               baseColumnNames="stock_item_id"
+                               referencedTableName="stockmgmt_stock_item"
+                               referencedColumnNames="stock_item_id"
+                               constraintName="stock_item_reference_stock_item_stock_item_id_fk"/>
+
+      <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_reference"
+                               baseColumnNames="stock_source_id"
+                               referencedTableName="stockmgmt_stock_source"
+                               referencedColumnNames="stock_source_id"
+                               constraintName="stock_item_reference_stock_source_stock_source_id_fk"/>
+
+      <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_reference"
+                               baseColumnNames="changed_by"
+                               referencedTableName="users"
+                               referencedColumnNames="user_id"
+                               constraintName="stock_item_reference_users_changed_by_id_fk"/>
+
+      <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_reference"
+                               baseColumnNames="creator"
+                               referencedTableName="users"
+                               referencedColumnNames="user_id"
+                               constraintName="stock_item_reference_users_creator_id_fk"/>
+
+      <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_reference"
+                               baseColumnNames="voided_by"
+                               referencedTableName="users"
+                               referencedColumnNames="user_id"
+                               constraintName="stock_item_reference_users_voided_by_id_fk"/>
+    </changeSet>
 </databaseChangeLog>

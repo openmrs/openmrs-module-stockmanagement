@@ -2563,16 +2563,17 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return dao.getStockItems(stockItemIds);
     }
 
+
     public List<StockItemPackagingUOM> getStockItemPackagingUOMs(
             List<StockItemPackagingUOMSearchFilter.ItemGroupFilter> filters) {
         return dao.getStockItemPackagingUOMs(filters);
     }
 
-    public StockItem getStockItemByDrug(Integer drugId) {
+    public List<StockItem> getStockItemByDrug(Integer drugId) {
         return dao.getStockItemByDrug(drugId);
     }
 
-    public StockItem getStockItemByConcept(Integer conceptId) {
+    public List<StockItem> getStockItemByConcept(Integer conceptId) {
         return dao.getStockItemByConcept(conceptId);
     }
 
@@ -3430,5 +3431,20 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         }
 
         return stockOperationBatchNumbers;
+    }
+
+    @Override
+    public StockItem getStockItemByReference(StockSource stockSource, String code) {
+       StockItemReference stockItemReference = dao.getStockItemByReference(stockSource,code);
+        if(stockItemReference!=null) {
+            return dao.getStockItemByReference(stockSource, code).getStockItem();
+        }
+
+        return null;
+    }
+
+    @Override
+    public StockItemReference saveStockItemReference(StockItemReference stockItemReference) {
+        return dao.saveStockItemReference(stockItemReference);
     }
 }
