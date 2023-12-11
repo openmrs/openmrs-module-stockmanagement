@@ -359,11 +359,11 @@ public interface StockManagementService extends OpenmrsService {
 	
 	@Transactional(readOnly = true)
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockItem getStockItemByDrug(Integer drugId);
+	List<StockItem> getStockItemByDrug(Integer drugId);
 	
 	@Transactional(readOnly = true)
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockItem getStockItemByConcept(Integer conceptId);
+	List<StockItem> getStockItemByConcept(Integer conceptId);
 	
 	@Transactional(readOnly = true)
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
@@ -529,4 +529,12 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
 	StockOperationBatchNumbersDTO saveStockOperationBatchNumbers(StockOperationBatchNumbersDTO stockOperationBatchNumbers);
+	
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockItem getStockItemByReference(StockSource stockSource, String code);
+	
+	@Transactional
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockItemReference saveStockItemReference(StockItemReference stockItemReference);
 }

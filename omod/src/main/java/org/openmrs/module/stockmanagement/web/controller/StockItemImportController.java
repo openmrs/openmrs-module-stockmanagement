@@ -82,15 +82,9 @@ public class StockItemImportController {
         File workingDir = FileUtil.getWorkingDirectory();
         String fileName = Context.getAuthenticatedUser().getUserId().toString() + "_" + UUID.randomUUID().toString();
         File filePath = new File(workingDir, fileName);
-        try
-
-        {
+        try {
             file.transferTo(filePath);
-        } catch (
-                Exception exception
-                )
-
-        {
+        } catch (Exception exception) {
             ImportResult importResult = new ImportResult();
             importResult.setSuccess(false);
             importResult.setErrors(new ArrayList<>());

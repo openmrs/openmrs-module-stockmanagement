@@ -66,6 +66,9 @@ public class StockItem extends org.openmrs.BaseChangeableOpenmrsData implements 
 	@OneToMany(mappedBy = "stockItem")
 	private Set<StockItemPackagingUOM> stockItemPackagingUOMs;
 	
+	@OneToMany(mappedBy = "stockItem", cascade = CascadeType.ALL, orphanRemoval = true)
+	private Set<StockItemReference> stockItemReferences;
+	
 	@Field
 	@Column(name = "is_drug", nullable = false)
 	private Boolean isDrug;
@@ -180,6 +183,27 @@ public class StockItem extends org.openmrs.BaseChangeableOpenmrsData implements 
 		stockItemPackagingUom.setStockItem(null);
 		
 		return stockItemPackagingUom;
+	}
+	
+	public Set<StockItemReference> getStockItemReferences() {
+		return stockItemReferences;
+	}
+	
+	public void setStockItemReferences(Set<StockItemReference> stockItemReferences) {
+		this.stockItemReferences = stockItemReferences;
+	}
+	
+	public StockItemReference addStockItemReference(StockItemReference stockItemReference) {
+		getStockItemReferences().add(stockItemReference);
+		stockItemReference.setStockItem(this);
+		
+		return stockItemReference;
+	}
+	
+	public StockItemReference removeStockItemReferences(StockItemReference stockItemReference) {
+		getStockItemReferences().remove(stockItemReference);
+		stockItemReference.setStockItem(null);
+		return stockItemReference;
 	}
 	
 	public boolean isHasExpiration() {

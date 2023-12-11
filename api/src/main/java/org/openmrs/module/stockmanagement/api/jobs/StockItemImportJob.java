@@ -9,6 +9,7 @@ import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
+import org.openmrs.module.stockmanagement.api.model.StockItemReference;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 
@@ -62,6 +63,8 @@ public class StockItemImportJob {
 	
 	private int PURCHASE_PRICE_PUOM = 14;
 	
+	private int VENDOR_REFERENCE_ITEM_CODE = 15;
+	
 	private static Pattern NON_ASCII_PATTERN = Pattern.compile("[^A-Za-z0-9]");
 	
 	public StockItemImportJob(Path file, boolean hasHeader) {
@@ -86,7 +89,7 @@ public class StockItemImportJob {
 	
 	private Object validateLine(String[] line) {
         if (line == null || line.length == 0) return null;
-        Object[] objects = new Object[15];
+        Object[] objects = new Object[16];
         List<String> errors = new ArrayList<>();
         if (line.length < 3) {
             errors.add(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.minimumfields"));
@@ -214,6 +217,11 @@ public class StockItemImportJob {
 
         if (line.length > PREFERRED_VENDOR && !isBlank(line[PREFERRED_VENDOR])) {
             objects[PREFERRED_VENDOR] = line[PREFERRED_VENDOR];
+        }
+
+
+        if (line.length > VENDOR_REFERENCE_ITEM_CODE && !isBlank(line[VENDOR_REFERENCE_ITEM_CODE])) {
+            objects[VENDOR_REFERENCE_ITEM_CODE] = line[VENDOR_REFERENCE_ITEM_CODE];
         }
 
         if (line.length > REORDER_LEVEL && !isBlank(line[REORDER_LEVEL])) {
@@ -758,6 +766,17 @@ public class StockItemImportJob {
             if(categoryConceptToSet != null){
                 stockItem.setCategory(categoryConceptToSet);
                 saveStockItem=true;
+            }
+
+            if (updates[VENDOR_REFERENCE_ITEM_CODE] != null && stockItem.getPreferredVendor() != null) {
+                StockItemReference stockItemReference = new StockItemReference();
+                Set<StockItemReference> stockItemReferenceSet = new HashSet<>();
+                stockItemReference.setStockReferenceCode(updates[VENDOR_REFERENCE_ITEM_CODE].toString());
+                stockItemReference.setStockItem(stockItem);
+                stockItemReference.setReferenceSource(stockItem.getPreferredVendor());
+                stockItemReferenceSet.add(stockItemReference);
+                stockItem.setStockItemReferences(stockItemReferenceSet);
+                saveStockItem = true;
             }
 
             if (saveStockItem) {

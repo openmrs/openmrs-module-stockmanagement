@@ -4,6 +4,7 @@ import org.openmrs.Concept;
 import org.openmrs.Drug;
 import org.openmrs.module.stockmanagement.api.model.StockBatch;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
+import org.openmrs.module.stockmanagement.api.model.StockItemReference;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
 
 import java.math.BigDecimal;
@@ -72,6 +73,8 @@ public class StockItemDTO {
 	private String defaultStockOperationsUoMName;
 	
 	private List<StockItemPackagingUOMDTO> stockItemPackagingUOMs;
+	
+	private List<StockItemReference> stockItemReferences;
 	
 	private boolean voided;
 	
@@ -345,6 +348,14 @@ public class StockItemDTO {
 	
 	public void setStockItemPackagingUOMs(List<StockItemPackagingUOMDTO> stockItemPackagingUOMs) {
 		this.stockItemPackagingUOMs = stockItemPackagingUOMs;
+	}
+	
+	public List<StockItemReference> getStockItemReferences() {
+		return stockItemReferences;
+	}
+	
+	public void setStockItemReferences(List<StockItemReference> stockItemReferences) {
+		this.stockItemReferences = stockItemReferences;
 	}
 	
 	public boolean getVoided() {

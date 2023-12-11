@@ -3264,14 +3264,13 @@ public class StockManagementDao extends DaoBase {
         return criteria.list();
     }
 	
-	public StockItem getStockItemByDrug(Integer drugId) {
-		return (StockItem) getSession().createCriteria(StockItem.class).add(Restrictions.eq("drug.drugId", drugId))
-		        .setMaxResults(1).uniqueResult();
+	public List<StockItem> getStockItemByDrug(Integer drugId) {
+		return getSession().createCriteria(StockItem.class).add(Restrictions.eq("drug.drugId", drugId)).list();
 	}
 	
-	public StockItem getStockItemByConcept(Integer conceptId) {
-		return (StockItem) getSession().createCriteria(StockItem.class).add(Restrictions.isNull("drug.drugId"))
-		        .add(Restrictions.eq("concept.conceptId", conceptId)).uniqueResult();
+	public List<StockItem> getStockItemByConcept(Integer conceptId) {
+		return getSession().createCriteria(StockItem.class).add(Restrictions.isNull("drug.drugId"))
+		        .add(Restrictions.eq("concept.conceptId", conceptId)).list();
 	}
 	
 	public StockItemPackagingUOM getStockItemPackagingUOMByConcept(Integer stockItemId, Integer conceptId) {
@@ -5271,5 +5270,17 @@ hqlQuery.append(" left join stockmgmt_stock_item_transaction sit on o.order_id=s
 		}
 
 		return mapResult;
+	}
+	
+	public StockItemReference getStockItemByReference(StockSource stockSource, String stockReferenceCode) {
+		Criteria criteria = getSession().createCriteria(StockItemReference.class);
+		criteria.add(Restrictions.eq("referenceSource", stockSource));
+		criteria.add(Restrictions.eq("stockReferenceCode", stockReferenceCode));
+		return (StockItemReference) criteria.setMaxResults(1).uniqueResult();
+	}
+	
+	public StockItemReference saveStockItemReference(StockItemReference stockItemReference) {
+		getSession().saveOrUpdate(stockItemReference);
+		return stockItemReference;
 	}
 }
