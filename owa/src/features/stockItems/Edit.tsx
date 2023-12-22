@@ -10,7 +10,7 @@ import { URL_STOCK_HOME, URL_STOCK_ITEM, URL_STOCK_ITEMS, URL_STOCK_ITEMS_NEW, U
 import { errorAlert, successAlert } from '../../core/utils/alert';
 import { cloneDeep } from 'lodash-es';
 import { useUrlQueryParams } from '../../core/utils/urlUtils';
-import { useDeleteStockItemPackagingUnitMutation, useLazyGetStockItemQuery, useCreateStockItemMutation, useUpdateStockItemMutation, useCreateStockItemPackagingUnitMutation, useUpdateStockItemPackagingUnitMutation, useDeleteStockRuleMutation } from '../../core/api/stockItem';
+import { useDeleteStockItemPackagingUnitMutation,useDeleteStockItemReferenceMutation,useCreateStockItemReferenceMutation, useLazyGetStockItemQuery, useCreateStockItemMutation, useUpdateStockItemMutation, useCreateStockItemPackagingUnitMutation, useUpdateStockItemPackagingUnitMutation, useDeleteStockRuleMutation, useUpdateStockItemReferenceMutation } from '../../core/api/stockItem';
 import { TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE } from '../../core/privileges';
 import { toErrorMessage } from '../../core/utils/stringUtils';
 import { useHasPreviledge } from '../auth/AccessControl';
@@ -27,6 +27,8 @@ import StockItemPackagingUnitsTable from './StockItemPackagingUnitsTable';
 import produce from 'immer';
 import StockRulesTable from './StockRulesTable';
 import { StockRule } from '../../core/api/types/stockItem/StockRule';
+import StockItemReferenceTable from "./StockItemReferenceTable";
+import {StockItemReferenceDTO} from "../../core/api/types/stockItem/StockItemReference";
 
 const handleErrors = (payload: any) => {
   var errorMessage = toErrorMessage(payload);
@@ -47,6 +49,7 @@ export const Edit = () => {
   const [canEdit, setCanEdit] = useState(false);
   const [selectedTab, setSelectedTab] = useState(0);
   const [packagingUnits, setPackagingUnits] = useState<StockItemPackagingUOMDTO[]>([]);
+  const [references, setReferences] = useState<StockItemReferenceDTO[]>([]);
   const navigate = useNavigate();
   const [getStockItem] = useLazyGetStockItemQuery();
   const [canUpdateStockItems] = useHasPreviledge([TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE], true);
@@ -62,6 +65,7 @@ export const Edit = () => {
   const [confirmRequireReason, setConfirmRequireReason] = useState(false);
   const [displayTransactions, setDisplayTransactions] = useState(false);
   const [displayPackagingUnits, setDisplayPackagingUnits] = useState(false);
+  const [displayReferences, setDisplayReferences] = useState(false);
   const [displayBatchInformation, setDisplayBatchInformation] = useState(false);
   const [displayQuantities, setDisplayQuantities] = useState(false);
   const [displayStockRules, setDisplayStockRules] = useState(false);
@@ -70,9 +74,13 @@ export const Edit = () => {
   const [itemValidity, setItemValidity] = useState<{ [key: string]: { [key: string]: boolean } }>({});
   const [ruleValidity, setRuleValidity] = useState<{ [key: string]: { [key: string]: boolean } }>({});
   const [editablePackagingUnits, setEditablePackagingUnits] = useState<StockItemPackagingUOMDTO[]>([{ uuid: `new-item-1`, id: `new-item-1` }])
+  const [editableReferences, setEditableReferences] = useState<StockItemReferenceDTO[]>([{ uuid: `new-item-1`, id: `new-item-1` }])
   const [createStockItemPackagingUnit] = useCreateStockItemPackagingUnitMutation();
   const [updateStockItemPackagingUnit] = useUpdateStockItemPackagingUnitMutation();
   const [deleteStockItemPackagingUnit] = useDeleteStockItemPackagingUnitMutation();
+  const [deleteStockItemReference] = useDeleteStockItemReferenceMutation();
+  const [createStockItemReference] = useCreateStockItemReferenceMutation();
+  const [updateStockItemReference] = useUpdateStockItemReferenceMutation();
   const [deleteStockRule] = useDeleteStockRuleMutation();
 
   useEffect(() => {
@@ -125,6 +133,12 @@ export const Edit = () => {
             stockItem["isDrug"] = stockItem.drugUuid != null;
             if (stockItem && stockItem.packagingUnits) {
               stockItem.packagingUnits.forEach((si, ii, iar) => {
+                (si as any)["id"] = si.uuid;
+              });
+            }
+
+            if (stockItem && stockItem.references) {
+              stockItem.references.forEach((si, ii, iar) => {
                 (si as any)["id"] = si.uuid;
               });
             }
@@ -182,11 +196,18 @@ export const Edit = () => {
           setEditablePackagingUnits(editableUnits);
         }
 
+        if (stockItem.references) {
+          setReferences(stockItem.references);
+          let editableReferences = cloneDeep(stockItem.references);
+          editableReferences.push({ uuid: `new-item-1`, id: `new-item-1` })
+          setEditableReferences(editableReferences);
+        }
+
         try {
           let tabString: string | null = urlQueryParams.get("tab");
           if (tabString) {
             let tab: number = parseInt(tabString);
-            if (tab >= 0 && tab <= 5) {
+            if (tab >= 0 && tab <= 6) {
               setSelectedTab(tab);
               switch (tab) {
                 case 1:
@@ -203,6 +224,9 @@ export const Edit = () => {
                   break;
                 case 5:
                   onClickTab("stockrules");
+                  break;
+                case 6:
+                  onClickTab("stockreferences");
                   break;
               }
             }
@@ -318,6 +342,39 @@ export const Edit = () => {
     }
   }
 
+  const onConfirmRemoveReference = async (itemUuid: string | undefined | null, reason: string | null): Promise<void> => {
+    if (!itemUuid) {
+      return;
+    }
+    setShowSplash(true);
+    try {
+      await deleteStockItemReference(itemUuid).unwrap().then(
+          (payload: any) => {
+            if (payload && (payload as any).error) {
+              var errorToken = toErrorMessage(payload);
+              errorAlert(`${t("stockmanagement.stockitem.deletereferencesfailed")} ${errorToken}`);
+              return;
+            } else {
+              successAlert(`${t("stockmanagement.stockitem.deletereferencesuccess")}`);
+              setEditableReferences(
+                  produce((draft) => {
+                    const itemIndex = draft.findIndex((p) => p.uuid === itemUuid);
+                    if (itemIndex >= 0) {
+                      draft.splice(itemIndex, 1);
+                    }
+                  })
+              );
+            }
+          }).catch((error:any) => {
+            var errorToken = toErrorMessage(error);
+            errorAlert(`${t("stockmanagement.stockitem.deletereferencesfailed")} ${errorToken}`);
+            return;
+          });
+    } finally {
+      setShowSplash(false);
+    }
+  }
+
   const onConfirmRemoveStockRule = async (itemUuid: string | undefined | null, reason: string | null): Promise<void> => {
     if (!itemUuid) {
       return;
@@ -355,6 +412,9 @@ export const Edit = () => {
         break;
       case "removestockrule":
         onConfirmRemoveStockRule(confirmParam, reason);
+        break;
+      case "removereference":
+        onConfirmRemoveReference(confirmParam, reason);
         break;
     }
   }
@@ -403,6 +463,11 @@ export const Edit = () => {
           setDisplayStockRules(true);
         }
         break;
+      case "stockreference":
+        if (!isNew && !displayReferences) {
+          setDisplayReferences(true);
+        }
+        break;
     }
   }
 
@@ -410,6 +475,13 @@ export const Edit = () => {
     if (itemDto == null) return true;
     if (itemDto.packagingUomUuid) return false;
     if (itemDto.factor) return false;
+    return true;
+  }, []);
+
+  const isReferenceEmpty = useCallback((itemDto: StockItemReferenceDTO): boolean => {
+    if (itemDto == null) return true;
+    if (itemDto.stockSourceUuid) return false;
+    if (itemDto.referenceCode) return false;
     return true;
   }, []);
 
@@ -443,6 +515,38 @@ export const Edit = () => {
     setItemValidity(validationStatus);
     return validItems;
   }, [editablePackagingUnits, isPackagingUnitEmpty, t])
+
+
+  const validateReferences = useCallback(() => {
+    let validItems = true;
+    let validationStatus: { [key: string]: { [key: string]: boolean } } = {};
+    let emptyCount = 0;
+    editableReferences.forEach(p => {
+      validationStatus[p.uuid!] = {};
+      if (isReferenceEmpty(p)) {
+        emptyCount++;
+        return;
+      }
+
+      if (!p.stockSourceUuid) {
+        validationStatus[p.uuid!]["stockSourceUuid"] = false;
+        validItems = false;
+      }
+
+      if (!p.referenceCode && p.referenceCode!="") {
+        validationStatus[p.uuid!]["referenceCode"] = false;
+        validItems = false;
+      }
+    });
+    if (emptyCount === editableReferences.length) {
+      validItems = false;
+      errorAlert(t("stockmanagement.stockitem.source.oneitemrequired"));
+    } else if (!validItems) {
+      errorAlert(t("stockmanagement.stockitem.source.itemsnotvalid"));
+    }
+    setItemValidity(validationStatus);
+    return validItems;
+  }, [editableReferences, isReferenceEmpty, t])
 
   const handleSavePackagingUnit = useCallback(async () => {
     setShowSplash(true);
@@ -514,6 +618,75 @@ export const Edit = () => {
     setShowConfirm(true);
   }, [t]);
 
+  const handleSaveReference = useCallback(async () => {
+    setShowSplash(true);
+    if (!validatePackagingUnits()) {
+      setShowSplash(false);
+      return;
+    }
+    let hideSplash = true;
+    try {
+
+      let items: any[] = []
+      editableReferences.forEach(p => {
+        if (p.uuid?.startsWith("new-item") && isReferenceEmpty(p)) return;
+        let newItem = {
+          stockItemUuid: editableModel?.uuid,
+          stockSourceUuid: p.stockSourceUuid,
+          referenceCode: p.referenceCode
+        } as any;
+        if (!p.uuid?.startsWith("new-item")) {
+          newItem["uuid"] = p.uuid;
+        }
+        items.push(newItem)
+      });
+      let sucessCount = 0;
+      let failCount = 0;
+      items.forEach(async source => {
+        await (!source.uuid ? createStockItemReference(source) : updateStockItemReference({ model: source, uuid: source.uuid! })).unwrap().then(
+            (payload: any) => {
+              if ((payload as any).error) {
+                failCount = failCount + 1;
+                var errorToken = toErrorMessage(payload);
+                errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatefailed" : "stockmanagement.stockitem.referenceupdatefailed")} ${errorToken}`);
+                return;
+              } else {
+                sucessCount = sucessCount + 1;
+                successAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatesuccess" : "stockmanagement.stockitem.referenceupdatesuccess")}`);
+              }
+            })
+            .catch((error:any) => {
+              var errorToken = toErrorMessage(error);
+              errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatefailed" : "stockmanagement.stockitem.referenceupdatefailed")} ${errorToken}`);
+              return;
+            });
+      });
+      setShowSplash(false);
+      hideSplash = false;
+      if (failCount === 0) {
+        navigate(URL_STOCK_ITEMS_REDIRECT((editableModel as StockItemDTO).uuid!, selectedTab?.toString() ?? ""));
+      }
+    } finally {
+      if (hideSplash) {
+        setShowSplash(false);
+      }
+    }
+
+  }, [validateReferences, editableReferences, isReferenceEmpty, editableModel, createStockItemReference, updateStockItemReference, t, navigate, selectedTab]);
+
+  const handleRemoveReference = useCallback((itemDto: StockItemReferenceDTO) => {
+    let text = t("stockmanagement.stockitem.confirm.removereference.text");
+    text = text.replaceAll("%item.name%", itemDto?.stockSourceName ?? "");
+    setConfirmText(text);
+    setConfirmHeading("stockmanagement.stockitem.confirm.removereference.heading");
+    setConfirmLabel(itemDto?.stockSourceName!);
+    setConfirmType("removereference");
+    setConfirmDefaultReason("");
+    setConfirmRequireReason(true);
+    setConfirmParam(itemDto.uuid ?? "");
+    setShowConfirm(true);
+  }, [t]);
+
   const handleRemoveStockRule = useCallback((itemDto: StockRule) => {
     let text = t("stockmanagement.stockitem.confirm.removestockrule.text");
     text = text.replaceAll("%item.name%", itemDto?.name ?? "");
@@ -557,6 +730,7 @@ export const Edit = () => {
               setModel={setEditableMode}
               isNew={isNew}
               packagingUnits={packagingUnits}
+              references={references}
               setShowSplash={setShowSplash}
               setSelectedTab={setSelectedTab}
               canEdit={canEdit} actions={{
@@ -608,6 +782,20 @@ export const Edit = () => {
                 }} setShowSplash={setShowSplash} />
             }
           </Tab>
+          <Tab label="Reference" disabled={isNew} onClick={(e) => onClickTab("stockreference")}>
+            {
+                displayReferences && <StockItemReferenceTable
+                    setReferences={setEditableReferences}
+                    items={editableReferences} canEdit={canEdit}
+                    setSelectedTab={setSelectedTab}
+                    actions={{ onSave: handleSaveReference, onGoBack: handleGoBack, onRemoveItem: handleRemoveReference }}
+                    errors={itemValidity}
+                    setItemValidity={setItemValidity}
+                    validateItems={validateReferences}
+                />
+            }
+          </Tab>
+
         </Tabs>
 
       </div>

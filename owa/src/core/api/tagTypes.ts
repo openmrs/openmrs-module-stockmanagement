@@ -6,6 +6,7 @@ export const StockRulesTag = "StockRules";
 export const StockItemTransactionsTag = "StockItemTransaction";
 export const StockItemInventoryTag = "StockItemInventory";
 export const StockItemPackagingUOMTag = "StockItemPackagingUOM";
+export const StockItemReferenceTag = "StockItemReference";
 export const StockOperationsTag = "StockOperations";
 export const StockOperationLinksTag = "StockOperationLinks";
 export const LocationsTag = "Locations";

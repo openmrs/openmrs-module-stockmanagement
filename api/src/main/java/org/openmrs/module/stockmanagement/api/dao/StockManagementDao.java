@@ -5283,4 +5283,15 @@ hqlQuery.append(" left join stockmgmt_stock_item_transaction sit on o.order_id=s
 		getSession().saveOrUpdate(stockItemReference);
 		return stockItemReference;
 	}
+	
+	public StockItemReference getStockItemReferenceByUuid(String uuid) {
+		return (StockItemReference) getSession().createCriteria(StockItemReference.class).add(Restrictions.eq("uuid", uuid))
+		        .uniqueResult();
+	}
+	
+	public List<StockItemReference> getStockItemReferenceByStockItem(StockItem stockItem) {
+		Criteria criteria = getSession().createCriteria(StockItemReference.class);
+		criteria.add(Restrictions.eq("stockItem", stockItem));
+		return criteria.list();
+	}
 }

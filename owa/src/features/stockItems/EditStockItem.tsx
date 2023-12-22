@@ -17,6 +17,7 @@ import { StockItemPackagingUOMDTO } from '../../core/api/types/stockItem/StockIt
 import { StockSource } from '../../core/api/types/stockOperation/StockSource';
 import { useLazyGetStockItemsQuery } from '../../core/api/stockItem'
 import { PageableResult } from '../../core/api/types/PageableResult';
+import {StockItemReferenceDTO} from "../../core/api/types/stockItem/StockItemReference";
 
 export interface EditStockItemProps {
     model: StockItemDTO;
@@ -26,6 +27,7 @@ export interface EditStockItemProps {
     setSelectedTab: React.Dispatch<React.SetStateAction<number>>;
     canEdit: boolean;
     packagingUnits: StockItemPackagingUOMDTO[];
+    references: StockItemReferenceDTO[];
     actions: {
         onGoBack: () => void;
         onSave: () => void;

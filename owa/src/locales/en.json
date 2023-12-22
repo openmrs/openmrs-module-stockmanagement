@@ -224,6 +224,10 @@
         "oneitemrequired": "At least one packaging unit is required",
         "itemsnotvalid": "Validation failed for packaging units"
       },
+      "references": {
+        "source": "Source",
+        "referencecode": "Code"
+      },
       "batchinfo": {
         "location": "Location",
         "batchno": "Batch Number",
@@ -292,7 +296,13 @@
       "stockrulecreatefailed": "Failed to create the stock rule",
       "stockruleupdatefailed": "Failed to update the stock rule",
       "stockrulecreatesuccess": "Successfully added the stock rule",
-      "stockruleupdatesuccess": "Successfully updated the stock rule"
+      "stockruleupdatesuccess": "Successfully updated the stock rule",
+      "referencecreatefailed": "Failed to create the packaging unit",
+      "referenceupdatefailed": "Failed to update the packaging unit",
+      "referencecreatesuccess": "Successfully added the packaging unit",
+      "referenceupdatesuccess": "Successfully updated the packaging unit",
+      "deletereferencefailed": "Failed to remove the packaging unit",
+      "deletereferencesuccess": "Successfully removed the packaging unit"
     },
     "stockoperation": {
       "name": "Stock Operation",
