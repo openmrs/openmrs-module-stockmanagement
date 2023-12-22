@@ -87,14 +87,14 @@ const StockOperationItemsTable: React.FC<StockItemReferenceTableProps> = ({
     }, [canEdit, stockSource, getStockSource]);
 
     const onReferenceChanged = (row: StockItemReferenceDTO, data: { selectedItem: any }) => {
-        console.info(data, "This is Data")
-        console.info(row, "This is Row")
+        console.log(data, "This is Data")
+        console.log(row, "This is Row")
         setReferences(
             produce((draft) => {
                 const item = draft.find((p) => p.uuid === row.uuid);
                 if (item) {
                     if (data.selectedItem) {
-                        item.stockSourceName = data.selectedItem?.stockSourceName;
+                        item.stockSourceName = data.selectedItem?.name;
                         item.stockSourceUuid = data.selectedItem?.uuid;
                         if (item.uuid === items[items.length - 1].uuid) {
                             let itemId = `new-item-${getStockOperationUniqueId()}`;
@@ -102,7 +102,7 @@ const StockOperationItemsTable: React.FC<StockItemReferenceTableProps> = ({
                         }
                     }
                     else {
-                        item.stockSourceName = data.selectedItem?.stockSourceName;
+                        item.stockSourceName = data.selectedItem?.name;
                         item.stockSourceUuid = data.selectedItem?.uuid;
                     }
                 }
@@ -208,8 +208,6 @@ const StockOperationItemsTable: React.FC<StockItemReferenceTableProps> = ({
                             </TableHead>
                             <TableBody>
                                 {items.map((row: any, rowIndex) => {
-                                    // @ts-ignore
-                                    // @ts-ignore
                                     return (
                                         <TableRow
                                             className={isDesktop ? styles.desktopRow : styles.tabletRow}
@@ -237,7 +235,7 @@ const StockOperationItemsTable: React.FC<StockItemReferenceTableProps> = ({
                                                 {(!canEdit || !row.uuid?.startsWith('new-item')) && row?.stockSourceName}
                                             </TableCell>
                                             <TableCell>
-                                                {canEdit && <TextInput size='sm' id={`referencecode-${row.uuid}`} value={row?.referenceCode ?? ""}  title="" invalidText="" labelText={""} invalid={(row.uuid in errors) && ("referenceCode" in errors[row.uuid]) && !errors[row.uuid]["referenceCode"]}/>}
+                                                {canEdit && <TextInput size='sm' id={`referencecode-${row.uuid}`} value={row?.referenceCode ?? ""} onChange={e=>onReferenceCodeFieldChange(row,e?.target?.value)} title="" invalidText="" labelText={""} invalid={(row.uuid in errors) && ("referenceCode" in errors[row.uuid]) && !errors[row.uuid]["referenceCode"]}/>}
                                                 {!canEdit && row?.referenceCode?.toLocaleString()}
                                             </TableCell>
                                             {canEdit && <TableCell>
