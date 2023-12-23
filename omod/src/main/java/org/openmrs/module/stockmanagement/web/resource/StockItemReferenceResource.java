@@ -20,6 +20,7 @@ import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,8 +42,8 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 	@Override
     protected PageableResult doSearch(RequestContext context) {
         String param = context.getParameter("stockItemUuid");
-        List<StockItemReferenceDTO> stockItemReferenceDTOS=new ArrayList<>();
-        for (StockItemReference stockItemReference:getStockManagementService().getStockItemReferenceByStockItem(param)) {
+        List<StockItemReferenceDTO> stockItemReferenceDTOS = new ArrayList<>();
+        for (StockItemReference stockItemReference : getStockManagementService().getStockItemReferenceByStockItem(param)) {
             stockItemReferenceDTOS.add(convertToDTO(stockItemReference));
         }
         return toAlreadyPaged(stockItemReferenceDTOS, context);
@@ -174,7 +175,10 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 	public StockItemReference convertFromDTO(StockItemReferenceDTO dto) {
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		if (dto != null) {
-			StockItemReference stockItemReference = new StockItemReference();
+			StockItemReference stockItemReference = stockManagementService.getStockItemReferenceByUuid(dto.getUuid());
+			if (stockItemReference == null) {
+				stockItemReference = new StockItemReference();
+			}
 			stockItemReference.setReferenceSource(stockManagementService.getStockSourceByUuid(dto.getStockSourceUuid()));
 			stockItemReference.setStockItem(stockManagementService.getStockItemByUuid(dto.getStockItemUuid()));
 			stockItemReference.setStockReferenceCode(dto.getReferenceCode());

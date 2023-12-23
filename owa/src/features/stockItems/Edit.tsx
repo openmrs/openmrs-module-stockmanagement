@@ -533,7 +533,7 @@ export const Edit = () => {
         validItems = false;
       }
 
-      if (!p.referenceCode && p.referenceCode!="") {
+      if (!p.referenceCode && p.referenceCode!=="") {
         validationStatus[p.uuid!]["referenceCode"] = false;
         validItems = false;
       }
@@ -620,21 +620,21 @@ export const Edit = () => {
 
   const handleSaveReference = useCallback(async () => {
     setShowSplash(true);
-    if (!validatePackagingUnits()) {
+    if (!validateReferences()) {
       setShowSplash(false);
       return;
     }
     let hideSplash = true;
     try {
 
-      let items: any[] = []
+      let items: StockItemReferenceDTO[] = []
       editableReferences.forEach(p => {
         if (p.uuid?.startsWith("new-item") && isReferenceEmpty(p)) return;
         let newItem = {
           stockItemUuid: editableModel?.uuid,
           stockSourceUuid: p.stockSourceUuid,
           referenceCode: p.referenceCode
-        } as any;
+        } as StockItemReferenceDTO;
         if (!p.uuid?.startsWith("new-item")) {
           newItem["uuid"] = p.uuid;
         }
@@ -642,8 +642,8 @@ export const Edit = () => {
       });
       let sucessCount = 0;
       let failCount = 0;
-      items.forEach(async source => {
-        await (!source.uuid ? createStockItemReference(source) : updateStockItemReference({ model: source, uuid: source.uuid! })).unwrap().then(
+      for (const stockItemReference of items) {
+        await (!stockItemReference.uuid ? createStockItemReference(stockItemReference) : updateStockItemReference({ model: stockItemReference, uuid: stockItemReference.uuid! })).unwrap().then(
             (payload: any) => {
               if ((payload as any).error) {
                 failCount = failCount + 1;
@@ -660,7 +660,7 @@ export const Edit = () => {
               errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatefailed" : "stockmanagement.stockitem.referenceupdatefailed")} ${errorToken}`);
               return;
             });
-      });
+      }
       setShowSplash(false);
       hideSplash = false;
       if (failCount === 0) {

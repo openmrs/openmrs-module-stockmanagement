@@ -3451,7 +3451,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 
     @Override
     public void voidStockItemReference(String uuid, String reason, Integer userId) {
-
+        dao.voidStockItemReference(uuid, reason, userId);
     }
 
     @Override
