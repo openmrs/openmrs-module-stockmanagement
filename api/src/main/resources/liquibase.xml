@@ -4658,4 +4658,20 @@ CREATE TRIGGER stockmgmt_location_after_delete
             constraintName="stockmgmt_stock_item_reference_source_code_pk"
             tableName="stockmgmt_stock_item"/>
   </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2023-01-05-0700">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_stock_item_reference" />
+      <not>
+        <columnExists columnName="uuid" tableName="stockmgmt_stock_item_reference"/>
+      </not>
+    </preConditions>
+    <comment>
+      adding column uuid on table stockmgmt_stock_item_reference
+    </comment>
+    <addColumn tableName="stockmgmt_stock_item_reference">
+      <column defaultValueBoolean="false" name="uuid" type="varchar(38)">
+        <constraints nullable="false" />
+      </column>
+    </addColumn>
+  </changeSet>
 </databaseChangeLog>
