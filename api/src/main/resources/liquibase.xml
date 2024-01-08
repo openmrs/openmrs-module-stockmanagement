@@ -2619,7 +2619,60 @@
     </preConditions>
     <addForeignKeyConstraint baseColumnNames="stock_source_id" baseTableName="stockmgmt_party" constraintName="stockmgmt_party_stock_source_fk" referencedColumnNames="stock_source_id" referencedTableName="stockmgmt_stock_source" />
   </changeSet>
-  <changeSet id="stockmanagement-1758855877841-225" author="dev">
+  <changeSet id="stockmanagement-1758855877841-20240138" author="jecihjoy">
+    <preConditions onFail="MARK_RAN">
+      <dbms type="mysql" />
+    </preConditions>
+    <comment>
+      Creating trigger stockmgmt_location_after_insert on location table
+    </comment>
+    <sql splitStatements="true" endDelimiter="\$\$"><![CDATA[
+      DROP TRIGGER IF EXISTS `stockmgmt_location_after_insert`;
+      $$
+      CREATE TRIGGER `stockmgmt_location_after_insert` AFTER INSERT ON `location_tag_map`
+      FOR EACH ROW
+      BEGIN
+        IF NEW.location_tag_id IN ( select location_tag_id from location_tag where uuid in ('89a80c4d-2899-11ed-bdcb-507b9dea1806','fe7c970f-2aba-11ed-ba4a-507b9dea1806','e539ebca-2899-11ed-bdcb-507b9dea1806')) THEN
+          INSERT INTO stockmgmt_location_tree (parent_location_id, child_location_id, depth, uuid)
+          VALUES (NEW.location_id, NEW.location_id, 0, uuid());
+      
+          INSERT INTO stockmgmt_party(location_id, creator, date_created, uuid)
+          VALUES(NEW.location_id, 1, CURDATE(), uuid());
+        END IF;
+      END
+      $$
+            ]]></sql>
+    <rollback>
+      DROP TRIGGER IF EXISTS `stockmgmt_location_after_insert`;
+    </rollback>
+  </changeSet>
+
+  <changeSet id="stockmanagement-1758855877841-20240139" author="jecihjoy">
+    <preConditions onFail="MARK_RAN">
+      <dbms type="mysql" />
+    </preConditions>
+    <comment>
+            Creating trigger stockmgmt_location_after_delete on location table
+    </comment>
+    <sql splitStatements="true" endDelimiter="\$\$"><![CDATA[
+        DROP TRIGGER IF EXISTS `stockmgmt_location_after_delete`;
+        $$
+        CREATE TRIGGER `stockmgmt_location_after_delete` AFTER DELETE ON `location_tag_map` FOR EACH ROW
+        BEGIN
+          IF OLD.location_tag_id IN ( select location_tag_id from location_tag where uuid in ('89a80c4d-2899-11ed-bdcb-507b9dea1806','fe7c970f-2aba-11ed-ba4a-507b9dea1806','e539ebca-2899-11ed-bdcb-507b9dea1806')) THEN
+            UPDATE stockmgmt_party set voided = 1, voided_by = 1, date_voided=CURDATE(), void_reason='This location is no longer a pharmacy point' where location_id = OLD.location_id;
+            DELETE from stockmgmt_location_tree where child_location_id = OLD.location_id or parent_location_id = OLD.location_id;         
+           END IF;
+        END
+        $$
+            ]]></sql>
+    <rollback>
+            DROP TRIGGER IF EXISTS `stockmgmt_location_after_delete`;
+        </rollback>
+  </changeSet>
+
+
+ <!-- <changeSet id="stockmanagement-1758855877841-225" author="dev">
     <preConditions onFail="MARK_RAN">
       <dbms type="mysql" />
     </preConditions>
@@ -2973,7 +3026,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
             DROP TRIGGER IF EXISTS stockmgmt_location_after_delete ON location;
             DROP FUNCTION IF EXISTS stockmgmt_location_after_delete();
         </rollback>
-  </changeSet>
+  </changeSet> -->
   <changeSet id="stockmanagement-1758855877841-233" author="dev">
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location_tag WHERE name = 'Main Pharmacy'</sqlCheck>
