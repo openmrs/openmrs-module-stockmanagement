@@ -143,14 +143,14 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
             filter.setConceptId(concept.getConceptId());
         }
 
-		param = context.getParameter("categoryUuid");
-		if (!StringUtils.isBlank(param)) {
-			Concept concept = Context.getConceptService().getConcept(param);
-			if (concept == null) {
-				return emptyResult(context);
-			}
-			filter.setCategoryId(concept.getConceptId());
-		}
+        param = context.getParameter("categoryUuid");
+        if (!StringUtils.isBlank(param)) {
+            Concept concept = Context.getConceptService().getConcept(param);
+            if (concept == null) {
+                return emptyResult(context);
+            }
+            filter.setCategoryId(concept.getConceptId());
+        }
 
         ConceptService service = Context.getConceptService();
         Integer maxIntermediateResult = GlobalProperties.getStockItemSearchMaxDrugConceptIntermediateResult();
@@ -308,6 +308,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		if (rep instanceof FullRepresentation) {
 			description.addProperty("permission");
 			description.addProperty("packagingUnits");
+			description.addProperty("references");
 			description.addSelfLink();
 		}
 		
@@ -333,6 +334,20 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		        .getData();
 		return packagingUnits;
 	}
+	
+	@PropertyGetter("references")
+    public Collection<StockItemReferenceDTO> getStockItemReferences(StockItemDTO stockItemDTO) {
+        List<StockItemReferenceDTO> stockItemReferenceDTOS = new ArrayList<>();
+
+        for (StockItemReference stockItemReference : getStockManagementService().getStockItemReferenceByStockItem(stockItemDTO.getUuid())) {
+            StockItemReferenceResource stockItemReferenceResource = new StockItemReferenceResource();
+
+            stockItemReferenceDTOS.add(stockItemReferenceResource.convertToDTO(stockItemReference));
+        }
+
+
+        return stockItemReferenceDTOS;
+    }
 	
 	@PropertyGetter("permission")
 	public SimpleObject getPermission(StockItemDTO stockItemDTO) {

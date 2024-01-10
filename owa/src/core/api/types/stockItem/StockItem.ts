@@ -4,6 +4,7 @@ import { Drug } from '../concept/Drug';
 import { RecordPermission } from '../RecordPermission';
 import { StockBatch } from './StockBatch';
 import { StockItemPackagingUOM, StockItemPackagingUOMDTO } from './StockItemPackagingUOM';
+import {StockItemReference, StockItemReferenceDTO} from "./StockItemReference";
 
 export interface StockItem extends BaseOpenmrsData {
     concept: Concept;
@@ -42,6 +43,7 @@ export interface StockItemDTO {
     creatorFamilyName: string | null | undefined;
     voided: boolean | null | undefined;
     packagingUnits: StockItemPackagingUOMDTO[];
+    references: StockItemReferenceDTO[];
     permission: RecordPermission;
     categoryUuid: string | null | undefined;
     categoryName: string | null | undefined;

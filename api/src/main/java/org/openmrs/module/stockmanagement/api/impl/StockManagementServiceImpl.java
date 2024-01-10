@@ -39,6 +39,7 @@ import org.openmrs.module.stockmanagement.tasks.StockOperationNotificationTask;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
 import org.openmrs.util.OpenmrsConstants;
+import org.springframework.util.Assert;
 
 import javax.mail.Session;
 import java.math.BigDecimal;
@@ -3446,5 +3447,26 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     @Override
     public StockItemReference saveStockItemReference(StockItemReference stockItemReference) {
         return dao.saveStockItemReference(stockItemReference);
+    }
+
+    @Override
+    public void voidStockItemReference(String uuid, String reason, Integer userId) {
+        dao.voidStockItemReference(uuid, reason, userId);
+    }
+
+    @Override
+    public StockItemReference getStockItemReferenceByUuid(String uuid) {
+        return dao.getStockItemReferenceByUuid(uuid);
+    }
+
+    @Override
+    public List<StockItemReference> getStockItemReferenceByStockItem(String uuid) {
+
+       StockItem stockItem= getStockItemByUuid(uuid);
+        if(stockItem!=null) {
+            return dao.getStockItemReferenceByStockItem(stockItem);
+        }else {
+            return null;
+        }
     }
 }

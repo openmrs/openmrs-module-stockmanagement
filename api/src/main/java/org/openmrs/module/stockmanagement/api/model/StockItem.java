@@ -67,7 +67,7 @@ public class StockItem extends org.openmrs.BaseChangeableOpenmrsData implements 
 	private Set<StockItemPackagingUOM> stockItemPackagingUOMs;
 	
 	@OneToMany(mappedBy = "stockItem", cascade = CascadeType.ALL, orphanRemoval = true)
-	private Set<StockItemReference> stockItemReferences;
+	private Set<StockItemReference> references;
 	
 	@Field
 	@Column(name = "is_drug", nullable = false)
@@ -185,25 +185,25 @@ public class StockItem extends org.openmrs.BaseChangeableOpenmrsData implements 
 		return stockItemPackagingUom;
 	}
 	
-	public Set<StockItemReference> getStockItemReferences() {
-		return stockItemReferences;
+	public Set<StockItemReference> getReferences() {
+		return references;
 	}
 	
-	public void setStockItemReferences(Set<StockItemReference> stockItemReferences) {
-		this.stockItemReferences = stockItemReferences;
+	public void setStockItemReferences(Set<StockItemReference> references) {
+		this.references = references;
 	}
 	
-	public StockItemReference addStockItemReference(StockItemReference stockItemReference) {
-		getStockItemReferences().add(stockItemReference);
-		stockItemReference.setStockItem(this);
+	public StockItemReference addStockItemReference(StockItemReference reference) {
+		getReferences().add(reference);
+		reference.setStockItem(this);
 		
-		return stockItemReference;
+		return reference;
 	}
 	
-	public StockItemReference removeStockItemReferences(StockItemReference stockItemReference) {
-		getStockItemReferences().remove(stockItemReference);
-		stockItemReference.setStockItem(null);
-		return stockItemReference;
+	public StockItemReference removeStockItemReferences(StockItemReference reference) {
+		getReferences().remove(reference);
+		reference.setStockItem(null);
+		return reference;
 	}
 	
 	public boolean isHasExpiration() {

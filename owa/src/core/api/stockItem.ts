@@ -1,6 +1,14 @@
 import { InventoryGroupBy, StockItemDTO } from './types/stockItem/StockItem'
 import { api, ResourceFilterCriteria, toQueryParams } from './api'
-import { StockItemsTag, LIST_ID, StockItemPackagingUOMTag, StockItemTransactionsTag, StockItemInventoryTag, StockRulesTag } from './tagTypes'
+import {
+  StockItemsTag,
+  LIST_ID,
+  StockItemPackagingUOMTag,
+  StockItemTransactionsTag,
+  StockItemInventoryTag,
+  StockRulesTag,
+  StockItemReferenceTag
+} from './tagTypes'
 import { BASE_OPENMRS_APP_URL } from '../../config';
 import { PageableResult } from './types/PageableResult';
 import { StockItemPackagingUOMDTO } from './types/stockItem/StockItemPackagingUOM';
@@ -10,6 +18,7 @@ import { StockItemInventory } from './types/stockItem/StockItemInventory';
 import { ImportResult } from './types/stockItem/ImportResult';
 import { StockOperationItemCost } from './types/stockOperation/StockOperationItemCost';
 import { StockRule } from './types/stockItem/StockRule';
+import {StockItemReferenceDTO} from "./types/stockItem/StockItemReference";
 
 export interface StockItemFilter extends ResourceFilterCriteria {
   isDrug?: string | null | undefined;
@@ -42,6 +51,11 @@ export interface StockItemInventoryFilter extends ResourceFilterCriteria {
 }
 
 export interface StockItemPackagingUOMFilter extends ResourceFilterCriteria {
+  stockItemUuid?: string | null | undefined;
+}
+
+
+export interface StockItemReferenceFilter extends ResourceFilterCriteria {
   stockItemUuid?: string | null | undefined;
 }
 
@@ -133,6 +147,20 @@ const stockItemsApi = api.injectEndpoints({
       }
     }),
 
+    getStockItemReferences: build.query<PageableResult<StockItemReferenceDTO>, StockItemReferenceFilter>({
+      query: (filter) => ({
+        url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockitemreference${toQueryParams(filter)}`,
+        method: 'GET'
+      }),
+      providesTags: (_result, _err, id) => {
+        return [{ type: StockItemReferenceTag, id: LIST_ID }];
+      },
+      transformResponse: (response: PageableResult<StockItemReferenceDTO>, meta, arg) => {
+        response?.results?.sort((a, b) => (a?.stockSourceName?.localeCompare(b?.stockSourceName ?? "")) ?? 0);
+        return response;
+      }
+    }),
+
     getStockItem: build.query<StockItemDTO, string>({
       query: (id) => ({
         url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockitem/${id}?v=full`,
@@ -174,6 +202,17 @@ const stockItemsApi = api.injectEndpoints({
         return [{ type: StockItemPackagingUOMTag }];
       }
     }),
+    deleteStockItemReference: build.mutation<void, string>({
+      query: (id) => {
+        return {
+          url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockitemreference/${id}`,
+          method: 'DELETE'
+        }
+      },
+      invalidatesTags: (_result, _err, id) => {
+        return [{ type: StockItemReferenceTag }];
+      }
+    }),
     createStockItem: build.mutation<void, StockItemDTO>({
       query: (stockItem) => {
         return {
@@ -210,12 +249,36 @@ const stockItemsApi = api.injectEndpoints({
         return [{ type: StockItemPackagingUOMTag }];
       }
     }),
+    createStockItemReference: build.mutation<void, StockItemReferenceDTO>({
+      query: (stockItemReference) => {
+        return {
+          url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockitemreference`,
+          method: 'POST',
+          body: stockItemReference
+        }
+      },
+      invalidatesTags: (_result, _err, id) => {
+        return [{ type: StockItemReferenceTag }];
+      }
+    }),
     updateStockItemPackagingUnit: build.mutation<void, { model: StockItemDTO, uuid: string }>({
       query: (uom) => {
         return {
           url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockitempackaginguom/${uom.uuid}`,
           method: 'POST',
           body: uom.model
+        }
+      },
+      invalidatesTags: (_result, _err, id) => {
+        return [{ type: StockItemPackagingUOMTag, id: id.uuid }];
+      }
+    }),
+    updateStockItemReference: build.mutation<void, { model: StockItemReferenceDTO, uuid: string }>({
+      query: (stockItemReference) => {
+        return {
+          url: `${BASE_OPENMRS_APP_URL}ws/rest/v1/stockmanagement/stockitemreference/${stockItemReference.uuid}`,
+          method: 'POST',
+          body: stockItemReference.model
         }
       },
       invalidatesTags: (_result, _err, id) => {
@@ -292,6 +355,7 @@ export const {
   useCreateStockItemMutation,
   useUpdateStockItemMutation,
   useLazyGetStockItemPackagingUOMsQuery,
+  useGetStockItemReferencesQuery,
   useGetStockItemPackagingUOMsQuery,
   useLazyGetStockBatchesQuery,
   useGetStockBatchesQuery,
@@ -302,6 +366,9 @@ export const {
   useCreateStockItemPackagingUnitMutation,
   useUpdateStockItemPackagingUnitMutation,
   useDeleteStockItemPackagingUnitMutation,
+  useCreateStockItemReferenceMutation,
+  useUpdateStockItemReferenceMutation,
+  useDeleteStockItemReferenceMutation,
   useImportStockItemMutation,
   useGetStockOperationItemsCostQuery,
   useLazyGetStockOperationItemsCostQuery,

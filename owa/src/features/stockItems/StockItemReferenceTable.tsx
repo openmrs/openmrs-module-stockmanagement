@@ -12,7 +12,7 @@ import {
     TableRow,
     Button,
     ComboBox,
-    NumberInput,
+    TextInput,
     DataTableSkeleton,
 } from 'carbon-components-react';
 import styles from '../../root.module.scss';
@@ -20,21 +20,22 @@ import useTranslation from '../../core/utils/translation';
 import { getStockOperationUniqueId, toErrorMessage } from '../../core/utils/stringUtils';
 import produce from "immer";
 import { Save24, Undo24 } from '@carbon/icons-react';
-import { StockItemPackagingUOMDTO } from '../../core/api/types/stockItem/StockItemPackagingUOM';
-import { Concept } from '../../core/api/types/concept/Concept';
-import { useLazyGetConceptByIdQuery } from '../../core/api/lookups'
-import { PACKAGING_UNITS_CODED_CONCEPT_ID } from '../../config';
+import {StockItemReferenceDTO} from '../../core/api/types/stockItem/StockItemReference';
+import { StockSource } from '../../core/api/types/stockOperation/StockSource';
+import {useLazyGetStockSourcesQuery} from "../../core/api/stockSource";
 import { errorAlert } from '../../core/utils/alert';
+import {StockItemPackagingUOMDTO} from "../../core/api/types/stockItem/StockItemPackagingUOM";
 
 
-interface StockOperationItemTableProps {
-    items: StockItemPackagingUOMDTO[];
+
+interface StockItemReferenceTableProps {
+    items: StockItemReferenceDTO[];
     canEdit: boolean;
-    setPackagingUnits: React.Dispatch<React.SetStateAction<StockItemPackagingUOMDTO[]>>;    
+    setReferences: React.Dispatch<React.SetStateAction<StockItemReferenceDTO[]>>;
     actions: {
         onGoBack: () => void;
         onSave: () => void;
-        onRemoveItem: (itemDto: StockItemPackagingUOMDTO) => void;
+        onRemoveItem: (itemDto: StockItemReferenceDTO) => void;
     },
     setSelectedTab: React.Dispatch<React.SetStateAction<number>>;
     errors: { [key: string]: { [key: string]: boolean } };
@@ -48,59 +49,61 @@ const handleErrors = (payload: any) => {
     return;
   }
 
-const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
+const StockOperationItemsTable: React.FC<StockItemReferenceTableProps> = ({
     items,
     canEdit,
     actions,
-    setPackagingUnits,
+    setReferences,
     setSelectedTab,
     errors,
     setItemValidity,
     validateItems
 }) => {
+    console.log(items, "Get the Stock Item References")
     const { t } = useTranslation();
     const isDesktop = isDesktopLayout(useLayoutType());
-    const [conceptPackagingUnits, setconceptPackagingUnits] = useState<Concept[]>([]);
-    const [getConcept, { data: concept, isFetching: isFetchingConcept }] = useLazyGetConceptByIdQuery();
-    console.log(items, "Get the Stock Item Units")
+    const [stockSourceReferences, setStockSourceReferences] = useState<StockSource[]>([]);
+    const [getStockSource, { data: stockSource, isFetching: isFetchingStockSource }] = useLazyGetStockSourcesQuery()
     useEffect(() => {
         async function loadLookups() {
-            if (canEdit) {                
-                if (!concept) {
-                    await getConcept(PACKAGING_UNITS_CODED_CONCEPT_ID).unwrap()
-                    .then((payload: any) => {
-                      if ((payload as any).error) {
-                        handleErrors(payload);
-                        return;
-                      }
-                      let pkgUnits = payload as Concept;
-                      setconceptPackagingUnits(pkgUnits?.answers && pkgUnits?.answers.length > 0 ? pkgUnits?.answers : pkgUnits?.setMembers);
-                    })
-                    .catch((error: any) => handleErrors(error));
+            if (canEdit) {
+                if (!stockSource) {
+                    // @ts-ignore
+                    await getStockSource().unwrap()
+                        .then((payload: any) => {
+                            if ((payload as any).error) {
+                                handleErrors(payload);
+                                return;
+                            }
+                            let source = payload?.results as StockSource[];
+                            setStockSourceReferences(source != null ? source:source);
+                        })
+                        .catch((error: any) => handleErrors(error));
                 }
             }
         }
         loadLookups();
 
-    }, [canEdit, concept, getConcept]);
+    }, [canEdit, stockSource, getStockSource]);
 
-    
-    const onPackagingUnitChanged = (row: StockItemPackagingUOMDTO, data: { selectedItem: any }) => {        
-        setPackagingUnits(
+    const onReferenceChanged = (row: StockItemReferenceDTO, data: { selectedItem: any }) => {
+        console.log(data, "This is Data")
+        console.log(row, "This is Row")
+        setReferences(
             produce((draft) => {
                 const item = draft.find((p) => p.uuid === row.uuid);
                 if (item) {
                     if (data.selectedItem) {
-                        item.packagingUomName = data.selectedItem?.display;
-                        item.packagingUomUuid = data.selectedItem?.uuid;                        
+                        item.stockSourceName = data.selectedItem?.name;
+                        item.stockSourceUuid = data.selectedItem?.uuid;
                         if (item.uuid === items[items.length - 1].uuid) {
                             let itemId = `new-item-${getStockOperationUniqueId()}`;
-                            draft.push({ uuid: itemId, id: itemId } as StockItemPackagingUOMDTO);
+                            draft.push({ uuid: itemId, id: itemId } as StockItemReferenceDTO);
                         }
                     }
                     else {
-                        item.packagingUomName = data.selectedItem?.display;
-                        item.packagingUomUuid = data.selectedItem?.uuid;      
+                        item.stockSourceName = data.selectedItem?.name;
+                        item.stockSourceUuid = data.selectedItem?.uuid;
                     }
                 }
             })
@@ -108,26 +111,22 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
 
         setItemValidity(produce((draft) => {
             if (!(row.uuid! in draft)) draft[row.uuid!] = {};
-            draft[row.uuid!]["packagingUomUuid"] = true;
+            draft[row.uuid!]["stockSourceUuid"] = true;
         }));
     }
 
-    const onFactorFieldChange = (row: StockItemPackagingUOMDTO, value: string | number) => {
+    const onReferenceCodeFieldChange = (row: StockItemReferenceDTO, value: string) => {
         try {
-            let qtyValue: number | null = null;
-            if (typeof value === 'number') {
-                qtyValue = value;
-            } else {
-                qtyValue = value && value.length > 0 ? parseFloat(value) : null;
-            }
-            setPackagingUnits(
+            let code: string | null = null;
+            code = value;
+            setReferences(
                 produce((draft) => {
                     const item = draft.find((p) => p.uuid === row.uuid);
                     if (item) {
-                        item.factor = qtyValue;
+                        item.referenceCode = code;
                         if (item.uuid === draft[draft.length - 1].uuid) {
                             let itemId = `new-item-${getStockOperationUniqueId()}`;
-                            draft.push({ uuid: itemId, id: itemId } as StockItemPackagingUOMDTO);
+                            draft.push({ uuid: itemId, id: itemId } as StockItemReferenceDTO);
                         }
                     }
                 })
@@ -143,18 +142,18 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
     }
 
     const headers = [
-        { key: 'packingunit', header: t('stockmanagement.stockitem.units.packingunit'), styles: { width: "20%" } },      
-        { key: 'quantity', header: t('stockmanagement.stockitem.units.factor'), styles: { width: "10%" } }        
+        { key: 'source', header: t('stockmanagement.stockitem.references.source'), styles: { width: "20%" } },
+        { key: 'referenceCode', header: t('stockmanagement.stockitem.references.referencecode'), styles: { width: "10%" } }
     ];
 
-    const onRemoveItem = (item: StockItemPackagingUOMDTO, event: React.MouseEvent<HTMLButtonElement>) => {
+    const onRemoveItem = (item: StockItemReferenceDTO, event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         if (item.uuid?.startsWith("new-item")) {
             let itemId = item.uuid;
             if (itemId === items[items.length - 1].uuid) {
                 return;
             }
-            setPackagingUnits(
+            setReferences(
                 produce((draft) => {
                     const itemIndex = draft.findIndex((p) => p.uuid === itemId);
                     if (itemIndex >= 0) {
@@ -179,9 +178,9 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
         }
     }
 
-    if(canEdit && (isFetchingConcept || !conceptPackagingUnits || conceptPackagingUnits.length === 0)){
+    if(canEdit && (isFetchingStockSource || !stockSourceReferences || stockSourceReferences.length === 0)){
         return <DataTableSkeleton className={styles.dataTableSkeleton} showHeader={false} rowCount={5} columnCount={5} zebra />;
-    }   
+    }
 
     return <>
         <div className={`${styles.tableOverride} stkpg-operation-items`}>
@@ -215,34 +214,29 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                             key={row.uuid}>
                                             <TableCell>
                                                 {
-                                                    canEdit && row.uuid.startsWith('new-item') && <>
+                                                    canEdit && row?.uuid?.startsWith('new-item') && <>
                                                         <ComboBox size='sm' titleText="" id={`item-${row.uuid}`}
-                                                            initialSelectedItem={(row?.packagingUomUuid) ? {
-                                                                uuid: row?.packagingUomUuid,
-                                                                display: row?.packagingUomName
+                                                            initialSelectedItem={(row?.stockSourceUuid) ? {
+                                                                uuid: row?.stockSourceUuid,
+                                                                name: row?.stockSourceName
                                                             } as any : null}
-                                                            selectedItem={row?.packagingUomUuid ? {
-                                                                uuid: row?.packagingUomUuid,
-                                                                display: row?.packagingUomName
+                                                            selectedItem={row?.stockSourceUuid ? {
+                                                                uuid: row?.stockSourceUuid,
+                                                                name: row?.stockSourceName
                                                             } : null}
-                                                            items={row?.packagingUomUuid ? [...(conceptPackagingUnits.some(x => x.uuid === row?.packagingUomUuid) ? [] : [{ uuid: row?.packagingUomUuid, display: row?.packagingUomName }]), ...(conceptPackagingUnits ?? [])] : conceptPackagingUnits}
-                                                            onChange={(data: { selectedItem: any }) => onPackagingUnitChanged(row, data)}
+                                                            items={row?.references ? [...(stockSourceReferences.some(x => x.uuid === row?.stockSourceUuid) ? [] : [{ uuid: row?.stockSourceUuid, name: row?.stockSourceName }]), ...(stockSourceReferences ?? [])] : stockSourceReferences}
+                                                            onChange={(data: { selectedItem: any }) => onReferenceChanged(row, data)}
                                                             shouldFilterItem={(data) => true}
-                                                            itemToString={item => item?.display }
+                                                            itemToString={item => item?.name }
                                                             placeholder={'Filter...'}
-                                                            invalid={(row.uuid in errors) && ("packagingUomUuid" in errors[row.uuid]) && !errors[row.uuid]["packagingUomUuid"]}
+                                                            invalid={(row.uuid in errors) && ("stockSourceUuid" in errors[row.uuid]) && !errors[row.uuid]["stockSourceUuid"]}
                                                         /></>
                                                 }
-                                                {(!canEdit || !row.uuid.startsWith('new-item')) && row?.packagingUomName}
+                                                {(!canEdit || !row.uuid?.startsWith('new-item')) && row?.stockSourceName}
                                             </TableCell>
                                             <TableCell>
-                                                {canEdit && <NumberInput size='sm' id={`qty-${row.uuid}`} allowEmpty={true}
-                                                    onChange={(e: any, d: any) => onFactorFieldChange(row, e?.target?.value)}
-                                                    value={row?.factor ?? ""} title=""
-                                                    invalidText=""
-                                                    invalid={(row.uuid in errors) && ("factor" in errors[row.uuid]) && !errors[row.uuid]["factor"]}
-                                                />}
-                                                {!canEdit && row?.factor?.toLocaleString()}
+                                                {canEdit && <TextInput size='sm' id={`referencecode-${row.uuid}`} value={row?.referenceCode ?? ""} onChange={e=>onReferenceCodeFieldChange(row,e?.target?.value)} title="" invalidText="" labelText={""} invalid={(row.uuid in errors) && ("referenceCode" in errors[row.uuid]) && !errors[row.uuid]["referenceCode"]}/>}
+                                                {!canEdit && row?.referenceCode?.toLocaleString()}
                                             </TableCell>
                                             {canEdit && <TableCell>
                                                 <Button type="button" size="sm" className="submitButton clear-padding-margin" iconDescription={"Delete"} kind="ghost" renderIcon={TrashCan} onClick={(e) => onRemoveItem(row, e)} />

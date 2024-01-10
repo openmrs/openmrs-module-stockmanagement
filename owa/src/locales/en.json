@@ -212,6 +212,11 @@
           "heading": "Remove Packaging Unit",
           "label": ""
         },
+        "removereference": {
+          "text": "Would you really like to remove the stock item reference %item.name% from the stock item?",
+          "heading": "Remove Stock Item Reference",
+          "label": ""
+        },
         "removestockrule": {
           "text": "Would you really like to remove the stock rule %item.name% from the stock item?",
           "heading": "Remove Stock Rule",
@@ -223,6 +228,10 @@
         "factor": "Pack Size",
         "oneitemrequired": "At least one packaging unit is required",
         "itemsnotvalid": "Validation failed for packaging units"
+      },
+      "references": {
+        "source": "Source",
+        "referencecode": "Code"
       },
       "batchinfo": {
         "location": "Location",
@@ -292,7 +301,13 @@
       "stockrulecreatefailed": "Failed to create the stock rule",
       "stockruleupdatefailed": "Failed to update the stock rule",
       "stockrulecreatesuccess": "Successfully added the stock rule",
-      "stockruleupdatesuccess": "Successfully updated the stock rule"
+      "stockruleupdatesuccess": "Successfully updated the stock rule",
+      "referencecreatefailed": "Failed to create the packaging unit",
+      "referenceupdatefailed": "Failed to update the reference",
+      "referencecreatesuccess": "Successfully added the packaging unit",
+      "referenceupdatesuccess": "Successfully updated the reference",
+      "deletereferencefailed": "Failed to remove the packaging unit",
+      "deletereferencesuccess": "Successfully removed the reference"
     },
     "stockoperation": {
       "name": "Stock Operation",

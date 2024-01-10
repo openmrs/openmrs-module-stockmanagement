@@ -1094,6 +1094,17 @@ public class StockManagementDao extends DaoBase {
 		query.executeUpdate();
 	}
 	
+	public void voidStockItemReference(String uuid, String reason, int voidedBy) {
+		DbSession session = getSession();
+		Query query = session
+		        .createQuery("UPDATE stockmanagement.StockItemReference SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid)");
+		query.setParameter("uuid", uuid);
+		query.setDate("dateVoided", new Date());
+		query.setInteger("voidedBy", voidedBy);
+		query.setString("reason", reason);
+		query.executeUpdate();
+	}
+	
 	public void voidStockSources(List<String> stockSourceIds, String reason, int voidedBy) {
 		DbSession session = getSession();
 		Query query = session
@@ -5282,5 +5293,17 @@ hqlQuery.append(" left join stockmgmt_stock_item_transaction sit on o.order_id=s
 	public StockItemReference saveStockItemReference(StockItemReference stockItemReference) {
 		getSession().saveOrUpdate(stockItemReference);
 		return stockItemReference;
+	}
+	
+	public StockItemReference getStockItemReferenceByUuid(String uuid) {
+		return (StockItemReference) getSession().createCriteria(StockItemReference.class).add(Restrictions.eq("uuid", uuid))
+		        .uniqueResult();
+	}
+	
+	public List<StockItemReference> getStockItemReferenceByStockItem(StockItem stockItem) {
+		Criteria criteria = getSession().createCriteria(StockItemReference.class);
+		criteria.add(Restrictions.eq("stockItem", stockItem));
+		criteria.add(Restrictions.eq("voided", false));
+		return criteria.list();
 	}
 }
