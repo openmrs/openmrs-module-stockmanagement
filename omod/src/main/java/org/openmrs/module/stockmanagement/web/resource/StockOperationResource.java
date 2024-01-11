@@ -170,6 +170,11 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
             Result<StockOperationItemDTO> items = getStockManagementService().findStockOperationItems(itemSearchFilter);
             for (StockOperationDTO stockOperation : result.getData()) {
                 stockOperation.setStockOperationItems(items.getData().stream().filter(p -> p.getStockOperationUuid().equals(stockOperation.getUuid())).collect(Collectors.toList()));
+                Result<StockOperationLinkDTO> parents = getStockManagementService().getParentStockOperationLinks(
+                        stockOperation.getUuid());
+                if (parents.getData() != null && parents.getData().size() > 0) {
+                    stockOperation.setRequisitionStockOperationUuid(parents.getData().get(0).getParentUuid());
+                }
             }
         }
 
