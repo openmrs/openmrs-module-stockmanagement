@@ -26,7 +26,4 @@ jobs:
     - name: Install dependencies
       run: |
         npm install
-
-      # Execute the update of the browser instance of npm
-    - name: Update browser list
-      run: npx update-browserslist-db@latest
+        npx update-browserslist-db@latest
