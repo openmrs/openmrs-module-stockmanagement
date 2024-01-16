@@ -24,4 +24,5 @@ jobs:
       run: |
         npm install
         cd /home/runner/work/openmrs-module-ugandaemr-commodity/openmrs-module-ugandaemr-commodity/owa
+        ls -la
         npx update-browserslist-db@latest
