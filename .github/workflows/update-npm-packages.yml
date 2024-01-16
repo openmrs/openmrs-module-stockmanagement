@@ -23,4 +23,4 @@ jobs:
     - name: Install dependencies
       run: |
         npm install
-        npx update-browserslist-db@latest
+        npx update-browserslist-db@latest owa
