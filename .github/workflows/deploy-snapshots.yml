@@ -31,6 +31,13 @@ jobs:
           server-username: secret_BINTRAY_USERNAME
           server-password: secret_BINTRAY_PASSWORD
 
+      # Execute the update of the browser instance of npm
+      - name: Update browser list
+        run: npx update-browserslist-db@latest
+        env:
+          secret_BINTRAY_USERNAME: ${{ secrets.BINTRAY_USERNAME }}
+          secret_BINTRAY_PASSWORD: ${{ secrets.BINTRAY_PASSWORD }}
+
       # Execute the Maven deploy command to compile, package, test, verify, and publish to SNAPSHOT repository
       - name: Maven Deploy
         run: mvn -X -B deploy --file pom.xml
