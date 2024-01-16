@@ -35,42 +35,9 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-
-          
-In GitHub Actions, you can use the npx command just like you would in any other environment. npx is a package runner tool that comes with npm (Node Package Manager), and it allows you to execute binaries from npm packages.
-
-Here's an example of how you might use npx in a GitHub Actions workflow:
-
-yaml
-Copy code
-name: Node.js CI
-
-on:
-  push:
-    branches:
-      - main
-
-jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [14]
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-
-    - name: Install dependencies
-      run: |
-        npm install
+     
+      - name: Install dependencies
+        run: npm install
 
       # Execute the update of the browser instance of npm
       - name: Update browser list
