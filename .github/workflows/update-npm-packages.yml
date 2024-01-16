@@ -23,4 +23,5 @@ jobs:
     - name: Install dependencies
       run: |
         npm install
-        npx update-browserslist-db@latest /home/runner/work/openmrs-module-ugandaemr-commodity/openmrs-module-ugandaemr-commodity/owa
+        cd /home/runner/work/openmrs-module-ugandaemr-commodity/openmrs-module-ugandaemr-commodity/owa
+        npx update-browserslist-db@latest
