@@ -31,18 +31,6 @@ jobs:
           server-username: secret_BINTRAY_USERNAME
           server-password: secret_BINTRAY_PASSWORD
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-     
-      - name: Install dependencies
-        run: npm install
-
-      # Execute the update of the browser instance of npm
-      - name: Update browser list
-        run: npx update-browserslist-db@latest
-
       - name: Maven Deploy
         run: mvn -X -B deploy --file pom.xml
         env:
