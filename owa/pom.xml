@@ -21,6 +21,25 @@
                 <version>1.15.0</version>
                 <executions>
                     <execution>
+                        <id>remove-node-modules</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>rm -rf node_modules</arguments>
+                        </configuration>
+                    </execution>
+
+                    <execution>
+                        <id>clear-node-cache</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>npm cache clean</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>install node and npm</id>
                         <goals>
                             <goal>install-node-and-npm</goal>
@@ -47,7 +66,7 @@
                             <goal>npm</goal>
                         </goals>
                         <configuration>
-                            <arguments>run build -- --configuration production</arguments>
+                            <arguments>run build-prod</arguments>
                         </configuration>
                     </execution>
                 </executions>
