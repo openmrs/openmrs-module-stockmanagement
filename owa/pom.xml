@@ -21,16 +21,6 @@
                 <version>1.15.0</version>
                 <executions>
                     <execution>
-                        <id>remove-node-modules</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>rm -rf node_modules</arguments>
-                        </configuration>
-                    </execution>
-
-                    <execution>
                         <id>clear-node-cache</id>
                         <goals>
                             <goal>npm</goal>
