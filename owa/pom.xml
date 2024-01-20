@@ -21,15 +21,6 @@
                 <version>1.15.0</version>
                 <executions>
                     <execution>
-                        <id>clear-node-cache</id>
-                        <goals>
-                            <goal>npm</goal>
-                        </goals>
-                        <configuration>
-                            <arguments>npm cache clean</arguments>
-                        </configuration>
-                    </execution>
-                    <execution>
                         <id>install node and npm</id>
                         <goals>
                             <goal>install-node-and-npm</goal>
