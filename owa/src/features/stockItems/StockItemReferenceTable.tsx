@@ -24,7 +24,6 @@ import {StockItemReferenceDTO} from '../../core/api/types/stockItem/StockItemRef
 import { StockSource } from '../../core/api/types/stockOperation/StockSource';
 import {useLazyGetStockSourcesQuery} from "../../core/api/stockSource";
 import { errorAlert } from '../../core/utils/alert';
-import {StockItemPackagingUOMDTO} from "../../core/api/types/stockItem/StockItemPackagingUOM";
 
 
 

@@ -576,12 +576,12 @@ export const Edit = () => {
         await (!uom.uuid ? createStockItemPackagingUnit(uom) : updateStockItemPackagingUnit({ model: uom, uuid: uom.uuid! })).unwrap().then(
           (payload: any) => {
             if ((payload as any).error) {
-              failCount = failCount + 1;
+              failCount += 1;
               var errorToken = toErrorMessage(payload);
               errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatefailed" : "stockmanagement.stockitem.packagingunitupdatefailed")} ${errorToken}`);
               return;
             } else {
-              sucessCount = sucessCount + 1;
+              sucessCount += 1;
               successAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatesuccess" : "stockmanagement.stockitem.packagingunitupdatesuccess")}`);
             }
           })
