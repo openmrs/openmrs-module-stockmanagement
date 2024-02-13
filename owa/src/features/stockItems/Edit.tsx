@@ -570,7 +570,6 @@ export const Edit = () => {
         }
         items.push(newItem)
       });
-      let sucessCount = 0;
       let failCount = 0;
       items.forEach(async uom => {
         await (!uom.uuid ? createStockItemPackagingUnit(uom) : updateStockItemPackagingUnit({ model: uom, uuid: uom.uuid! })).unwrap().then(
@@ -581,7 +580,6 @@ export const Edit = () => {
               errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatefailed" : "stockmanagement.stockitem.packagingunitupdatefailed")} ${errorToken}`);
               return;
             } else {
-              sucessCount += 1;
               successAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatesuccess" : "stockmanagement.stockitem.packagingunitupdatesuccess")}`);
             }
           })
