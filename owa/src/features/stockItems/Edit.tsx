@@ -638,18 +638,16 @@ export const Edit = () => {
         }
         items.push(newItem)
       });
-      let sucessCount = 0;
       let failCount = 0;
       for (const stockItemReference of items) {
         await (!stockItemReference.uuid ? createStockItemReference(stockItemReference) : updateStockItemReference({ model: stockItemReference, uuid: stockItemReference.uuid! })).unwrap().then(
             (payload: any) => {
               if ((payload as any).error) {
-                failCount = failCount + 1;
+                failCount += 1;
                 var errorToken = toErrorMessage(payload);
                 errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatefailed" : "stockmanagement.stockitem.referenceupdatefailed")} ${errorToken}`);
                 return;
               } else {
-                sucessCount = sucessCount + 1;
                 successAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatesuccess" : "stockmanagement.stockitem.referenceupdatesuccess")}`);
               }
             })
