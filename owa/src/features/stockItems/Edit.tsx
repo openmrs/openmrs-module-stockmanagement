@@ -570,12 +570,12 @@ export const Edit = () => {
         }
         items.push(newItem)
       });
-      let failCount = 0;
+      let failed = false;
       items.forEach(async uom => {
         await (!uom.uuid ? createStockItemPackagingUnit(uom) : updateStockItemPackagingUnit({ model: uom, uuid: uom.uuid! })).unwrap().then(
           (payload: any) => {
             if ((payload as any).error) {
-              failCount = 1;
+              failed = true;
               var errorToken = toErrorMessage(payload);
               errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatefailed" : "stockmanagement.stockitem.packagingunitupdatefailed")} ${errorToken}`);
               return;
@@ -591,7 +591,7 @@ export const Edit = () => {
       });
       setShowSplash(false);
       hideSplash = false;
-      if (failCount === 0) {
+      if (failed) {
         navigate(URL_STOCK_ITEMS_REDIRECT((editableModel as StockItemDTO).uuid!, selectedTab?.toString() ?? ""));
       }
     } finally {
@@ -638,12 +638,12 @@ export const Edit = () => {
         }
         items.push(newItem)
       });
-      let failCount = 0;
+      let failed = false;
       for (const stockItemReference of items) {
         await (!stockItemReference.uuid ? createStockItemReference(stockItemReference) : updateStockItemReference({ model: stockItemReference, uuid: stockItemReference.uuid! })).unwrap().then(
             (payload: any) => {
               if ((payload as any).error) {
-                failCount = 1;
+                failed = true;
                 var errorToken = toErrorMessage(payload);
                 errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatefailed" : "stockmanagement.stockitem.referenceupdatefailed")} ${errorToken}`);
                 return;
@@ -659,7 +659,7 @@ export const Edit = () => {
       }
       setShowSplash(false);
       hideSplash = false;
-      if (failCount === 0) {
+      if (failed) {
         navigate(URL_STOCK_ITEMS_REDIRECT((editableModel as StockItemDTO).uuid!, selectedTab?.toString() ?? ""));
       }
     } finally {
