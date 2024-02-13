@@ -575,7 +575,7 @@ export const Edit = () => {
         await (!uom.uuid ? createStockItemPackagingUnit(uom) : updateStockItemPackagingUnit({ model: uom, uuid: uom.uuid! })).unwrap().then(
           (payload: any) => {
             if ((payload as any).error) {
-              failCount += 1;
+              failCount = 1;
               var errorToken = toErrorMessage(payload);
               errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatefailed" : "stockmanagement.stockitem.packagingunitupdatefailed")} ${errorToken}`);
               return;
@@ -643,7 +643,7 @@ export const Edit = () => {
         await (!stockItemReference.uuid ? createStockItemReference(stockItemReference) : updateStockItemReference({ model: stockItemReference, uuid: stockItemReference.uuid! })).unwrap().then(
             (payload: any) => {
               if ((payload as any).error) {
-                failCount += 1;
+                failCount = 1;
                 var errorToken = toErrorMessage(payload);
                 errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatefailed" : "stockmanagement.stockitem.referenceupdatefailed")} ${errorToken}`);
                 return;
