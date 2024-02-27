@@ -4643,7 +4643,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
                                constraintName="stock_item_reference_users_voided_by_id_fk"/>
     </changeSet>
 
-  <changeSet author="slubwama" id="stockmanagement-23-12-0700">
+  <changeSet author="slubwama" id="stockmanagement-24-02-0700">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="stockmgmt_stock_item_reference" />
       <sqlCheck expectedResult="0">
@@ -4653,10 +4653,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>
       adding constraint unique to column reference_code and stock_source_id
     </comment>
-    <addUniqueConstraint
-            columnNames="stock_reference_code, stock_source_id"
-            constraintName="stockmgmt_stock_item_reference_source_code_pk"
-            tableName="stockmgmt_stock_item"/>
+    <addUniqueConstraint columnNames="stock_reference_code, stock_source_id" constraintName="stockmgmt_stock_item_reference_source_code_pk" tableName="stockmgmt_stock_item_reference"/>
   </changeSet>
   <changeSet author="slubwama" id="stockmanagement-2023-01-05-0700">
     <preConditions onFail="MARK_RAN">
