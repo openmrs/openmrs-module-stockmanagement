@@ -570,14 +570,14 @@ export const Edit = () => {
         }
         items.push(newItem)
       });
-      let failed = false;
+
       items.forEach(async uom => {
         await (!uom.uuid ? createStockItemPackagingUnit(uom) : updateStockItemPackagingUnit({ model: uom, uuid: uom.uuid! })).unwrap().then(
           (payload: any) => {
             if ((payload as any).error) {
-              failed = true;
               var errorToken = toErrorMessage(payload);
               errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatefailed" : "stockmanagement.stockitem.packagingunitupdatefailed")} ${errorToken}`);
+              navigate(URL_STOCK_ITEMS_REDIRECT((editableModel as StockItemDTO).uuid!, selectedTab?.toString() ?? ""));
               return;
             } else {
               successAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.packagingunitcreatesuccess" : "stockmanagement.stockitem.packagingunitupdatesuccess")}`);
@@ -591,9 +591,6 @@ export const Edit = () => {
       });
       setShowSplash(false);
       hideSplash = false;
-      if (failed) {
-        navigate(URL_STOCK_ITEMS_REDIRECT((editableModel as StockItemDTO).uuid!, selectedTab?.toString() ?? ""));
-      }
     } finally {
       if (hideSplash) {
         setShowSplash(false);
@@ -638,14 +635,13 @@ export const Edit = () => {
         }
         items.push(newItem)
       });
-      let failed = false;
       for (const stockItemReference of items) {
         await (!stockItemReference.uuid ? createStockItemReference(stockItemReference) : updateStockItemReference({ model: stockItemReference, uuid: stockItemReference.uuid! })).unwrap().then(
             (payload: any) => {
               if ((payload as any).error) {
-                failed = true;
                 var errorToken = toErrorMessage(payload);
                 errorAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatefailed" : "stockmanagement.stockitem.referenceupdatefailed")} ${errorToken}`);
+                navigate(URL_STOCK_ITEMS_REDIRECT((editableModel as StockItemDTO).uuid!, selectedTab?.toString() ?? ""));
                 return;
               } else {
                 successAlert(`${t(editableModel.uuid == null ? "stockmanagement.stockitem.referencecreatesuccess" : "stockmanagement.stockitem.referenceupdatesuccess")}`);
@@ -659,9 +655,6 @@ export const Edit = () => {
       }
       setShowSplash(false);
       hideSplash = false;
-      if (failed) {
-        navigate(URL_STOCK_ITEMS_REDIRECT((editableModel as StockItemDTO).uuid!, selectedTab?.toString() ?? ""));
-      }
     } finally {
       if (hideSplash) {
         setShowSplash(false);
