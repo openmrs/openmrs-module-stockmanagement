@@ -50,6 +50,8 @@ public class StockItemTransactionDTO {
 	
 	private String packagingUomName;
 	
+	private BigDecimal packagingUomFactor;
+	
 	private Integer operationSourcePartyId;
 	
 	private String operationSourcePartyName;
@@ -208,6 +210,14 @@ public class StockItemTransactionDTO {
 	
 	public void setPackagingUomName(String packagingUomName) {
 		this.packagingUomName = packagingUomName;
+	}
+	
+	public BigDecimal getPackagingUomFactor() {
+		return packagingUomFactor;
+	}
+	
+	public void setPackagingUomFactor(BigDecimal packagingUomFactor) {
+		this.packagingUomFactor = packagingUomFactor;
 	}
 	
 	public Integer getOperationSourcePartyId() {

@@ -32,6 +32,8 @@ public class StockOperationItemDTO {
 	
 	private String stockItemPackagingUOMName;
 	
+	private BigDecimal stockItemPackagingUOMFactor;
+	
 	private Integer stockBatchId;
 	
 	private String stockBatchUuid;
@@ -58,6 +60,8 @@ public class StockOperationItemDTO {
 	
 	private String quantityReceivedPackagingUOMName;
 	
+	private BigDecimal quantityReceivedPackagingUOMFactor;
+	
 	private BigDecimal quantityRequested;
 	
 	private String quantityRequestedPackagingUOMUuid;
@@ -65,6 +69,8 @@ public class StockOperationItemDTO {
 	private Integer quantityRequestedPackagingUOMUoMId;
 	
 	private String quantityRequestedPackagingUOMName;
+	
+	private BigDecimal quantityRequestedPackagingUOMFactor;
 	
 	private List<StockItemPackagingUOMDTO> packagingUnits;
 	
@@ -156,6 +162,14 @@ public class StockOperationItemDTO {
 	
 	public void setStockItemPackagingUOMName(String stockItemPackagingUOMName) {
 		this.stockItemPackagingUOMName = stockItemPackagingUOMName;
+	}
+	
+	public BigDecimal getStockItemPackagingUOMFactor() {
+		return stockItemPackagingUOMFactor;
+	}
+	
+	public void setStockItemPackagingUOMFactor(BigDecimal stockItemPackagingUOMFactor) {
+		this.stockItemPackagingUOMFactor = stockItemPackagingUOMFactor;
 	}
 	
 	public String getBatchNo() {
@@ -268,6 +282,22 @@ public class StockOperationItemDTO {
 	
 	public void setQuantityReceivedPackagingUOMName(String quantityReceivedPackagingUOMName) {
 		this.quantityReceivedPackagingUOMName = quantityReceivedPackagingUOMName;
+	}
+	
+	public BigDecimal getQuantityReceivedPackagingUOMFactor() {
+		return quantityReceivedPackagingUOMFactor;
+	}
+	
+	public void setQuantityReceivedPackagingUOMFactor(BigDecimal quantityReceivedPackagingUOMFactor) {
+		this.quantityReceivedPackagingUOMFactor = quantityReceivedPackagingUOMFactor;
+	}
+	
+	public BigDecimal getQuantityRequestedPackagingUOMFactor() {
+		return quantityRequestedPackagingUOMFactor;
+	}
+	
+	public void setQuantityRequestedPackagingUOMFactor(BigDecimal quantityRequestedPackagingUOMFactor) {
+		this.quantityRequestedPackagingUOMFactor = quantityRequestedPackagingUOMFactor;
 	}
 	
 	public String getQuantityRequestedPackagingUOMName() {

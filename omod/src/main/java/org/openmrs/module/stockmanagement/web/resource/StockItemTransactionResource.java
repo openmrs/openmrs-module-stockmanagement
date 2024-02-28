@@ -139,6 +139,7 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			description.addProperty("stockOperationTypeName");
 			description.addProperty("stockItemPackagingUOMUuid");
 			description.addProperty("packagingUomName");
+			description.addProperty("packagingUomFactor");
 			description.addProperty("operationSourcePartyName");
 			description.addProperty("operationDestinationPartyName");
 			
@@ -182,6 +183,7 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			        .property("stockOperationTypeName", new StringProperty())
 			        .property("stockItemPackagingUOMUuid", new StringProperty())
 			        .property("packagingUomName", new StringProperty())
+			        .property("packagingUomFactor", new DecimalProperty())
 			        .property("operationSourcePartyName", new StringProperty())
 			        .property("operationDestinationPartyName", new StringProperty());
 		}

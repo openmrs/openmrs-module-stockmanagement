@@ -9,6 +9,7 @@ export interface StockOperationItemDTO{
     stockItemName?: string | null | undefined;
     stockItemPackagingUOMUuid?: string | null | undefined;
     stockItemPackagingUOMName?: string | null | undefined;
+    stockItemPackagingUOMFactor?: string | null | undefined;
     stockBatchUuid?: string | null | undefined;
     batchNo?: string | null | undefined;
     expiration?: Date | null | undefined;
@@ -20,10 +21,12 @@ export interface StockOperationItemDTO{
     packagingUnits?: StockItemPackagingUOMDTO[];
     quantityReceived?: number | null | undefined;
     quantityReceivedPackagingUOMName?: string | null | undefined;
-    quantityReceivedPackagingUOMUuid?: string | null | undefined;    
+    quantityReceivedPackagingUOMFactor?: string | null | undefined;
+    quantityReceivedPackagingUOMUuid?: string | null | undefined;
 	quantityRequested?: number | null | undefined;	
 	quantityRequestedPackagingUOMUuid?: string | null | undefined;
 	quantityRequestedPackagingUOMName?: string | null | undefined;
+	quantityRequestedPackagingUOMFactor?: string | null | undefined;
     commonName?: string | null | undefined;
     acronym?: string | null | undefined;
 }

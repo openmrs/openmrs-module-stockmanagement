@@ -90,8 +90,8 @@ const StockItemTransactionsTable: React.FC<StockItemTransactionsTableProps> = ({
       batchno: stockItemTransaction.stockBatchNo ? `${stockItemTransaction.stockBatchNo}${stockItemTransaction.expiration ? ` (${formatDisplayDate(stockItemTransaction.expiration)})` : ""}` : "",
       reference: stockItemTransaction?.stockOperationUuid ? <Link to={URL_STOCK_OPERATION(stockItemTransaction?.stockOperationUuid!)} target={"_blank"}>{`${stockItemTransaction?.stockOperationNumber}`}</Link> : <></>,
       status: stockItemTransaction?.stockOperationStatus ?? "",
-      qtyin: stockItemTransaction?.quantity >= 0 ? `${stockItemTransaction?.quantity?.toLocaleString()} ${stockItemTransaction?.packagingUomName ?? ""}` : "",
-      qtyout: stockItemTransaction?.quantity < 0 ? `${(-1 * stockItemTransaction?.quantity)?.toLocaleString()} ${stockItemTransaction?.packagingUomName ?? ""}` : ""
+      qtyin: stockItemTransaction?.quantity >= 0 ? `${stockItemTransaction?.quantity?.toLocaleString()} ${stockItemTransaction?.packagingUomName ?? ""} of ${stockItemTransaction?.packagingUomFactor ?? ""}` : "",
+      qtyout: stockItemTransaction?.quantity < 0 ? `${(-1 * stockItemTransaction?.quantity)?.toLocaleString()} ${stockItemTransaction?.packagingUomName ?? ""} of ${stockItemTransaction?.packagingUomFactor ?? ""}` : ""
     })) ?? [],
     [stockItemTransactions, t],
   );

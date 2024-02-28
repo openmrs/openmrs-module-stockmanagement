@@ -149,6 +149,7 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 			description.addProperty("stockItemName");
 			description.addProperty("stockItemPackagingUOMUuid");
 			description.addProperty("stockItemPackagingUOMName");
+			description.addProperty("stockItemPackagingUOMFactor");
 			description.addProperty("stockBatchUuid");
 			description.addProperty("stockOperationUuid");
 			description.addProperty("batchNo");
@@ -157,9 +158,11 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 			description.addProperty("quantityReceived");
 			description.addProperty("quantityReceivedPackagingUOMUuid");
 			description.addProperty("quantityReceivedPackagingUOMName");
+			description.addProperty("quantityReceivedPackagingUOMFactor");
 			description.addProperty("quantityRequested");
 			description.addProperty("quantityRequestedPackagingUOMUuid");
 			description.addProperty("quantityRequestedPackagingUOMName");
+			description.addProperty("quantityRequestedPackagingUOMFactor");
 			description.addProperty("purchasePrice");
 			description.addProperty("hasExpiration");
 			description.addProperty("packagingUnits");
@@ -188,14 +191,17 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 			        .property("stockItemName", new StringProperty())
 			        .property("stockItemPackagingUOMUuid", new StringProperty())
 			        .property("stockItemPackagingUOMName", new StringProperty())
+			        .property("stockItemPackagingUOMFactor", new DecimalProperty())
 			        .property("stockBatchUuid", new StringProperty()).property("stockOperationUuid", new StringProperty())
 			        .property("batchNo", new StringProperty()).property("expiration", new DateTimeProperty())
 			        .property("quantity", new DecimalProperty()).property("quantityReceived", new DecimalProperty())
 			        .property("quantityReceivedPackagingUOMUuid", new StringProperty())
 			        .property("quantityReceivedPackagingUOMName", new StringProperty())
+			        .property("quantityReceivedPackagingUOMFactor", new DecimalProperty())
 			        .property("quantityRequested", new DecimalProperty())
 			        .property("quantityRequestedPackagingUOMUuid", new StringProperty())
 			        .property("quantityRequestedPackagingUOMName", new StringProperty())
+			        .property("quantityRequestedPackagingUOMFactor", new DecimalProperty())
 			        .property("commonName", new StringProperty()).property("acronym", new StringProperty())
 			        .property("purchasePrice", new DecimalProperty()).property("hasExpiration", new BooleanProperty())
 			        .property("packagingUnits", new ArrayProperty());

@@ -57,7 +57,7 @@ const StockItemQuantitiesTable: React.FC<StockItemQuantitiesTableProps> = ({
       uuid: `${row.partyUuid}${row.stockBatchUuid}${index}`,
       location: row?.partyName,
       quantity: row?.quantity?.toLocaleString() ?? "",
-      quantityuom: row.quantityUoM ?? ""
+      quantityuom: `${row.quantityUoM ?? ""} of  ${row.quantityFactor ?? ""}`
     })) ?? [],
     [stockItemQuantities],
   );
@@ -106,7 +106,7 @@ const StockItemQuantitiesTable: React.FC<StockItemQuantitiesTableProps> = ({
                 <TableRow className='table-totals'>
                   <TableCell>Total</TableCell>
                   <TableCell>{total?.quantity?.toLocaleString() ?? ""}</TableCell>
-                  <TableCell>{total?.quantityUoM ?? ""}</TableCell>
+                  <TableCell>{total?.quantityUoM ?? ""} of {total?.quantityFactor ?? ""}</TableCell>
                   <TableCell></TableCell>
                 </TableRow>
               </TableBody>

@@ -23,6 +23,7 @@ import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.search.LuceneQuery;
+import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -969,16 +970,16 @@ public class StockManagementDao extends DaoBase {
     }
 	
 	public Map<String, String> getLocationNamesByUuid(List<String> locationUuids) {
-		if (locationUuids == null || locationUuids.isEmpty()) return new HashMap<>();
-		Query query = getSession().createQuery("select l.uuid as uuid, l.name as name from Location l where l.uuid in (:uuids)")
-				.setParameterList("uuids", locationUuids);
-		List result = query.list();
-		Map<String, String> resultMap = new HashMap<>();
-		for (Object object : result) {
-			resultMap.putIfAbsent((String) (((Object[]) object)[0]), (String) (((Object[]) object)[1]));
-		}
-		return resultMap;
-	}
+        if (locationUuids == null || locationUuids.isEmpty()) return new HashMap<>();
+        Query query = getSession().createQuery("select l.uuid as uuid, l.name as name from Location l where l.uuid in (:uuids)")
+                .setParameterList("uuids", locationUuids);
+        List result = query.list();
+        Map<String, String> resultMap = new HashMap<>();
+        for (Object object : result) {
+            resultMap.putIfAbsent((String) (((Object[]) object)[0]), (String) (((Object[]) object)[1]));
+        }
+        return resultMap;
+    }
 	
 	public Map<Integer, String> getLocationNames(List<Integer> locationIds) {
         if (locationIds == null || locationIds.isEmpty()) return new HashMap<>();
@@ -1023,14 +1024,14 @@ public class StockManagementDao extends DaoBase {
     }
 	
 	private List<UserPersonNameDTO> getPatientNameByPatientIds(List<Integer> ids, boolean includePatientIdentifier) {
-		if (ids == null || ids.isEmpty()) return new ArrayList<>();
-		Query query = sessionFactory.getCurrentSession().createSQLQuery("select p.uuid as uuid, up.person_id as patientId, p.given_name as givenName, p.middle_name as middleName, p.family_name as familyName " +
-				(includePatientIdentifier ? ",(select pi.identifier from patient_identifier pi where pi.patient_id = up.person_id order by pi.preferred desc, pi.patient_identifier_id asc limit 1) as patientIdentifier" : "") +
-				" from person up join person_name p on up.person_id = p.person_id where up.person_id in (:ids)")
-				.setParameterList("ids", ids);
-		query = query.setResultTransformer(new AliasToBeanResultTransformer(UserPersonNameDTO.class));
-		return query.list();
-	}
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+        Query query = sessionFactory.getCurrentSession().createSQLQuery("select p.uuid as uuid, up.person_id as patientId, p.given_name as givenName, p.middle_name as middleName, p.family_name as familyName " +
+                        (includePatientIdentifier ? ",(select pi.identifier from patient_identifier pi where pi.patient_id = up.person_id order by pi.preferred desc, pi.patient_identifier_id asc limit 1) as patientIdentifier" : "") +
+                        " from person up join person_name p on up.person_id = p.person_id where up.person_id in (:ids)")
+                .setParameterList("ids", ids);
+        query = query.setResultTransformer(new AliasToBeanResultTransformer(UserPersonNameDTO.class));
+        return query.list();
+    }
 	
 	public List<UserPersonNameDTO> getPersonNameByUserIds(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) return new ArrayList<>();
@@ -1509,6 +1510,10 @@ public class StockManagementDao extends DaoBase {
                             if (conceptNameDTO.isPresent()) {
                                 stockOperationItemDTO.setStockItemPackagingUOMName(conceptNameDTO.get().getName());
                             }
+
+                            BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockOperationItemDTO.getStockItemPackagingUOMUuid()).getFactor();
+
+                            stockOperationItemDTO.setStockItemPackagingUOMFactor(factor);
                         }
 
                         if (stockOperationItemDTO.getQuantityReceivedPackagingUOMUoMId() != null) {
@@ -1516,6 +1521,10 @@ public class StockManagementDao extends DaoBase {
                             if (conceptNameDTO.isPresent()) {
                                 stockOperationItemDTO.setQuantityReceivedPackagingUOMName(conceptNameDTO.get().getName());
                             }
+
+							BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockOperationItemDTO.getQuantityReceivedPackagingUOMUuid()).getFactor();
+
+							stockOperationItemDTO.setQuantityReceivedPackagingUOMFactor(factor);
                         }
 
                         if (stockOperationItemDTO.getQuantityRequestedPackagingUOMUoMId() != null) {
@@ -1523,6 +1532,10 @@ public class StockManagementDao extends DaoBase {
                             if (conceptNameDTO.isPresent()) {
                                 stockOperationItemDTO.setQuantityRequestedPackagingUOMName(conceptNameDTO.get().getName());
                             }
+
+							BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockOperationItemDTO.getQuantityReceivedPackagingUOMUuid()).getFactor();
+
+							stockOperationItemDTO.setQuantityRequestedPackagingUOMFactor(factor);
                         }
                     }
                     if (filter.getIncludeStockUnitName()) {
@@ -1543,9 +1556,9 @@ public class StockManagementDao extends DaoBase {
                             }
                         }
 
-						if (drugName != null && StringUtils.isNotBlank(stockOperationItemDTO.getCommonName())) {
-							stockOperationItemDTO.setStockItemName(String.format("%1s (%2s)", drugName, stockOperationItemDTO.getCommonName()));
-						} else if (drugName != null && conceptName != null) {
+                        if (drugName != null && StringUtils.isNotBlank(stockOperationItemDTO.getCommonName())) {
+                            stockOperationItemDTO.setStockItemName(String.format("%1s (%2s)", drugName, stockOperationItemDTO.getCommonName()));
+                        } else if (drugName != null && conceptName != null) {
                             stockOperationItemDTO.setStockItemName(String.format("%1s (%2s)", drugName, conceptName));
                         } else if (drugName != null)
                             stockOperationItemDTO.setStockItemName(drugName);
@@ -1580,7 +1593,7 @@ public class StockManagementDao extends DaoBase {
 		
 	}
 	
-	private List<Integer> getUniqueExpiryNoticePeriods(){
+	private List<Integer> getUniqueExpiryNoticePeriods() {
         StringBuilder hqlQuery = new StringBuilder("SELECT DISTINCT si.expiryNotice as expiryNotice\n" +
                 "from stockmanagement.StockItem si where si.expiryNotice is not null and si.voided  = :vdd");
 
@@ -1589,15 +1602,15 @@ public class StockManagementDao extends DaoBase {
         query.setParameter("vdd", false);
         List result = query.list();
         List<Integer> integers = new ArrayList<>();
-        for(Object object : result){
-            integers.add(((Number)object).intValue());
+        for (Object object : result) {
+            integers.add(((Number) object).intValue());
         }
         return result;
     }
 	
 	private List<StockBatchDTO> getExpiringStockBatchesDueForNotificationWithStockItemNoticePeriod() {
-		List<Integer> noticePeriods =  getUniqueExpiryNoticePeriods();
-        if(noticePeriods.isEmpty()) return new ArrayList<>();
+        List<Integer> noticePeriods = getUniqueExpiryNoticePeriods();
+        if (noticePeriods.isEmpty()) return new ArrayList<>();
         List<StockBatchDTO> result = new ArrayList<>();
         int startIndex = 0;
         int batchSize = 100;
@@ -1633,16 +1646,16 @@ public class StockManagementDao extends DaoBase {
             appendFilter(hqlFilter, itemGroupClause.toString());
             appendFilter(hqlFilter, "sb.expiryNotificationDate is null and sb.voided = :vdd and si.voided  = :vdd");
             parameterList.put("vdd", false);
-			parameterList.put("today", DateUtil.today());
-			if (hqlFilter.length() > 0) {
-				hqlQuery.append(" where ");
-				hqlQuery.append(hqlFilter);
-			}
+            parameterList.put("today", DateUtil.today());
+            if (hqlFilter.length() > 0) {
+                hqlQuery.append(" where ");
+                hqlQuery.append(hqlFilter);
+            }
             DbSession session = getSession();
             Query query = session.createQuery(hqlQuery.toString());
-			for(Map.Entry<String, Object> parameter : parameterList.entrySet()){
-				query.setParameter(parameter.getKey(), parameter.getValue());
-			}
+            for (Map.Entry<String, Object> parameter : parameterList.entrySet()) {
+                query.setParameter(parameter.getKey(), parameter.getValue());
+            }
 
             query = query.setResultTransformer(new AliasToBeanResultTransformer(StockBatchDTO.class));
             result.addAll(query.list());
@@ -1654,123 +1667,123 @@ public class StockManagementDao extends DaoBase {
     }
 	
 	public Result<StockBatchLineItem> getExpiringStockBatchList(StockExpiryFilter filter) {
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select sb.id as stockBatchId, sb.stockItem.id as stockItemId,\n" +
-				"si.drug.drugId as stockItemDrugId,\n" +
-				"si.concept.conceptId as stockItemConceptId,\n" +
-				"si.commonName as commonName,\n" +
-				"si.acronym as acronym,\n" +
-				"si.category.conceptId as stockItemCategoryConceptId,\n" +
-				"si.expiryNotice as expiryNotice,\n" +
-				"sb.dateCreated as dateCreated,\n" +
-				"sb.batchNo as batchNo,\n" +
-				"sb.expiration as expiration\n" +
-				"from stockmanagement.StockBatch sb inner join\n" +
-				" sb.stockItem si\n"
-		);
-		StringBuilder hqlFilter = new StringBuilder();
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        StringBuilder hqlQuery = new StringBuilder("select sb.id as stockBatchId, sb.stockItem.id as stockItemId,\n" +
+                "si.drug.drugId as stockItemDrugId,\n" +
+                "si.concept.conceptId as stockItemConceptId,\n" +
+                "si.commonName as commonName,\n" +
+                "si.acronym as acronym,\n" +
+                "si.category.conceptId as stockItemCategoryConceptId,\n" +
+                "si.expiryNotice as expiryNotice,\n" +
+                "sb.dateCreated as dateCreated,\n" +
+                "sb.batchNo as batchNo,\n" +
+                "sb.expiration as expiration\n" +
+                "from stockmanagement.StockBatch sb inner join\n" +
+                " sb.stockItem si\n"
+        );
+        StringBuilder hqlFilter = new StringBuilder();
 
-		if (filter.getStartDate() != null) {
-			appendFilter(hqlFilter, "sb.expiration >= :sbexpm");
-			parameterList.putIfAbsent("sbexpm", filter.getStartDate());
-		}
+        if (filter.getStartDate() != null) {
+            appendFilter(hqlFilter, "sb.expiration >= :sbexpm");
+            parameterList.putIfAbsent("sbexpm", filter.getStartDate());
+        }
 
-		if (filter.getEndDate() != null) {
-			appendFilter(hqlFilter, "sb.expiration <= :sbexpmx");
-			parameterList.putIfAbsent("sbexpmx", filter.getEndDate());
-		}
+        if (filter.getEndDate() != null) {
+            appendFilter(hqlFilter, "sb.expiration <= :sbexpmx");
+            parameterList.putIfAbsent("sbexpmx", filter.getEndDate());
+        }
 
-		appendFilter(hqlFilter, "sb.voided = :vdd");
-		parameterList.putIfAbsent("vdd", false);
+        appendFilter(hqlFilter, "sb.voided = :vdd");
+        parameterList.putIfAbsent("vdd", false);
 
-		if(filter.getStockBatchIdMin() != null){
-			appendFilter(hqlFilter, "sb.id > :stockBatchIdMin");
-			parameterList.putIfAbsent("stockBatchIdMin", filter.getStockBatchIdMin());
-		}
+        if (filter.getStockBatchIdMin() != null) {
+            appendFilter(hqlFilter, "sb.id > :stockBatchIdMin");
+            parameterList.putIfAbsent("stockBatchIdMin", filter.getStockBatchIdMin());
+        }
 
-		if(filter.getStockItemCategoryConceptId() != null){
-			appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
-			parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
-		}
+        if (filter.getStockItemCategoryConceptId() != null) {
+            appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
+            parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
+        }
 
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
 
-		Result<StockBatchLineItem> result = new Result<>();
-		result.setPageIndex(filter.getStartIndex());
-		result.setPageSize(filter.getLimit());
+        Result<StockBatchLineItem> result = new Result<>();
+        result.setPageIndex(filter.getStartIndex());
+        result.setPageSize(filter.getLimit());
 
-		DbSession dbSession = getSession();
-		hqlQuery.append(" order by sb.id asc");
-		Query query = dbSession.createQuery(hqlQuery.toString());
-		if (parameterList != null) {
-			for (Map.Entry<String, Object> entry : parameterList.entrySet())
-				query.setParameter(entry.getKey(), entry.getValue());
-		}
-		if (parameterWithList != null) {
-			for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-				query.setParameterList(entry.getKey(), entry.getValue());
-		}
+        DbSession dbSession = getSession();
+        hqlQuery.append(" order by sb.id asc");
+        Query query = dbSession.createQuery(hqlQuery.toString());
+        if (parameterList != null) {
+            for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                query.setParameter(entry.getKey(), entry.getValue());
+        }
+        if (parameterWithList != null) {
+            for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                query.setParameterList(entry.getKey(), entry.getValue());
+        }
 
-		query = query.setResultTransformer(new AliasToBeanResultTransformer(StockBatchLineItem.class));
-		query.setFirstResult(0);
-		query.setMaxResults(filter.getLimit());
-		query.setFetchSize(filter.getLimit());
-		result.setData(query.list());
+        query = query.setResultTransformer(new AliasToBeanResultTransformer(StockBatchLineItem.class));
+        query.setFirstResult(0);
+        query.setMaxResults(filter.getLimit());
+        query.setFetchSize(filter.getLimit());
+        result.setData(query.list());
 
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptIds = new ArrayList<>();
-			List<Integer> drugIds = new ArrayList<>();
+        if (!result.getData().isEmpty()) {
+            List<Integer> conceptIds = new ArrayList<>();
+            List<Integer> drugIds = new ArrayList<>();
 
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
-			drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
+            drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
 
-			Map<Integer,List<ConceptNameDTO>> conceptNameDTOs = null;
-			if(conceptIds.isEmpty()){
-				conceptNameDTOs=new HashMap<>();
-			}else{
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
+            if (conceptIds.isEmpty()) {
+                conceptNameDTOs = new HashMap<>();
+            } else {
+                conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<ConceptNameDTO>> drugNames = null;
-			if(drugIds.isEmpty()){
-				drugNames =new HashMap<>();
-			} else{
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> drugNames = null;
+            if (drugIds.isEmpty()) {
+                drugNames = new HashMap<>();
+            } else {
+                drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			for (StockBatchLineItem stockBatchLineItem : result.getData()) {
+            for (StockBatchLineItem stockBatchLineItem : result.getData()) {
 
-				List<ConceptNameDTO> conceptNameDTO = null;
+                List<ConceptNameDTO> conceptNameDTO = null;
 
-				if (stockBatchLineItem.getStockItemCategoryConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(stockBatchLineItem.getStockItemCategoryConceptId());
-					if(conceptNameDTO != null){
-						stockBatchLineItem.setStockItemCategoryName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (stockBatchLineItem.getStockItemCategoryConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(stockBatchLineItem.getStockItemCategoryConceptId());
+                    if (conceptNameDTO != null) {
+                        stockBatchLineItem.setStockItemCategoryName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockBatchLineItem.getStockItemConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(stockBatchLineItem.getStockItemConceptId());
-					if(conceptNameDTO != null){
-						stockBatchLineItem.setStockItemConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (stockBatchLineItem.getStockItemConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(stockBatchLineItem.getStockItemConceptId());
+                    if (conceptNameDTO != null) {
+                        stockBatchLineItem.setStockItemConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockBatchLineItem.getStockItemDrugId() != null) {
-					conceptNameDTO= drugNames.get(stockBatchLineItem.getStockItemDrugId());
-					if(conceptNameDTO != null){
-						stockBatchLineItem.setStockItemDrugName(conceptNameDTO.get(0).getName());
-					}
-				}
-			}
-		}
-		return result;
-	}
+                if (stockBatchLineItem.getStockItemDrugId() != null) {
+                    conceptNameDTO = drugNames.get(stockBatchLineItem.getStockItemDrugId());
+                    if (conceptNameDTO != null) {
+                        stockBatchLineItem.setStockItemDrugName(conceptNameDTO.get(0).getName());
+                    }
+                }
+            }
+        }
+        return result;
+    }
 	
 	private List<StockBatchDTO> getExpiringStockBatchesDueForNotificationWithoutStockItemNoticePeriod(
 	        Integer defaultExpiryNotificationNoticePeriod) {
@@ -1816,10 +1829,10 @@ public class StockManagementDao extends DaoBase {
             parameterWithList.putIfAbsent("sbIds", filter.getStockBatchIds());
         }
 
-		if (StringUtils.isNotBlank(filter.getStockBatchUuid())) {
-			appendFilter(hqlFilter, "sb.uuid = :sbuuid");
-			parameterList.putIfAbsent("sbuuid", filter.getStockBatchUuid());
-		}
+        if (StringUtils.isNotBlank(filter.getStockBatchUuid())) {
+            appendFilter(hqlFilter, "sb.uuid = :sbuuid");
+            parameterList.putIfAbsent("sbuuid", filter.getStockBatchUuid());
+        }
 
         if (filter.getStockItemId() != null) {
             appendFilter(hqlFilter, "sb.stockItem.id = :stockItemId");
@@ -1848,8 +1861,8 @@ public class StockManagementDao extends DaoBase {
 
         Result<StockBatchDTO> result = new Result<>();
         if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
-			result.setPageSize(filter.getLimit());
+            result.setPageIndex(filter.getStartIndex());
+            result.setPageSize(filter.getLimit());
         }
 
         result.setData(executeQuery(StockBatchDTO.class, hqlQuery, result, " order by sb.id", parameterList, parameterWithList));
@@ -1896,8 +1909,8 @@ public class StockManagementDao extends DaoBase {
 	public Map<Integer, Integer> getLocationPartyIds(Collection<Integer> locationIds) {
         if (locationIds == null || locationIds.isEmpty()) return new HashMap<>();
         Criteria criteria = getSession().createCriteria(Party.class).add(Restrictions.in("location.locationId", locationIds));
-		Projection projection1 = Projections.property("location.locationId");
-		Projection projection2 = Projections.property("id");
+        Projection projection1 = Projections.property("location.locationId");
+        Projection projection2 = Projections.property("id");
         ProjectionList pList = Projections.projectionList();
         pList.add(projection1);
         pList.add(projection2);
@@ -2094,577 +2107,577 @@ public class StockManagementDao extends DaoBase {
 		return getMostLeastMovingStockInventory(filter, true);
 	}
 	
-	private Result<StockItemInventory> getMostLeastMovingStockInventory(StockItemInventorySearchFilter filter, boolean isMostMoving){
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
+	private Result<StockItemInventory> getMostLeastMovingStockInventory(StockItemInventorySearchFilter filter, boolean isMostMoving) {
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
 
-		if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
-			return new Result(new ArrayList<>(),0);
+        if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
+            return new Result(new ArrayList<>(), 0);
 
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
+        if (filter.getInventoryGroupBy() == null) {
+            filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        }
 
-		boolean groupByParty = true;
-		boolean groupByStockBatch = true;
-		boolean groupByStockItem = true;
+        boolean groupByParty = true;
+        boolean groupByStockBatch = true;
+        boolean groupByStockItem = true;
 
-		if (filter.getInventoryGroupBy() != null) {
-			groupByParty = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        if (filter.getInventoryGroupBy() != null) {
+            groupByParty = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
 
-			groupByStockItem = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
+            groupByStockItem = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
 
-			groupByStockBatch = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
-			groupByParty = true;
-			groupByStockBatch = true;
-			groupByStockItem = true;
-		}
+            groupByStockBatch = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        }
+        if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
+            groupByParty = true;
+            groupByStockBatch = true;
+            groupByStockItem = true;
+        }
 
-		StringBuilder hqlQuery = getStockItemInventoryQuery(filter, null, parameterList, parameterWithList, zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
-		if(hqlQuery == null){
-			return new Result(new ArrayList<>(),0);
-		}
-		hqlQuery.append(" order by quantity " + (isMostMoving ? "asc" : "desc"));
+        StringBuilder hqlQuery = getStockItemInventoryQuery(filter, null, parameterList, parameterWithList, zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
+        if (hqlQuery == null) {
+            return new Result(new ArrayList<>(), 0);
+        }
+        hqlQuery.append(" order by quantity " + (isMostMoving ? "asc" : "desc"));
 
-		org.hibernate.StatelessSession session = null;
-		try{
-			session = getStatelessHibernateSession();
-			Query query = session.createQuery(hqlQuery.toString());
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
-			query.setResultTransformer(new AliasToBeanResultTransformer(StockItemInventory.class));
-			query.setReadOnly(true);
-			Integer limit = filter.getLimit() == null ? 20 : filter.getLimit();
-			query.setMaxResults(limit);
-			query.setFetchSize(limit);
-			query.setFirstResult(0);
-			Result<StockItemInventory> result = new Result<>();
-			result.setData(query.list());
-			return result;
-		}
-		finally {
-			if(session != null){
-				try{
-					session.close();
-				}catch (Exception e){}
-			}
-		}
-	}
+        org.hibernate.StatelessSession session = null;
+        try {
+            session = getStatelessHibernateSession();
+            Query query = session.createQuery(hqlQuery.toString());
+            if (parameterList != null) {
+                for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                    query.setParameter(entry.getKey(), entry.getValue());
+            }
+            if (parameterWithList != null) {
+                for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                    query.setParameterList(entry.getKey(), entry.getValue());
+            }
+            query.setResultTransformer(new AliasToBeanResultTransformer(StockItemInventory.class));
+            query.setReadOnly(true);
+            Integer limit = filter.getLimit() == null ? 20 : filter.getLimit();
+            query.setMaxResults(limit);
+            query.setFetchSize(limit);
+            query.setFirstResult(0);
+            Result<StockItemInventory> result = new Result<>();
+            result.setData(query.list());
+            return result;
+        } finally {
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
 	
-	public void getStockInventoryExpiryForecastData(StockItemInventorySearchFilter filter, Function<Object[], Boolean> consumer){
-		if(consumer == null) return;
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
+	public void getStockInventoryExpiryForecastData(StockItemInventorySearchFilter filter, Function<Object[], Boolean> consumer) {
+        if (consumer == null) return;
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
 
-		if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
-			return;
+        if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
+            return;
 
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
+        if (filter.getInventoryGroupBy() == null) {
+            filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        }
 
-		StringBuilder hqlQuery = new StringBuilder("SELECT sit.stockItem.id as stockItemId, sit.stockBatch.id as stockBatchId, sb.expiration as expiration,\n");
-		LocalDate startDate = filter.getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-		LocalDate endDate = filter.getEndDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-		Integer monthQuantityConsumedIndex = 0;
-		startDate = startDate.withDayOfMonth(1);
-		endDate = endDate.withDayOfMonth(1);
-		do{
-			hqlQuery.append("sum(case when (sit.quantity < 0 and sit.dateCreated >= :startdate and sit.dateCreated <= :enddate and year(sit.dateCreated)="+
-					Integer.toString(startDate.getYear()) +
-					" and month(sit.dateCreated)=" + Integer.toString(startDate.getMonthValue()) +
-					" ) then (sit.quantity * sipu.factor * -1) else 0 end) as q"+ Integer.toString(monthQuantityConsumedIndex)+",\n");
-			startDate = startDate.plusMonths(1);
-			monthQuantityConsumedIndex++;
-		}while (!startDate.isAfter(endDate));
+        StringBuilder hqlQuery = new StringBuilder("SELECT sit.stockItem.id as stockItemId, sit.stockBatch.id as stockBatchId, sb.expiration as expiration,\n");
+        LocalDate startDate = filter.getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate endDate = filter.getEndDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        Integer monthQuantityConsumedIndex = 0;
+        startDate = startDate.withDayOfMonth(1);
+        endDate = endDate.withDayOfMonth(1);
+        do {
+            hqlQuery.append("sum(case when (sit.quantity < 0 and sit.dateCreated >= :startdate and sit.dateCreated <= :enddate and year(sit.dateCreated)=" +
+                    Integer.toString(startDate.getYear()) +
+                    " and month(sit.dateCreated)=" + Integer.toString(startDate.getMonthValue()) +
+                    " ) then (sit.quantity * sipu.factor * -1) else 0 end) as q" + Integer.toString(monthQuantityConsumedIndex) + ",\n");
+            startDate = startDate.plusMonths(1);
+            monthQuantityConsumedIndex++;
+        } while (!startDate.isAfter(endDate));
 
-		hqlQuery.append("sum(case when (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
-		hqlQuery.append(" from stockmanagement.StockItemTransaction sit join\n" +
-				"\t sit.stockItemPackagingUOM sipu join\n" +
-				" sit.stockBatch sb\n" +
-				(filter.getStockItemCategoryConceptId() != null ? " join sit.stockItem si" : ""));
+        hqlQuery.append("sum(case when (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
+        hqlQuery.append(" from stockmanagement.StockItemTransaction sit join\n" +
+                "\t sit.stockItemPackagingUOM sipu join\n" +
+                " sit.stockBatch sb\n" +
+                (filter.getStockItemCategoryConceptId() != null ? " join sit.stockItem si" : ""));
 
-		StringBuilder hqlFilter = new StringBuilder();
+        StringBuilder hqlFilter = new StringBuilder();
 
-		List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
-				.filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty())
-				.map(p -> p.getPartyUuids())
-				.flatMap(Collection::stream)
-				.distinct()
-				.collect(Collectors.toList());
+        List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
+                .filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty())
+                .map(p -> p.getPartyUuids())
+                .flatMap(Collection::stream)
+                .distinct()
+                .collect(Collectors.toList());
 
-		List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() :  filter.getItemGroupFilters().stream()
-				.filter(p -> p.getStockItemUuid() != null)
-				.map(p -> p.getStockItemUuid())
-				.distinct()
-				.collect(Collectors.toList());
+        List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
+                .filter(p -> p.getStockItemUuid() != null)
+                .map(p -> p.getStockItemUuid())
+                .distinct()
+                .collect(Collectors.toList());
 
-		Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
-		Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>() : getStockItemIds(stockItemIdsToFetch);
-		StringBuilder itemGroupFilters = new StringBuilder();
-		int paramIndex = 0;
-		int appliedItemGroupFilters = 0;
-		if(filter.getItemGroupFilters() != null) {
-			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
-				StringBuilder itemGroupClause = new StringBuilder();
-				HashMap<String, Object> itemGroupParameterList = new HashMap<>();
-				HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
-				StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
+        Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
+        Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>() : getStockItemIds(stockItemIdsToFetch);
+        StringBuilder itemGroupFilters = new StringBuilder();
+        int paramIndex = 0;
+        int appliedItemGroupFilters = 0;
+        if (filter.getItemGroupFilters() != null) {
+            for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
+                StringBuilder itemGroupClause = new StringBuilder();
+                HashMap<String, Object> itemGroupParameterList = new HashMap<>();
+                HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
+                StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
 
-				List<Integer> partyIdFilter = new ArrayList<>();
-				if (itemGroupFilter.getPartyIds() != null) {
-					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
-				}
-				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
-					if (foundPartyIds.isEmpty()) {
-						continue;
-					}
-					partyIdFilter.addAll(foundPartyIds);
-				}
-				String paramIndexString = Integer.toString(paramIndex);
-				if (!partyIdFilter.isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
-					zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
+                List<Integer> partyIdFilter = new ArrayList<>();
+                if (itemGroupFilter.getPartyIds() != null) {
+                    partyIdFilter.addAll(itemGroupFilter.getPartyIds());
+                }
+                if (itemGroupFilter.getPartyUuids() != null) {
+                    List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
+                    if (foundPartyIds.isEmpty()) {
+                        continue;
+                    }
+                    partyIdFilter.addAll(foundPartyIds);
+                }
+                String paramIndexString = Integer.toString(paramIndex);
+                if (!partyIdFilter.isEmpty()) {
+                    appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
+                    itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
+                    zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
 
-				}
+                }
 
-				if (itemGroupFilter.getStockItemId() != null) {
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
-					zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
-				} else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
-					if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
-						continue;
-					}
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-					zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-				}
+                if (itemGroupFilter.getStockItemId() != null) {
+                    appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+                    itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
+                    zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
+                } else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
+                    if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
+                        continue;
+                    }
+                    appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+                    itemGroupParameterList.putIfAbsent("sid" + paramIndexString, stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+                    zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+                }
 
-				if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
-				}
+                if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
+                    appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
+                    itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
+                }
 
-				paramIndex++;
-				if (itemGroupClause.length() > 0) {
-					appliedItemGroupFilters++;
-					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
-					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
-						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-					for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
-						parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-				} else {
-					continue;
-				}
-			}
-		}
-		if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
-			return;
-		}
+                paramIndex++;
+                if (itemGroupClause.length() > 0) {
+                    appliedItemGroupFilters++;
+                    appendORFilter(itemGroupFilters, itemGroupClause.toString());
+                    zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+                    for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
+                        parameterList.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                    for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
+                        parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+        if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
+            return;
+        }
 
-		if(filter.getUnRestrictedPartyIds() != null && !filter.getUnRestrictedPartyIds().isEmpty()){
-			if(filter.getUnRestrictedPartyIds().size() == 1){
-				appendFilter(hqlFilter, "sit.party.id = :urpis");
-				parameterList.putIfAbsent("urpis",filter.getUnRestrictedPartyIds().get(0));
-			}else{
-				appendFilter(hqlFilter, "sit.party.id in (:urpis)");
-				parameterWithList.putIfAbsent("urpis",filter.getUnRestrictedPartyIds());
-			}
-		}
+        if (filter.getUnRestrictedPartyIds() != null && !filter.getUnRestrictedPartyIds().isEmpty()) {
+            if (filter.getUnRestrictedPartyIds().size() == 1) {
+                appendFilter(hqlFilter, "sit.party.id = :urpis");
+                parameterList.putIfAbsent("urpis", filter.getUnRestrictedPartyIds().get(0));
+            } else {
+                appendFilter(hqlFilter, "sit.party.id in (:urpis)");
+                parameterWithList.putIfAbsent("urpis", filter.getUnRestrictedPartyIds());
+            }
+        }
 
-		if (itemGroupFilters.length() > 0) {
-			appendFilter(hqlFilter, itemGroupFilters.toString());
-		}
+        if (itemGroupFilters.length() > 0) {
+            appendFilter(hqlFilter, itemGroupFilters.toString());
+        }
 
-		if(filter.getStockItemCategoryConceptId() != null){
-			appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
-			parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
-		}
+        if (filter.getStockItemCategoryConceptId() != null) {
+            appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
+            parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
+        }
 
-		appendFilter(hqlFilter, "sb.expiration > :startdate");
+        appendFilter(hqlFilter, "sb.expiration > :startdate");
 
-		parameterList.put("startdate", filter.getStartDate());
-		parameterList.put("enddate", filter.getEndDate());
-		parameterList.put("today", DateUtil.today());
+        parameterList.put("startdate", filter.getStartDate());
+        parameterList.put("enddate", filter.getEndDate());
+        parameterList.put("today", DateUtil.today());
 
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
 
-		hqlQuery.append(" group by sit.stockItem.id,  sit.stockBatch.id, sb.expiration");
-		hqlQuery.append(" order by sit.stockItem.id, sb.expiration");
+        hqlQuery.append(" group by sit.stockItem.id,  sit.stockBatch.id, sb.expiration");
+        hqlQuery.append(" order by sit.stockItem.id, sb.expiration");
 
-		ScrollableResults results = null;
-		org.hibernate.StatelessSession session = null;
-		try{
-			session = getStatelessHibernateSession();
-			Query query = session.createQuery(hqlQuery.toString());
+        ScrollableResults results = null;
+        org.hibernate.StatelessSession session = null;
+        try {
+            session = getStatelessHibernateSession();
+            Query query = session.createQuery(hqlQuery.toString());
 
-			for (Map.Entry<String, Object> entry : parameterList.entrySet())
-				query.setParameter(entry.getKey(), entry.getValue());
+            for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                query.setParameter(entry.getKey(), entry.getValue());
 
 
-			for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-				query.setParameterList(entry.getKey(), entry.getValue());
+            for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                query.setParameterList(entry.getKey(), entry.getValue());
 
-			query.setReadOnly(true);
-			query.setFetchSize(Integer.MIN_VALUE);
-			results = query.scroll(ScrollMode.FORWARD_ONLY);
-			while(results.next())
-			{
-				Object[] row = results.get();
-				Boolean result = consumer.apply(row);
-				if(result == null || result == false){
-					break;
-				}
-			}
-		}
-		finally {
-			if(results != null){
-				try {
-					results.close();
-				}catch (Exception e){}
-			}
-			if(session != null){
-				try{
-					session.close();
-				}catch (Exception e){}
-			}
-		}
-	}
+            query.setReadOnly(true);
+            query.setFetchSize(Integer.MIN_VALUE);
+            results = query.scroll(ScrollMode.FORWARD_ONLY);
+            while (results.next()) {
+                Object[] row = results.get();
+                Boolean result = consumer.apply(row);
+                if (result == null || result == false) {
+                    break;
+                }
+            }
+        } finally {
+            if (results != null) {
+                try {
+                    results.close();
+                } catch (Exception e) {
+                }
+            }
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
 	
-	public void getStockInventoryForecastData(StockItemInventorySearchFilter filter, Function<Object[], Boolean> consumer){
-		if(consumer == null) return;
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
+	public void getStockInventoryForecastData(StockItemInventorySearchFilter filter, Function<Object[], Boolean> consumer) {
+        if (consumer == null) return;
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
 
-		if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
-			return;
+        if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
+            return;
 
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
+        if (filter.getInventoryGroupBy() == null) {
+            filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        }
 
-		boolean groupByParty = true;
-		boolean groupByStockBatch = true;
-		boolean groupByStockItem = true;
+        boolean groupByParty = true;
+        boolean groupByStockBatch = true;
+        boolean groupByStockItem = true;
 
-		if (filter.getInventoryGroupBy() != null) {
-			groupByParty = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        if (filter.getInventoryGroupBy() != null) {
+            groupByParty = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
 
-			groupByStockItem = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
+            groupByStockItem = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
 
-			groupByStockBatch = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
-			groupByParty = true;
-			groupByStockBatch = true;
-			groupByStockItem = true;
-		}
+            groupByStockBatch = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        }
+        if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
+            groupByParty = true;
+            groupByStockBatch = true;
+            groupByStockItem = true;
+        }
 
-		StringBuilder hqlQuery = new StringBuilder("SELECT " +
-				(groupByParty ? "sit.party.id as partyId,\n" : "cast(:nullValue as java.lang.Integer) as partyId,") +
-				(groupByStockItem ? "sit.stockItem.id as stockItemId,\n" : "cast(:nullValue as java.lang.Integer) as stockItemId,") +
-				(groupByStockBatch ? "sit.stockBatch.id as stockBatchId,\n" : "cast(:nullValue as java.lang.Integer) as stockBatchId,")
-				);
-
-
-		LocalDate startDate = filter.getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-		LocalDate endDate = filter.getEndDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
-		Integer monthQuantityConsumedIndex = 0;
-		startDate = startDate.withDayOfMonth(1);
-		endDate = endDate.withDayOfMonth(1);
-		do{
-			hqlQuery.append("sum(case when (sit.quantity < 0 and sit.dateCreated >= :startdate and sit.dateCreated <= :enddate and year(sit.dateCreated)="+
-					Integer.toString(startDate.getYear()) +
-					" and month(sit.dateCreated)=" + Integer.toString(startDate.getMonthValue()) +
-					" ) then (sit.quantity * sipu.factor * -1) else 0 end) as q"+ Integer.toString(monthQuantityConsumedIndex)+",");
-			startDate = startDate.plusMonths(1);
-			monthQuantityConsumedIndex++;
-		}while (!startDate.isAfter(endDate));
-
-		hqlQuery.append("sum(case when (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
-		hqlQuery.append(" from stockmanagement.StockItemTransaction sit join\n" +
-				"\t sit.stockItemPackagingUOM sipu join\n" +
-				" sit.stockBatch sb\n" +
-				(filter.getStockItemCategoryConceptId() != null ? " join sit.stockItem si" : ""));
-
-		StringBuilder hqlFilter = new StringBuilder();
-
-		List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
-				.filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty())
-				.map(p -> p.getPartyUuids())
-				.flatMap(Collection::stream)
-				.distinct()
-				.collect(Collectors.toList());
-
-		List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() :  filter.getItemGroupFilters().stream()
-				.filter(p -> p.getStockItemUuid() != null)
-				.map(p -> p.getStockItemUuid())
-				.distinct()
-				.collect(Collectors.toList());
-
-		Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
-		Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>() : getStockItemIds(stockItemIdsToFetch);
-		StringBuilder itemGroupFilters = new StringBuilder();
-		int paramIndex = 0;
-		int appliedItemGroupFilters = 0;
-		if(filter.getItemGroupFilters() != null) {
-			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
-				StringBuilder itemGroupClause = new StringBuilder();
-				HashMap<String, Object> itemGroupParameterList = new HashMap<>();
-				HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
-				StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
-
-				List<Integer> partyIdFilter = new ArrayList<>();
-				if (itemGroupFilter.getPartyIds() != null) {
-					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
-				}
-				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
-					if (foundPartyIds.isEmpty()) {
-						continue;
-					}
-					partyIdFilter.addAll(foundPartyIds);
-				}
-				String paramIndexString = Integer.toString(paramIndex);
-				if (!partyIdFilter.isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
-					zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
-
-				}
-
-				if (itemGroupFilter.getStockItemId() != null) {
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
-					zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
-				} else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
-					if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
-						continue;
-					}
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-					zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-				}
-
-				if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
-				}
-
-				paramIndex++;
-				if (itemGroupClause.length() > 0) {
-					appliedItemGroupFilters++;
-					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
-					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
-						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-					for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
-						parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-				} else {
-					continue;
-				}
-			}
-		}
-		if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
-			return;
-		}
-
-		if(filter.getUnRestrictedPartyIds() != null && !filter.getUnRestrictedPartyIds().isEmpty()){
-			if(filter.getUnRestrictedPartyIds().size() == 1){
-				appendFilter(hqlFilter, "sit.party.id = :urpis");
-				parameterList.putIfAbsent("urpis",filter.getUnRestrictedPartyIds().get(0));
-			}else{
-				appendFilter(hqlFilter, "sit.party.id in (:urpis)");
-				parameterWithList.putIfAbsent("urpis",filter.getUnRestrictedPartyIds());
-			}
-		}
-
-		if (itemGroupFilters.length() > 0) {
-			appendFilter(hqlFilter, itemGroupFilters.toString());
-		}
-
-		if(filter.getStockItemCategoryConceptId() != null){
-			appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
-			parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
-		}
-
-		appendFilter( hqlFilter, "sb.expiration is null or sb.expiration > :startdate");
-
-		parameterList.put("startdate", filter.getStartDate());
-		parameterList.put("enddate", filter.getEndDate());
-		parameterList.put("today", DateUtil.today());
-
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
-
-		hqlQuery.append(" group by ");
-		List<String> groupColumns = new ArrayList<>();
-		if (groupByParty) {
-			groupColumns.add("sit.party.id");
-		}
-		if (groupByStockItem) {
-			groupColumns.add("sit.stockItem.id");
-		}
-		if (groupByStockBatch) {
-			groupColumns.add("sit.stockBatch.id");
-		}
-		hqlQuery.append(String.join(", ", groupColumns));
-
-		if(hqlQuery == null){
-			return;
-		}
-		hqlQuery.append(" order by " + (groupByParty ? "sit.party.id" : (groupByStockItem ? "sit.stockItem.id" : (groupByStockBatch ? "sit.stockBatch.id" : ""))));
-
-		ScrollableResults results = null;
-		org.hibernate.StatelessSession session = null;
-		try{
-			session = getStatelessHibernateSession();
-			Query query = session.createQuery(hqlQuery.toString());
-			if(!groupByParty || !groupByStockBatch || !groupByStockItem){
-				query.setParameter("nullValue",null, IntegerType.INSTANCE);
-			}
-
-			for (Map.Entry<String, Object> entry : parameterList.entrySet())
-				query.setParameter(entry.getKey(), entry.getValue());
+        StringBuilder hqlQuery = new StringBuilder("SELECT " +
+                (groupByParty ? "sit.party.id as partyId,\n" : "cast(:nullValue as java.lang.Integer) as partyId,") +
+                (groupByStockItem ? "sit.stockItem.id as stockItemId,\n" : "cast(:nullValue as java.lang.Integer) as stockItemId,") +
+                (groupByStockBatch ? "sit.stockBatch.id as stockBatchId,\n" : "cast(:nullValue as java.lang.Integer) as stockBatchId,")
+        );
 
 
-			for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-				query.setParameterList(entry.getKey(), entry.getValue());
+        LocalDate startDate = filter.getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate endDate = filter.getEndDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        Integer monthQuantityConsumedIndex = 0;
+        startDate = startDate.withDayOfMonth(1);
+        endDate = endDate.withDayOfMonth(1);
+        do {
+            hqlQuery.append("sum(case when (sit.quantity < 0 and sit.dateCreated >= :startdate and sit.dateCreated <= :enddate and year(sit.dateCreated)=" +
+                    Integer.toString(startDate.getYear()) +
+                    " and month(sit.dateCreated)=" + Integer.toString(startDate.getMonthValue()) +
+                    " ) then (sit.quantity * sipu.factor * -1) else 0 end) as q" + Integer.toString(monthQuantityConsumedIndex) + ",");
+            startDate = startDate.plusMonths(1);
+            monthQuantityConsumedIndex++;
+        } while (!startDate.isAfter(endDate));
 
-			query.setReadOnly(true);
-			query.setFetchSize(Integer.MIN_VALUE);
-			results = query.scroll(ScrollMode.FORWARD_ONLY);
-			while(results.next())
-			{
-				Object[] row = results.get();
-				Boolean result = consumer.apply(row);
-				if(result == null || result == false){
-					break;
-				}
-			}
-		}
-		finally {
-			if(results != null){
-				try {
-					results.close();
-				}catch (Exception e){}
-			}
-			if(session != null){
-				try{
-					session.close();
-				}catch (Exception e){}
-			}
-		}
-	}
+        hqlQuery.append("sum(case when (sb.expiration is null or sb.expiration > :today) then (sit.quantity * sipu.factor) else 0 end) as quantity");
+        hqlQuery.append(" from stockmanagement.StockItemTransaction sit join\n" +
+                "\t sit.stockItemPackagingUOM sipu join\n" +
+                " sit.stockBatch sb\n" +
+                (filter.getStockItemCategoryConceptId() != null ? " join sit.stockItem si" : ""));
+
+        StringBuilder hqlFilter = new StringBuilder();
+
+        List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
+                .filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty())
+                .map(p -> p.getPartyUuids())
+                .flatMap(Collection::stream)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
+                .filter(p -> p.getStockItemUuid() != null)
+                .map(p -> p.getStockItemUuid())
+                .distinct()
+                .collect(Collectors.toList());
+
+        Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
+        Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>() : getStockItemIds(stockItemIdsToFetch);
+        StringBuilder itemGroupFilters = new StringBuilder();
+        int paramIndex = 0;
+        int appliedItemGroupFilters = 0;
+        if (filter.getItemGroupFilters() != null) {
+            for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
+                StringBuilder itemGroupClause = new StringBuilder();
+                HashMap<String, Object> itemGroupParameterList = new HashMap<>();
+                HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
+                StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
+
+                List<Integer> partyIdFilter = new ArrayList<>();
+                if (itemGroupFilter.getPartyIds() != null) {
+                    partyIdFilter.addAll(itemGroupFilter.getPartyIds());
+                }
+                if (itemGroupFilter.getPartyUuids() != null) {
+                    List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
+                    if (foundPartyIds.isEmpty()) {
+                        continue;
+                    }
+                    partyIdFilter.addAll(foundPartyIds);
+                }
+                String paramIndexString = Integer.toString(paramIndex);
+                if (!partyIdFilter.isEmpty()) {
+                    appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
+                    itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
+                    zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
+
+                }
+
+                if (itemGroupFilter.getStockItemId() != null) {
+                    appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+                    itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
+                    zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
+                } else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
+                    if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
+                        continue;
+                    }
+                    appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+                    itemGroupParameterList.putIfAbsent("sid" + paramIndexString, stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+                    zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+                }
+
+                if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
+                    appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
+                    itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
+                }
+
+                paramIndex++;
+                if (itemGroupClause.length() > 0) {
+                    appliedItemGroupFilters++;
+                    appendORFilter(itemGroupFilters, itemGroupClause.toString());
+                    zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+                    for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
+                        parameterList.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                    for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
+                        parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
+        if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
+            return;
+        }
+
+        if (filter.getUnRestrictedPartyIds() != null && !filter.getUnRestrictedPartyIds().isEmpty()) {
+            if (filter.getUnRestrictedPartyIds().size() == 1) {
+                appendFilter(hqlFilter, "sit.party.id = :urpis");
+                parameterList.putIfAbsent("urpis", filter.getUnRestrictedPartyIds().get(0));
+            } else {
+                appendFilter(hqlFilter, "sit.party.id in (:urpis)");
+                parameterWithList.putIfAbsent("urpis", filter.getUnRestrictedPartyIds());
+            }
+        }
+
+        if (itemGroupFilters.length() > 0) {
+            appendFilter(hqlFilter, itemGroupFilters.toString());
+        }
+
+        if (filter.getStockItemCategoryConceptId() != null) {
+            appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
+            parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
+        }
+
+        appendFilter(hqlFilter, "sb.expiration is null or sb.expiration > :startdate");
+
+        parameterList.put("startdate", filter.getStartDate());
+        parameterList.put("enddate", filter.getEndDate());
+        parameterList.put("today", DateUtil.today());
+
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
+
+        hqlQuery.append(" group by ");
+        List<String> groupColumns = new ArrayList<>();
+        if (groupByParty) {
+            groupColumns.add("sit.party.id");
+        }
+        if (groupByStockItem) {
+            groupColumns.add("sit.stockItem.id");
+        }
+        if (groupByStockBatch) {
+            groupColumns.add("sit.stockBatch.id");
+        }
+        hqlQuery.append(String.join(", ", groupColumns));
+
+        if (hqlQuery == null) {
+            return;
+        }
+        hqlQuery.append(" order by " + (groupByParty ? "sit.party.id" : (groupByStockItem ? "sit.stockItem.id" : (groupByStockBatch ? "sit.stockBatch.id" : ""))));
+
+        ScrollableResults results = null;
+        org.hibernate.StatelessSession session = null;
+        try {
+            session = getStatelessHibernateSession();
+            Query query = session.createQuery(hqlQuery.toString());
+            if (!groupByParty || !groupByStockBatch || !groupByStockItem) {
+                query.setParameter("nullValue", null, IntegerType.INSTANCE);
+            }
+
+            for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                query.setParameter(entry.getKey(), entry.getValue());
+
+
+            for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                query.setParameterList(entry.getKey(), entry.getValue());
+
+            query.setReadOnly(true);
+            query.setFetchSize(Integer.MIN_VALUE);
+            results = query.scroll(ScrollMode.FORWARD_ONLY);
+            while (results.next()) {
+                Object[] row = results.get();
+                Boolean result = consumer.apply(row);
+                if (result == null || result == false) {
+                    break;
+                }
+            }
+        } finally {
+            if (results != null) {
+                try {
+                    results.close();
+                } catch (Exception e) {
+                }
+            }
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
 	
-	public <T extends StockItemInventory> void getStockInventory(StockItemInventorySearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters, Function<T, Boolean> consumer, Class<T> resultClass){
-		if(consumer == null) return;
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
+	public <T extends StockItemInventory> void getStockInventory(StockItemInventorySearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters, Function<T, Boolean> consumer, Class<T> resultClass) {
+        if (consumer == null) return;
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn = new ArrayList<>();
 
-		if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
-			return;
+        if (filter.isRequireItemGroupFilters() && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
+            return;
 
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
+        if (filter.getInventoryGroupBy() == null) {
+            filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        }
 
-		boolean groupByParty = true;
-		boolean groupByStockBatch = true;
-		boolean groupByStockItem = true;
+        boolean groupByParty = true;
+        boolean groupByStockBatch = true;
+        boolean groupByStockItem = true;
 
-		if (filter.getInventoryGroupBy() != null) {
-			groupByParty = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        if (filter.getInventoryGroupBy() != null) {
+            groupByParty = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
 
-			groupByStockItem = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo) ||
-					filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
+            groupByStockItem = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo) ||
+                    filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
 
-			groupByStockBatch = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
-			groupByParty = true;
-			groupByStockBatch = true;
-			groupByStockItem = true;
-		}
+            groupByStockBatch = filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+        }
+        if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
+            groupByParty = true;
+            groupByStockBatch = true;
+            groupByStockItem = true;
+        }
 
-		StringBuilder hqlQuery = getStockItemInventoryQuery(filter, recordPrivilegeFilters, parameterList, parameterWithList, zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
-		if(hqlQuery == null){
-			return;
-		}
-		hqlQuery.append(" order by " + (groupByParty ? "sit.party.id" : (groupByStockItem ? "sit.stockItem.id" : (groupByStockBatch ? "sit.stockBatch.id" : ""))));
+        StringBuilder hqlQuery = getStockItemInventoryQuery(filter, recordPrivilegeFilters, parameterList, parameterWithList, zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
+        if (hqlQuery == null) {
+            return;
+        }
+        hqlQuery.append(" order by " + (groupByParty ? "sit.party.id" : (groupByStockItem ? "sit.stockItem.id" : (groupByStockBatch ? "sit.stockBatch.id" : ""))));
 
-		ScrollableResults results = null;
-		org.hibernate.StatelessSession session = null;
-		try{
-		 	session = getStatelessHibernateSession();
-			Query query = session.createQuery(hqlQuery.toString());
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
-			query.setResultTransformer(new AliasToBeanResultTransformer(resultClass));
-			query.setReadOnly(true);
-			query.setFetchSize(Integer.MIN_VALUE);
-			results = query.scroll(ScrollMode.FORWARD_ONLY);
-			while(results.next())
-			{
-				T stockItemInventory = (T)results.get(0);
-				Boolean result = consumer.apply(stockItemInventory);
-				if(result == null || result == false){
-					break;
-				}
-			}
-		}
-		finally {
-			if(results != null){
-				try {
-					results.close();
-				}catch (Exception e){}
-			}
-			if(session != null){
-				try{
-					session.close();
-				}catch (Exception e){}
-			}
-		}
-	}
+        ScrollableResults results = null;
+        org.hibernate.StatelessSession session = null;
+        try {
+            session = getStatelessHibernateSession();
+            Query query = session.createQuery(hqlQuery.toString());
+            if (parameterList != null) {
+                for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                    query.setParameter(entry.getKey(), entry.getValue());
+            }
+            if (parameterWithList != null) {
+                for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                    query.setParameterList(entry.getKey(), entry.getValue());
+            }
+            query.setResultTransformer(new AliasToBeanResultTransformer(resultClass));
+            query.setReadOnly(true);
+            query.setFetchSize(Integer.MIN_VALUE);
+            results = query.scroll(ScrollMode.FORWARD_ONLY);
+            while (results.next()) {
+                T stockItemInventory = (T) results.get(0);
+                Boolean result = consumer.apply(stockItemInventory);
+                if (result == null || result == false) {
+                    break;
+                }
+            }
+        } finally {
+            if (results != null) {
+                try {
+                    results.close();
+                } catch (Exception e) {
+                }
+            }
+            if (session != null) {
+                try {
+                    session.close();
+                } catch (Exception e) {
+                }
+            }
+        }
+    }
 	
 	public StockInventoryResult getStockItemInventory(StockItemInventorySearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
         HashMap<String, Object> parameterList = new HashMap<>();
@@ -2698,10 +2711,10 @@ public class StockManagementDao extends DaoBase {
             groupByStockItem = true;
         }
 
-		StringBuilder hqlQuery = getStockItemInventoryQuery(filter, recordPrivilegeFilters, parameterList, parameterWithList, zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
-		if(hqlQuery == null){
-			return new StockInventoryResult(new ArrayList<>(), 0);
-		}
+        StringBuilder hqlQuery = getStockItemInventoryQuery(filter, recordPrivilegeFilters, parameterList, parameterWithList, zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
+        if (hqlQuery == null) {
+            return new StockInventoryResult(new ArrayList<>(), 0);
+        }
 
         StockInventoryResult result = new StockInventoryResult();
         if (filter.getLimit() != null) {
@@ -2719,9 +2732,9 @@ public class StockManagementDao extends DaoBase {
                         for (Integer partyId : itemGroupFilter.getPartyIds()) {
                             if (!result.getData().stream().anyMatch(p -> p.getStockItemId().equals(itemGroupFilter.getStockItemId()) &&
                                     p.getPartyId().equals(partyId))) {
-								if( groupByStockBatch && filter.getAllowEmptyBatchInfo() && filter.getEmptyBatchPartyId() != null && !filter.getEmptyBatchPartyId().equals(partyId)){
-									continue;
-								}
+                                if (groupByStockBatch && filter.getAllowEmptyBatchInfo() && filter.getEmptyBatchPartyId() != null && !filter.getEmptyBatchPartyId().equals(partyId)) {
+                                    continue;
+                                }
                                 StockItemInventory stockItemInventory = new StockItemInventory();
                                 stockItemInventory.setStockItemId(itemGroupFilter.getStockItemId());
                                 stockItemInventory.setPartyId(partyId);
@@ -2797,198 +2810,198 @@ public class StockManagementDao extends DaoBase {
     }
 	
 	private StringBuilder getStockItemInventoryQuery(StockItemInventorySearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters, HashMap<String, Object> parameterList, HashMap<String, Collection> parameterWithList, List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn, boolean groupByParty, boolean groupByStockBatch, boolean groupByStockItem) {
-		StringBuilder hqlQuery = new StringBuilder("SELECT " +
+        StringBuilder hqlQuery = new StringBuilder("SELECT " +
                 (groupByParty ? "sit.party.id as partyId,\n" : "") +
                 (groupByStockItem ? "sit.stockItem.id as stockItemId,\n" : "") +
                 (groupByStockBatch ? "sit.stockBatch.id as stockBatchId,\n" : "") +
-				(filter.getInventoryMode() == null || (filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Total) ||
-						filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.MostMoving)||
-						filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.LeastMoving)) ? "sum(sit.quantity * sipu.factor) as quantity\n" : "") +
-				(filter.getInventoryMode() != null && filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Consumption) ?
-						("sum(case when sit.dateCreated < :startdate then (sit.quantity * sipu.factor) else 0 end) as quantity, " +
-						"sum(case when sit.dateCreated <= :enddate then (sit.quantity * sipu.factor) else 0 end) as closingQuantity, " +
-						"sum(case when sit.quantity < 0 and  sit.dateCreated >= :startdate and sit.dateCreated <= :enddate  then (sit.quantity * sipu.factor * -1) else 0 end) as quantityConsumed," +
-						"sum(case when sit.quantity > 0 and  sit.dateCreated >= :startdate and sit.dateCreated <= :enddate  then (sit.quantity * sipu.factor) else 0 end) as quantityReceived") : "") +
+                (filter.getInventoryMode() == null || (filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Total) ||
+                        filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.MostMoving) ||
+                        filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.LeastMoving)) ? "sum(sit.quantity * sipu.factor) as quantity\n" : "") +
+                (filter.getInventoryMode() != null && filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Consumption) ?
+                        ("sum(case when sit.dateCreated < :startdate then (sit.quantity * sipu.factor) else 0 end) as quantity, " +
+                                "sum(case when sit.dateCreated <= :enddate then (sit.quantity * sipu.factor) else 0 end) as closingQuantity, " +
+                                "sum(case when sit.quantity < 0 and  sit.dateCreated >= :startdate and sit.dateCreated <= :enddate  then (sit.quantity * sipu.factor * -1) else 0 end) as quantityConsumed," +
+                                "sum(case when sit.quantity > 0 and  sit.dateCreated >= :startdate and sit.dateCreated <= :enddate  then (sit.quantity * sipu.factor) else 0 end) as quantityReceived") : "") +
                 " from stockmanagement.StockItemTransaction sit join\n" +
                 "\t sit.stockItemPackagingUOM sipu join\n" +
                 " sit.stockBatch sb\n" +
-				(filter.getStockItemCategoryConceptId() != null ? " join sit.stockItem si" : "") +
+                (filter.getStockItemCategoryConceptId() != null ? " join sit.stockItem si" : "") +
                 " \n");
 
-		StringBuilder hqlFilter = new StringBuilder();
+        StringBuilder hqlFilter = new StringBuilder();
 
 
-		List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
+        List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
                 .filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty())
                 .map(p -> p.getPartyUuids())
                 .flatMap(Collection::stream)
                 .distinct()
                 .collect(Collectors.toList());
 
-		List<Integer> toRestrictedPartyIds = null;
-		if (recordPrivilegeFilters != null) {
+        List<Integer> toRestrictedPartyIds = null;
+        if (recordPrivilegeFilters != null) {
             PartySearchFilter partySearchFilter = new PartySearchFilter();
             partySearchFilter.setIncludeVoided(true);
             partySearchFilter.setLocationIds(recordPrivilegeFilters.stream().map(p -> p.getLocationId()).distinct().collect(Collectors.toList()));
             toRestrictedPartyIds = findParty(partySearchFilter).getData().stream().map(p -> p.getId()).collect(Collectors.toList());
         }
-		final List<Integer> restrictedPartyIds = toRestrictedPartyIds;
+        final List<Integer> restrictedPartyIds = toRestrictedPartyIds;
 
-		List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() :  filter.getItemGroupFilters().stream()
+        List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>() : filter.getItemGroupFilters().stream()
                 .filter(p -> p.getStockItemUuid() != null)
                 .map(p -> p.getStockItemUuid())
                 .distinct()
                 .collect(Collectors.toList());
 
-		Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
-		Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>() : getStockItemIds(stockItemIdsToFetch);
-		StringBuilder itemGroupFilters = new StringBuilder();
-		int paramIndex = 0;
-		int appliedItemGroupFilters = 0;
-		if(filter.getItemGroupFilters() != null) {
-			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
-				StringBuilder itemGroupClause = new StringBuilder();
-				HashMap<String, Object> itemGroupParameterList = new HashMap<>();
-				HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
-				StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
+        Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
+        Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>() : getStockItemIds(stockItemIdsToFetch);
+        StringBuilder itemGroupFilters = new StringBuilder();
+        int paramIndex = 0;
+        int appliedItemGroupFilters = 0;
+        if (filter.getItemGroupFilters() != null) {
+            for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
+                StringBuilder itemGroupClause = new StringBuilder();
+                HashMap<String, Object> itemGroupParameterList = new HashMap<>();
+                HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
+                StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
 
-				List<Integer> partyIdFilter = new ArrayList<>();
-				if (itemGroupFilter.getPartyIds() != null) {
-					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
-				}
-				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
-					if (foundPartyIds.isEmpty()) {
-						// return new StockInventoryResult(new ArrayList<>(), 0);
-						continue;
-					}
-					partyIdFilter.addAll(foundPartyIds);
-				}
-				String paramIndexString = Integer.toString(paramIndex);
-				if (!partyIdFilter.isEmpty()) {
-					if (restrictedPartyIds != null) {
-						partyIdFilter = partyIdFilter.stream().filter(p -> restrictedPartyIds.contains(p)).collect(Collectors.toList());
-						if (partyIdFilter.isEmpty()) {
-							//partyIdFilter = restrictedPartyIds;
-							continue;
-						}
-					}
+                List<Integer> partyIdFilter = new ArrayList<>();
+                if (itemGroupFilter.getPartyIds() != null) {
+                    partyIdFilter.addAll(itemGroupFilter.getPartyIds());
+                }
+                if (itemGroupFilter.getPartyUuids() != null) {
+                    List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream().map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
+                    if (foundPartyIds.isEmpty()) {
+                        // return new StockInventoryResult(new ArrayList<>(), 0);
+                        continue;
+                    }
+                    partyIdFilter.addAll(foundPartyIds);
+                }
+                String paramIndexString = Integer.toString(paramIndex);
+                if (!partyIdFilter.isEmpty()) {
+                    if (restrictedPartyIds != null) {
+                        partyIdFilter = partyIdFilter.stream().filter(p -> restrictedPartyIds.contains(p)).collect(Collectors.toList());
+                        if (partyIdFilter.isEmpty()) {
+                            //partyIdFilter = restrictedPartyIds;
+                            continue;
+                        }
+                    }
 
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
-					zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
+                    appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
+                    itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
+                    zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
 
-				} else if (restrictedPartyIds != null) {
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, restrictedPartyIds);
-					zeroQtyItemGroupFilter.setPartyIds(restrictedPartyIds);
-				}
+                } else if (restrictedPartyIds != null) {
+                    appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
+                    itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, restrictedPartyIds);
+                    zeroQtyItemGroupFilter.setPartyIds(restrictedPartyIds);
+                }
 
-				if (itemGroupFilter.getStockItemId() != null) {
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
-					zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
-				} else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
-					if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
-						// return new StockInventoryResult(new ArrayList<>(), 0);
-						continue;
-					}
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-					zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-				}
+                if (itemGroupFilter.getStockItemId() != null) {
+                    appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+                    itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
+                    zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
+                } else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
+                    if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
+                        // return new StockInventoryResult(new ArrayList<>(), 0);
+                        continue;
+                    }
+                    appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+                    itemGroupParameterList.putIfAbsent("sid" + paramIndexString, stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+                    zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+                }
 
-				if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
-				}
+                if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
+                    appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
+                    itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
+                }
 
-				paramIndex++;
-				if (itemGroupClause.length() > 0) {
-					appliedItemGroupFilters++;
-					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
-					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
-						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-					for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
-						parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-				} else {
-					continue;
-				}
-			}
-		}
+                paramIndex++;
+                if (itemGroupClause.length() > 0) {
+                    appliedItemGroupFilters++;
+                    appendORFilter(itemGroupFilters, itemGroupClause.toString());
+                    zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+                    for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
+                        parameterList.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                    for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
+                        parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                } else {
+                    continue;
+                }
+            }
+        }
         if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
             return null;
         }
 
-		if(filter.getUnRestrictedPartyIds() != null && !filter.getUnRestrictedPartyIds().isEmpty()){
-			if(filter.getUnRestrictedPartyIds().size() == 1){
-				appendFilter(hqlFilter, "sit.party.id = :urpis");
-				parameterList.putIfAbsent("urpis",filter.getUnRestrictedPartyIds().get(0));
-			}else{
-				appendFilter(hqlFilter, "sit.party.id in (:urpis)");
-				parameterWithList.putIfAbsent("urpis",filter.getUnRestrictedPartyIds());
-			}
-		}
+        if (filter.getUnRestrictedPartyIds() != null && !filter.getUnRestrictedPartyIds().isEmpty()) {
+            if (filter.getUnRestrictedPartyIds().size() == 1) {
+                appendFilter(hqlFilter, "sit.party.id = :urpis");
+                parameterList.putIfAbsent("urpis", filter.getUnRestrictedPartyIds().get(0));
+            } else {
+                appendFilter(hqlFilter, "sit.party.id in (:urpis)");
+                parameterWithList.putIfAbsent("urpis", filter.getUnRestrictedPartyIds());
+            }
+        }
 
-		if (itemGroupFilters.length() > 0) {
+        if (itemGroupFilters.length() > 0) {
             appendFilter(hqlFilter, itemGroupFilters.toString());
         }
 
-		if(filter.getRequireNonExpiredStockBatches() != null && filter.getRequireNonExpiredStockBatches()) {
-			appendFilter(hqlFilter, "sb.expiration is null or sb.expiration > :today");
-			parameterList.put("today", filter.getDate() != null ? filter.getDate() : DateUtil.today());
-		}
+        if (filter.getRequireNonExpiredStockBatches() != null && filter.getRequireNonExpiredStockBatches()) {
+            appendFilter(hqlFilter, "sb.expiration is null or sb.expiration > :today");
+            parameterList.put("today", filter.getDate() != null ? filter.getDate() : DateUtil.today());
+        }
 
-		if (filter.getDate() != null && (filter.getInventoryMode() == null || filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Total))) {
-			appendFilter(hqlFilter, "sit.dateCreated <= :tdate");
-			parameterList.put("tdate", filter.getDate());
-		}
+        if (filter.getDate() != null && (filter.getInventoryMode() == null || filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Total))) {
+            appendFilter(hqlFilter, "sit.dateCreated <= :tdate");
+            parameterList.put("tdate", filter.getDate());
+        }
 
-		if(filter.getInventoryMode() != null && filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Consumption)){
-			parameterList.put("startdate", filter.getStartDate());
-			parameterList.put("enddate", filter.getEndDate());
-			appendFilter(hqlFilter, "sit.dateCreated <= :enddate");
-		}else if(filter.getInventoryMode() != null && (filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.MostMoving) || filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.LeastMoving))){
-			parameterList.put("startdate", filter.getStartDate());
-			parameterList.put("enddate", filter.getEndDate());
-			appendFilter(hqlFilter, "sit.dateCreated >= :startdate");
-			appendFilter(hqlFilter, "sit.dateCreated <= :enddate");
-		}
+        if (filter.getInventoryMode() != null && filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.Consumption)) {
+            parameterList.put("startdate", filter.getStartDate());
+            parameterList.put("enddate", filter.getEndDate());
+            appendFilter(hqlFilter, "sit.dateCreated <= :enddate");
+        } else if (filter.getInventoryMode() != null && (filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.MostMoving) || filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.LeastMoving))) {
+            parameterList.put("startdate", filter.getStartDate());
+            parameterList.put("enddate", filter.getEndDate());
+            appendFilter(hqlFilter, "sit.dateCreated >= :startdate");
+            appendFilter(hqlFilter, "sit.dateCreated <= :enddate");
+        }
 
-		if(filter.getStockItemCategoryConceptId() != null){
-			appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
-			parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
-		}
+        if (filter.getStockItemCategoryConceptId() != null) {
+            appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
+            parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
+        }
 
-		if(filter.getInventoryMode() != null && (filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.MostMoving) || filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.LeastMoving))){
-			appendFilter(hqlFilter, "sit.patient.id is not null");
-		}
+        if (filter.getInventoryMode() != null && (filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.MostMoving) || filter.getInventoryMode().equals(StockItemInventorySearchFilter.InventoryMode.LeastMoving))) {
+            appendFilter(hqlFilter, "sit.patient.id is not null");
+        }
 
-		if (hqlFilter.length() > 0) {
+        if (hqlFilter.length() > 0) {
             hqlQuery.append(" where ");
             hqlQuery.append(hqlFilter);
         }
 
-		hqlQuery.append(" group by ");
-		List<String> groupColumns = new ArrayList<>();
-		if (groupByParty) {
+        hqlQuery.append(" group by ");
+        List<String> groupColumns = new ArrayList<>();
+        if (groupByParty) {
             groupColumns.add("sit.party.id");
         }
-		if (groupByStockItem) {
+        if (groupByStockItem) {
             groupColumns.add("sit.stockItem.id");
         }
-		if (groupByStockBatch) {
+        if (groupByStockBatch) {
             groupColumns.add("sit.stockBatch.id");
         }
-		hqlQuery.append(String.join(", ", groupColumns));
-		return hqlQuery;
-	}
+        hqlQuery.append(String.join(", ", groupColumns));
+        return hqlQuery;
+    }
 	
 	public List<StockItemInventory> getStockBatchLocationInventory(List<Integer> stockBatchIds) {
-        if(stockBatchIds == null || stockBatchIds.isEmpty()) return new ArrayList<>();
+        if (stockBatchIds == null || stockBatchIds.isEmpty()) return new ArrayList<>();
         StringBuilder hqlQuery = new StringBuilder("SELECT  sit.party.id as partyId, sit.stockItem.id as stockItemId, sit.stockBatch.id as stockBatchId, sum(sit.quantity * sipu.factor) as quantity\n" +
                 "from stockmanagement.StockItemTransaction sit join\n" +
                 "\t sit.stockItemPackagingUOM sipu join\n" +
@@ -2997,8 +3010,8 @@ public class StockManagementDao extends DaoBase {
                 " group by sit.party.id, sit.stockItem.id, sit.stockBatch.id");
 
 
-		DbSession dbSession = getSession();
-		Query query = dbSession.createQuery(hqlQuery.toString());
+        DbSession dbSession = getSession();
+        Query query = dbSession.createQuery(hqlQuery.toString());
         query.setParameterList("bids", stockBatchIds);
         query.setParameter("today", DateUtil.today());
         query = query.setResultTransformer(new AliasToBeanResultTransformer(StockItemInventory.class));
@@ -3102,7 +3115,7 @@ public class StockManagementDao extends DaoBase {
                 "sipu.packagingUom.conceptId as packagingUoMId,\n" +
                 "sb.uuid as stockBatchUuid,\n" +
                 "sb.batchNo as stockBatchNo,\n" +
-				"sb.expiration as expiration,\n" +
+                "sb.expiration as expiration,\n" +
                 "so.uuid as stockOperationUuid,\n" +
                 "so.status as stockOperationStatus,\n" +
                 "so.operationNumber as stockOperationNumber,\n" +
@@ -3196,6 +3209,10 @@ public class StockManagementDao extends DaoBase {
                     if (conceptNameDTO.isPresent()) {
                         stockItemTransactionDTO.setPackagingUomName(conceptNameDTO.get().getName());
                     }
+
+					BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockItemTransactionDTO.getStockItemPackagingUOMUuid()).getFactor();
+
+					stockItemTransactionDTO.setPackagingUomFactor(factor);
                 }
 
                 if (stockItemTransactionDTO.getPartyId() != null) {
@@ -3938,7 +3955,7 @@ public class StockManagementDao extends DaoBase {
         boolean hasMoreUpdatesToDo = true;
         do {
             List<Integer> batch = stockItemIds.stream().skip(startIndex * 100).limit(100).collect(Collectors.toList());
-            if(batch.isEmpty()){
+            if (batch.isEmpty()) {
                 break;
             }
             Map<Integer, String> result = getStockItemNamesInternal(batch);
@@ -4020,533 +4037,533 @@ public class StockManagementDao extends DaoBase {
 		return batchJob;
 	}
 	
-	public BatchJob getNextActiveBatchJob(){
-		DbSession dbSession = getSession();
-		Criteria criteria = dbSession.createCriteria(BatchJob.class, "bj");
-		criteria.add(Restrictions.in("bj.status", Arrays.asList(BatchJobStatus.Pending, BatchJobStatus.Running)));
-		criteria.add(Restrictions.eq("bj.voided", false));
+	public BatchJob getNextActiveBatchJob() {
+        DbSession dbSession = getSession();
+        Criteria criteria = dbSession.createCriteria(BatchJob.class, "bj");
+        criteria.add(Restrictions.in("bj.status", Arrays.asList(BatchJobStatus.Pending, BatchJobStatus.Running)));
+        criteria.add(Restrictions.eq("bj.voided", false));
 
-		Result<BatchJob> result = new Result<>();
-		result.setPageIndex(0);
-		result.setPageSize(1);
+        Result<BatchJob> result = new Result<>();
+        result.setPageIndex(0);
+        result.setPageSize(1);
 
-		result.setData(executeCriteria(criteria, result, Order.asc("bj.id")));
-		return result.getData().isEmpty() ? null : result.getData().get(0);
-	}
+        result.setData(executeCriteria(criteria, result, Order.asc("bj.id")));
+        return result.getData().isEmpty() ? null : result.getData().get(0);
+    }
 	
-	public Result<BatchJobDTO> findBatchJobs(BatchJobSearchFilter filter,HashSet<RecordPrivilegeFilter> recordPrivilegeFilters){
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select bj.uuid as uuid, bj.id as id, bj.batchJobType as batchJobType,\n" +
-				"bj.status as status," +
-				"bj.description as description,\n" +
-				"bj.startTime as startTime,\n" +
-				"bj.endTime  as endTime,\n" +
-				"bj.expiration as expiration,\n" +
-				"bj.parameters as parameters,\n" +
-				"bj.privilegeScope as privilegeScope,\n" +
-				"bj.locationScope.locationId as locationScopeId,\n" +
-				"ls.uuid as locationScopeUuid,\n" +
-				"ls.name as locationScope,\n" +
-				"bj.executionState as executionState,\n" +
-				"bj.cancelReason as cancelReason,\n" +
-				"bj.cancelledDate as cancelledDate,\n" +
-				"bj.exitMessage as exitMessage,\n" +
-				"bj.completedDate as completedDate,\n" +
-				"bj.dateCreated as dateCreated,\n" +
-				"bj.creator.userId as creator,\n" +
-				"bj.voided as voided,\n" +
-				"bj.outputArtifactSize as outputArtifactSize,\n" +
-				"bj.outputArtifactFileExt as outputArtifactFileExt,\n" +
-				"bj.outputArtifactViewable as outputArtifactViewable,\n" +
-				"bj.cancelledBy.userId as cancelledBy\n" +
-				" from stockmanagement.BatchJob bj left join bj.locationScope ls\n");
+	public Result<BatchJobDTO> findBatchJobs(BatchJobSearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        StringBuilder hqlQuery = new StringBuilder("select bj.uuid as uuid, bj.id as id, bj.batchJobType as batchJobType,\n" +
+                "bj.status as status," +
+                "bj.description as description,\n" +
+                "bj.startTime as startTime,\n" +
+                "bj.endTime  as endTime,\n" +
+                "bj.expiration as expiration,\n" +
+                "bj.parameters as parameters,\n" +
+                "bj.privilegeScope as privilegeScope,\n" +
+                "bj.locationScope.locationId as locationScopeId,\n" +
+                "ls.uuid as locationScopeUuid,\n" +
+                "ls.name as locationScope,\n" +
+                "bj.executionState as executionState,\n" +
+                "bj.cancelReason as cancelReason,\n" +
+                "bj.cancelledDate as cancelledDate,\n" +
+                "bj.exitMessage as exitMessage,\n" +
+                "bj.completedDate as completedDate,\n" +
+                "bj.dateCreated as dateCreated,\n" +
+                "bj.creator.userId as creator,\n" +
+                "bj.voided as voided,\n" +
+                "bj.outputArtifactSize as outputArtifactSize,\n" +
+                "bj.outputArtifactFileExt as outputArtifactFileExt,\n" +
+                "bj.outputArtifactViewable as outputArtifactViewable,\n" +
+                "bj.cancelledBy.userId as cancelledBy\n" +
+                " from stockmanagement.BatchJob bj left join bj.locationScope ls\n");
 
-		StringBuilder hqlFilter = new StringBuilder();
+        StringBuilder hqlFilter = new StringBuilder();
 
-		if (filter.getBatchJobIds() != null && !filter.getBatchJobIds().isEmpty()) {
-			appendFilter(hqlFilter, "bj.id in (:id)");
-			parameterWithList.put("id", filter.getBatchJobIds());
-		}
+        if (filter.getBatchJobIds() != null && !filter.getBatchJobIds().isEmpty()) {
+            appendFilter(hqlFilter, "bj.id in (:id)");
+            parameterWithList.put("id", filter.getBatchJobIds());
+        }
 
-		if (filter.getBatchJobUuids() != null && !filter.getBatchJobUuids().isEmpty()) {
-			appendFilter(hqlFilter, "bj.uuid in (:uuid)");
-			parameterWithList.put("uuid", filter.getBatchJobUuids());
-		}
+        if (filter.getBatchJobUuids() != null && !filter.getBatchJobUuids().isEmpty()) {
+            appendFilter(hqlFilter, "bj.uuid in (:uuid)");
+            parameterWithList.put("uuid", filter.getBatchJobUuids());
+        }
 
-		if (filter.getBatchJobType() != null) {
-			appendFilter(hqlFilter, "bj.batchJobType = :batchJobType");
-			parameterList.put("batchJobType", filter.getBatchJobType());
-		}
+        if (filter.getBatchJobType() != null) {
+            appendFilter(hqlFilter, "bj.batchJobType = :batchJobType");
+            parameterList.put("batchJobType", filter.getBatchJobType());
+        }
 
-		if (filter.getBatchJobStatus() != null && !filter.getBatchJobStatus().isEmpty()) {
-			appendFilter(hqlFilter, "bj.status in (:status)");
-			parameterWithList.put("status", filter.getBatchJobStatus());
-		}
+        if (filter.getBatchJobStatus() != null && !filter.getBatchJobStatus().isEmpty()) {
+            appendFilter(hqlFilter, "bj.status in (:status)");
+            parameterWithList.put("status", filter.getBatchJobStatus());
+        }
 
-		if (filter.getDateCreatedMin() != null) {
-			appendFilter(hqlFilter, "bj.dateCreated >= :ldc");
-			parameterList.putIfAbsent("ldc", filter.getDateCreatedMin());
-		}
+        if (filter.getDateCreatedMin() != null) {
+            appendFilter(hqlFilter, "bj.dateCreated >= :ldc");
+            parameterList.putIfAbsent("ldc", filter.getDateCreatedMin());
+        }
 
-		if (filter.getDateCreatedMax() != null) {
-			appendFilter(hqlFilter, "bj.dateCreated <= :ldcx");
-			parameterList.putIfAbsent("ldcx", filter.getDateCreatedMax());
-		}
+        if (filter.getDateCreatedMax() != null) {
+            appendFilter(hqlFilter, "bj.dateCreated <= :ldcx");
+            parameterList.putIfAbsent("ldcx", filter.getDateCreatedMax());
+        }
 
-		if (filter.getCompletedDateMin() != null) {
-			appendFilter(hqlFilter, "bj.completedDate >= :lcd");
-			parameterList.putIfAbsent("lcd", filter.getCompletedDateMin());
-		}
+        if (filter.getCompletedDateMin() != null) {
+            appendFilter(hqlFilter, "bj.completedDate >= :lcd");
+            parameterList.putIfAbsent("lcd", filter.getCompletedDateMin());
+        }
 
-		if (filter.getCompletedDateMax() != null) {
-			appendFilter(hqlFilter, "bj.completedDate <= :lcdx");
-			parameterList.putIfAbsent("lcdx", filter.getCompletedDateMax());
-		}
+        if (filter.getCompletedDateMax() != null) {
+            appendFilter(hqlFilter, "bj.completedDate <= :lcdx");
+            parameterList.putIfAbsent("lcdx", filter.getCompletedDateMax());
+        }
 
-		List<Integer> locationIdsToFilter = null;
-		if (filter.getLocationScopeIds() != null && !filter.getLocationScopeIds().isEmpty()) {
-			locationIdsToFilter = filter.getLocationScopeIds();
-		}
+        List<Integer> locationIdsToFilter = null;
+        if (filter.getLocationScopeIds() != null && !filter.getLocationScopeIds().isEmpty()) {
+            locationIdsToFilter = filter.getLocationScopeIds();
+        }
 
-		if (recordPrivilegeFilters != null) {
-			if (locationIdsToFilter != null) {
-				locationIdsToFilter.removeIf(p -> !recordPrivilegeFilters.stream().anyMatch(x -> x.getLocationId().equals(p)));
-				if (locationIdsToFilter.isEmpty()) {
-					return new Result<>(new ArrayList<>(), 0);
-				}
-			} else {
-				locationIdsToFilter = recordPrivilegeFilters.stream().map(p -> p.getLocationId()).distinct().collect(Collectors.toList());
-			}
-		}
+        if (recordPrivilegeFilters != null) {
+            if (locationIdsToFilter != null) {
+                locationIdsToFilter.removeIf(p -> !recordPrivilegeFilters.stream().anyMatch(x -> x.getLocationId().equals(p)));
+                if (locationIdsToFilter.isEmpty()) {
+                    return new Result<>(new ArrayList<>(), 0);
+                }
+            } else {
+                locationIdsToFilter = recordPrivilegeFilters.stream().map(p -> p.getLocationId()).distinct().collect(Collectors.toList());
+            }
+        }
 
-		if (locationIdsToFilter != null && !locationIdsToFilter.isEmpty()) {
-			appendFilter(hqlFilter, "bj.locationScope.locationId in (:liids)");
-			parameterWithList.put("liids", locationIdsToFilter);
-		}
+        if (locationIdsToFilter != null && !locationIdsToFilter.isEmpty()) {
+            appendFilter(hqlFilter, "bj.locationScope.locationId in (:liids)");
+            parameterWithList.put("liids", locationIdsToFilter);
+        }
 
-		if (filter.getPrivilegeScope() != null) {
-			appendFilter(hqlFilter, "bj.privilegeScope = :pvgsp");
-			parameterList.put("pvgsp", filter.getPrivilegeScope());
-		}
+        if (filter.getPrivilegeScope() != null) {
+            appendFilter(hqlFilter, "bj.privilegeScope = :pvgsp");
+            parameterList.put("pvgsp", filter.getPrivilegeScope());
+        }
 
-		if (filter.getParameters() != null) {
-			appendFilter(hqlFilter, "bj.parameters = :parameters");
-			parameterList.put("parameters", filter.getParameters());
-		}
+        if (filter.getParameters() != null) {
+            appendFilter(hqlFilter, "bj.parameters = :parameters");
+            parameterList.put("parameters", filter.getParameters());
+        }
 
-		if (!filter.getIncludeVoided()) {
-			appendFilter(hqlFilter, "bj.voided = :vdd");
-			parameterList.putIfAbsent("vdd", false);
-		}
+        if (!filter.getIncludeVoided()) {
+            appendFilter(hqlFilter, "bj.voided = :vdd");
+            parameterList.putIfAbsent("vdd", false);
+        }
 
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
 
-		Result<BatchJobDTO> result = new Result<>();
-		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
-			result.setPageSize(filter.getLimit());
-		}
+        Result<BatchJobDTO> result = new Result<>();
+        if (filter.getLimit() != null) {
+            result.setPageIndex(filter.getStartIndex());
+            result.setPageSize(filter.getLimit());
+        }
 
-		result.setData(executeQuery(BatchJobDTO.class, hqlQuery, result," order by bj.id desc", parameterList, parameterWithList));
+        result.setData(executeQuery(BatchJobDTO.class, hqlQuery, result, " order by bj.id desc", parameterList, parameterWithList));
 
-		if (!result.getData().isEmpty()) {
-			Result<BatchJobOwnerDTO> batchJobOwners = findBatchJobOwnersInternal(result.getData().stream().map(p -> p.getId()).collect(Collectors.toList()), false);
-			List<Integer> userIds = result.getData().stream().map(p -> p.getCreator()).filter(p -> p != null).distinct().collect(Collectors.toList());
-			userIds.addAll(result.getData().stream().map(p -> p.getCancelledBy()).filter(p -> p != null).distinct().collect(Collectors.toList()));
-			userIds.addAll(batchJobOwners.getData().stream().map(p -> p.getOwnerUserId()).filter(p -> p != null).distinct().collect(Collectors.toList()));
-			List<UserPersonNameDTO> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList()));
-			for(BatchJobOwnerDTO batchJobOwnerDTO: batchJobOwners.getData()){
-				if (batchJobOwnerDTO.getOwnerUserId() != null) {
-					Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
-							.filter(p -> p.getUserId().equals(batchJobOwnerDTO.getOwnerUserId())).findFirst();
-					if (userPersonNameDTO.isPresent()) {
-						batchJobOwnerDTO.setOwnerFamilyName(userPersonNameDTO.get().getFamilyName());
-						batchJobOwnerDTO.setOwnerGivenName(userPersonNameDTO.get().getGivenName());
-						batchJobOwnerDTO.setOwnerUserUuid(userPersonNameDTO.get().getUuid());
-					}
-				}
-			}
-			for (BatchJobDTO batchJobDTO : result.getData()) {
-				if (batchJobDTO.getCreator() != null) {
-					Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
-							.filter(p -> p.getUserId().equals(batchJobDTO.getCreator())).findFirst();
-					if (userPersonNameDTO.isPresent()) {
-						batchJobDTO.setCreatorFamilyName(userPersonNameDTO.get().getFamilyName());
-						batchJobDTO.setCreatorGivenName(userPersonNameDTO.get().getGivenName());
-						batchJobDTO.setCreatorUuid(userPersonNameDTO.get().getUuid());
-					}
-				}
+        if (!result.getData().isEmpty()) {
+            Result<BatchJobOwnerDTO> batchJobOwners = findBatchJobOwnersInternal(result.getData().stream().map(p -> p.getId()).collect(Collectors.toList()), false);
+            List<Integer> userIds = result.getData().stream().map(p -> p.getCreator()).filter(p -> p != null).distinct().collect(Collectors.toList());
+            userIds.addAll(result.getData().stream().map(p -> p.getCancelledBy()).filter(p -> p != null).distinct().collect(Collectors.toList()));
+            userIds.addAll(batchJobOwners.getData().stream().map(p -> p.getOwnerUserId()).filter(p -> p != null).distinct().collect(Collectors.toList()));
+            List<UserPersonNameDTO> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList()));
+            for (BatchJobOwnerDTO batchJobOwnerDTO : batchJobOwners.getData()) {
+                if (batchJobOwnerDTO.getOwnerUserId() != null) {
+                    Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
+                            .filter(p -> p.getUserId().equals(batchJobOwnerDTO.getOwnerUserId())).findFirst();
+                    if (userPersonNameDTO.isPresent()) {
+                        batchJobOwnerDTO.setOwnerFamilyName(userPersonNameDTO.get().getFamilyName());
+                        batchJobOwnerDTO.setOwnerGivenName(userPersonNameDTO.get().getGivenName());
+                        batchJobOwnerDTO.setOwnerUserUuid(userPersonNameDTO.get().getUuid());
+                    }
+                }
+            }
+            for (BatchJobDTO batchJobDTO : result.getData()) {
+                if (batchJobDTO.getCreator() != null) {
+                    Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
+                            .filter(p -> p.getUserId().equals(batchJobDTO.getCreator())).findFirst();
+                    if (userPersonNameDTO.isPresent()) {
+                        batchJobDTO.setCreatorFamilyName(userPersonNameDTO.get().getFamilyName());
+                        batchJobDTO.setCreatorGivenName(userPersonNameDTO.get().getGivenName());
+                        batchJobDTO.setCreatorUuid(userPersonNameDTO.get().getUuid());
+                    }
+                }
 
-				if (batchJobDTO.getCancelledBy() != null) {
-					Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
-							.filter(p -> p.getUserId().equals(batchJobDTO.getCancelledBy())).findFirst();
-					if (userPersonNameDTO.isPresent()) {
-						batchJobDTO.setCancelledByFamilyName(userPersonNameDTO.get().getFamilyName());
-						batchJobDTO.setCancelledByGivenName(userPersonNameDTO.get().getGivenName());
-						batchJobDTO.setCancelledByUuid(userPersonNameDTO.get().getUuid());
-					}
-				}
+                if (batchJobDTO.getCancelledBy() != null) {
+                    Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
+                            .filter(p -> p.getUserId().equals(batchJobDTO.getCancelledBy())).findFirst();
+                    if (userPersonNameDTO.isPresent()) {
+                        batchJobDTO.setCancelledByFamilyName(userPersonNameDTO.get().getFamilyName());
+                        batchJobDTO.setCancelledByGivenName(userPersonNameDTO.get().getGivenName());
+                        batchJobDTO.setCancelledByUuid(userPersonNameDTO.get().getUuid());
+                    }
+                }
 
-				batchJobDTO.setOwners(batchJobOwners.getData().stream().filter(p->p.getBatchJobId().equals(batchJobDTO.getId())).collect(Collectors.toList()));
-				for (BatchJobOwnerDTO batchJobOwnerDTO: batchJobDTO.getOwners()){
-					batchJobOwnerDTO.setBatchJobUuid(batchJobDTO.getUuid());
-				}
-			}
-		}
+                batchJobDTO.setOwners(batchJobOwners.getData().stream().filter(p -> p.getBatchJobId().equals(batchJobDTO.getId())).collect(Collectors.toList()));
+                for (BatchJobOwnerDTO batchJobOwnerDTO : batchJobDTO.getOwners()) {
+                    batchJobOwnerDTO.setBatchJobUuid(batchJobDTO.getUuid());
+                }
+            }
+        }
 
-		return result;
-	}
+        return result;
+    }
 	
 	public Result<BatchJobOwnerDTO> findBatchJobOwners(List<Integer> batchJobIds) {
 		return findBatchJobOwnersInternal(batchJobIds, true);
 	}
 	
-	private Result<BatchJobOwnerDTO> findBatchJobOwnersInternal(List<Integer> batchJobIds, boolean setNames){
-		if(batchJobIds == null || batchJobIds.isEmpty()){
-			return new Result<>(new ArrayList<>(),0);
-		}
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select bjo.uuid as uuid, bjo.id as id, bjo.batchJob.id as batchJobId,\n" +
-				"bjo.owner.userId as ownerUserId,\n" +
-				"bjo.dateCreated as dateCreated\n" +
-				"from stockmanagement.BatchJobOwner bjo\n");
+	private Result<BatchJobOwnerDTO> findBatchJobOwnersInternal(List<Integer> batchJobIds, boolean setNames) {
+        if (batchJobIds == null || batchJobIds.isEmpty()) {
+            return new Result<>(new ArrayList<>(), 0);
+        }
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        StringBuilder hqlQuery = new StringBuilder("select bjo.uuid as uuid, bjo.id as id, bjo.batchJob.id as batchJobId,\n" +
+                "bjo.owner.userId as ownerUserId,\n" +
+                "bjo.dateCreated as dateCreated\n" +
+                "from stockmanagement.BatchJobOwner bjo\n");
 
-		StringBuilder hqlFilter = new StringBuilder();
-		appendFilter(hqlFilter, "bjo.batchJob.id in (:batchJobId)");
-		parameterWithList.put("batchJobId", batchJobIds);
+        StringBuilder hqlFilter = new StringBuilder();
+        appendFilter(hqlFilter, "bjo.batchJob.id in (:batchJobId)");
+        parameterWithList.put("batchJobId", batchJobIds);
 
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
 
-		Result<BatchJobOwnerDTO> result = new Result<>();
-		result.setData(executeQuery(BatchJobOwnerDTO.class, hqlQuery, result, " order by bjo.id asc", parameterList, parameterWithList));
+        Result<BatchJobOwnerDTO> result = new Result<>();
+        result.setData(executeQuery(BatchJobOwnerDTO.class, hqlQuery, result, " order by bjo.id asc", parameterList, parameterWithList));
 
-		if(setNames){
-			List<Integer> userIds = result.getData().stream().map(p -> p.getOwnerUserId()).filter(p -> p != null).distinct().collect(Collectors.toList());
-			List<UserPersonNameDTO> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList()));
-			for(BatchJobOwnerDTO batchJobOwnerDTO: result.getData()){
-				if (batchJobOwnerDTO.getOwnerUserId() != null) {
-					Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
-							.filter(p -> p.getUserId().equals(batchJobOwnerDTO.getOwnerUserId())).findFirst();
-					if (userPersonNameDTO.isPresent()) {
-						batchJobOwnerDTO.setOwnerFamilyName(userPersonNameDTO.get().getFamilyName());
-						batchJobOwnerDTO.setOwnerGivenName(userPersonNameDTO.get().getGivenName());
-						batchJobOwnerDTO.setOwnerUserUuid(userPersonNameDTO.get().getUuid());
-					}
-				}
-			}
-		}
+        if (setNames) {
+            List<Integer> userIds = result.getData().stream().map(p -> p.getOwnerUserId()).filter(p -> p != null).distinct().collect(Collectors.toList());
+            List<UserPersonNameDTO> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList()));
+            for (BatchJobOwnerDTO batchJobOwnerDTO : result.getData()) {
+                if (batchJobOwnerDTO.getOwnerUserId() != null) {
+                    Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
+                            .filter(p -> p.getUserId().equals(batchJobOwnerDTO.getOwnerUserId())).findFirst();
+                    if (userPersonNameDTO.isPresent()) {
+                        batchJobOwnerDTO.setOwnerFamilyName(userPersonNameDTO.get().getFamilyName());
+                        batchJobOwnerDTO.setOwnerGivenName(userPersonNameDTO.get().getGivenName());
+                        batchJobOwnerDTO.setOwnerUserUuid(userPersonNameDTO.get().getUuid());
+                    }
+                }
+            }
+        }
 
-		return result;
-	}
+        return result;
+    }
 	
 	public Result<StockOperationLineItem> findStockOperationLineItems(StockOperationLineItemFilter filter) {
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select so.id as stockOperationId,\n" +
-				"sot.name as operationTypeName,\n" +
-				"so.operationDate as operationDate,\n" +
-				"so.operationNumber as operationNumber,\n" +
-				"so.completedBy.userId as completedBy,\n" +
-				"so.completedDate as completedDate,\n" +
-				"coalesce(sorcel.name,sorces.name) as sourceName,\n" +
-				"coalesce(destl.name,dests.name) as destinationName,\n" +
-				"so.reason.conceptId as reasonId,\n" +
-				"so.responsiblePerson.userId as responsiblePerson,\n" +
-				"so.responsiblePersonOther as responsiblePersonOther,\n" +
-				"so.remarks as remarks,\n" +
-				"so.status as stockOperationStatus,\n" +
-				"so.creator.userId as creator,\n" +
-				"so.dateCreated as dateCreated,\n" +
-				"soi.id as stockOperationItemId,\n" +
-				"soi.stockItem.id as stockItemId,\n" +
-				"si.drug.drugId as stockItemDrugId,\n" +
-				"si.concept.conceptId as stockItemConceptId,\n" +
-				"si.commonName as commonName,\n" +
-				"si.acronym as acronym,\n" +
-				"si.category.conceptId as stockItemCategoryConceptId,\n" +
-				"sb.batchNo as batchNo,\n" +
-				"sb.expiration as expiration,\n" +
-				"soi.quantity as quantity,\n" +
-				"soi.purchasePrice as purchasePrice,\n" +
-				"sipu.packagingUom.conceptId as packagingUoMId,\n" +
-				"sipu.factor as stockItemPackagingUOMFactor,\n" +
-				(filter.includeRequisitionInfo() ? "sop.operationNumber as requisitionOperationNumber," : "") +
-				"qrqpu.factor as quantityRequestedPackagingUOMFactor,\n" +
-				"soi.quantityRequested as quantityRequested,\n" +
-				"qrqpu.packagingUom.conceptId as quantityRequestedPackagingUoMId\n" +
-				"from stockmanagement.StockOperation so inner join\n" +
-				" so.stockOperationType sot join \n" +
-				" so.stockOperationItems soi join\n" +
-				" soi.stockItem si left join\n" +
-				" soi.stockBatch sb left join\n" +
-				" soi.stockItemPackagingUOM sipu left join soi.quantityRequestedPackagingUOM qrqpu left join \n" +
-				" so.destination dest left join dest.location destl left join dest.stockSource dests left join\n" +
-				" so.source sorce left join sorce.location sorcel left join sorce.stockSource sorces\n" +
-				(filter.includeRequisitionInfo() ? " left join so.parentStockOperationLinks sol left join sol.parent sop" : "")
-				);
-		StringBuilder hqlFilter = new StringBuilder();
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        StringBuilder hqlQuery = new StringBuilder("select so.id as stockOperationId,\n" +
+                "sot.name as operationTypeName,\n" +
+                "so.operationDate as operationDate,\n" +
+                "so.operationNumber as operationNumber,\n" +
+                "so.completedBy.userId as completedBy,\n" +
+                "so.completedDate as completedDate,\n" +
+                "coalesce(sorcel.name,sorces.name) as sourceName,\n" +
+                "coalesce(destl.name,dests.name) as destinationName,\n" +
+                "so.reason.conceptId as reasonId,\n" +
+                "so.responsiblePerson.userId as responsiblePerson,\n" +
+                "so.responsiblePersonOther as responsiblePersonOther,\n" +
+                "so.remarks as remarks,\n" +
+                "so.status as stockOperationStatus,\n" +
+                "so.creator.userId as creator,\n" +
+                "so.dateCreated as dateCreated,\n" +
+                "soi.id as stockOperationItemId,\n" +
+                "soi.stockItem.id as stockItemId,\n" +
+                "si.drug.drugId as stockItemDrugId,\n" +
+                "si.concept.conceptId as stockItemConceptId,\n" +
+                "si.commonName as commonName,\n" +
+                "si.acronym as acronym,\n" +
+                "si.category.conceptId as stockItemCategoryConceptId,\n" +
+                "sb.batchNo as batchNo,\n" +
+                "sb.expiration as expiration,\n" +
+                "soi.quantity as quantity,\n" +
+                "soi.purchasePrice as purchasePrice,\n" +
+                "sipu.packagingUom.conceptId as packagingUoMId,\n" +
+                "sipu.factor as stockItemPackagingUOMFactor,\n" +
+                (filter.includeRequisitionInfo() ? "sop.operationNumber as requisitionOperationNumber," : "") +
+                "qrqpu.factor as quantityRequestedPackagingUOMFactor,\n" +
+                "soi.quantityRequested as quantityRequested,\n" +
+                "qrqpu.packagingUom.conceptId as quantityRequestedPackagingUoMId\n" +
+                "from stockmanagement.StockOperation so inner join\n" +
+                " so.stockOperationType sot join \n" +
+                " so.stockOperationItems soi join\n" +
+                " soi.stockItem si left join\n" +
+                " soi.stockBatch sb left join\n" +
+                " soi.stockItemPackagingUOM sipu left join soi.quantityRequestedPackagingUOM qrqpu left join \n" +
+                " so.destination dest left join dest.location destl left join dest.stockSource dests left join\n" +
+                " so.source sorce left join sorce.location sorcel left join sorce.stockSource sorces\n" +
+                (filter.includeRequisitionInfo() ? " left join so.parentStockOperationLinks sol left join sol.parent sop" : "")
+        );
+        StringBuilder hqlFilter = new StringBuilder();
 
-		if(filter.getStockOperationIdMin() != null){
-			appendFilter(hqlFilter, "so.id >= :stockOperationId");
-			parameterList.putIfAbsent("stockOperationId", filter.getStockOperationIdMin());
-		}
+        if (filter.getStockOperationIdMin() != null) {
+            appendFilter(hqlFilter, "so.id >= :stockOperationId");
+            parameterList.putIfAbsent("stockOperationId", filter.getStockOperationIdMin());
+        }
 
-		if (filter.getAtLocationId() != null) {
-			if(filter.getChildLocations() != null && filter.getChildLocations()){
-				List<Integer> locationIds = getCompleteLocationTree(filter.getAtLocationId()).stream().map(p->p.getChildLocationId()).collect(Collectors.toList());
-				if(locationIds.isEmpty()){
-					locationIds.add(filter.getAtLocationId());
-				}
-				if(locationIds.size() == 1){
-					appendFilter(hqlFilter, "so.atLocation.locationId = :atLocationId");
-					parameterList.putIfAbsent("atLocationId", locationIds.get(0));
-				}else{
-					appendFilter(hqlFilter, "so.atLocation.locationId in (:atLocationIds)");
-					parameterWithList.putIfAbsent("atLocationIds", locationIds);
-				}
-			}else{
-				appendFilter(hqlFilter, "so.atLocation.locationId = :atLocationId");
-				parameterList.putIfAbsent("atLocationId", filter.getAtLocationId());
-			}
-		}
+        if (filter.getAtLocationId() != null) {
+            if (filter.getChildLocations() != null && filter.getChildLocations()) {
+                List<Integer> locationIds = getCompleteLocationTree(filter.getAtLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
+                if (locationIds.isEmpty()) {
+                    locationIds.add(filter.getAtLocationId());
+                }
+                if (locationIds.size() == 1) {
+                    appendFilter(hqlFilter, "so.atLocation.locationId = :atLocationId");
+                    parameterList.putIfAbsent("atLocationId", locationIds.get(0));
+                } else {
+                    appendFilter(hqlFilter, "so.atLocation.locationId in (:atLocationIds)");
+                    parameterWithList.putIfAbsent("atLocationIds", locationIds);
+                }
+            } else {
+                appendFilter(hqlFilter, "so.atLocation.locationId = :atLocationId");
+                parameterList.putIfAbsent("atLocationId", filter.getAtLocationId());
+            }
+        }
 
-		if (filter.getSourcePartyId() != null) {
-			boolean filterSet = false;
-			if(filter.getSourcePartyChildLocations() != null && filter.getSourcePartyChildLocations()){
-				Party party = getPartyById(filter.getSourcePartyId());
-				if(party == null){
-					return new Result<>(new ArrayList<>(),0);
-				}
-				if(party.getLocation() != null) {
-					List<Integer> locationIds = getCompleteLocationTree(party.getLocation().getLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
-					if (locationIds.isEmpty()) {
-						locationIds.add(party.getLocation().getLocationId());
-					}
-					Map<Integer, Integer> partLocationIds = getLocationPartyIds(locationIds);
-					if(!partLocationIds.isEmpty()) {
-						appendFilter(hqlFilter, "so.source.id in (:sourcePartyIds)");
-						parameterWithList.putIfAbsent("sourcePartyIds", partLocationIds.values());
-						filterSet=true;
-					}
-				}
-			}
-			if(!filterSet){
-				appendFilter(hqlFilter, "so.source.id = :sourcePartyId");
-				parameterList.putIfAbsent("sourcePartyId", filter.getSourcePartyId());
-			}
-		}
+        if (filter.getSourcePartyId() != null) {
+            boolean filterSet = false;
+            if (filter.getSourcePartyChildLocations() != null && filter.getSourcePartyChildLocations()) {
+                Party party = getPartyById(filter.getSourcePartyId());
+                if (party == null) {
+                    return new Result<>(new ArrayList<>(), 0);
+                }
+                if (party.getLocation() != null) {
+                    List<Integer> locationIds = getCompleteLocationTree(party.getLocation().getLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
+                    if (locationIds.isEmpty()) {
+                        locationIds.add(party.getLocation().getLocationId());
+                    }
+                    Map<Integer, Integer> partLocationIds = getLocationPartyIds(locationIds);
+                    if (!partLocationIds.isEmpty()) {
+                        appendFilter(hqlFilter, "so.source.id in (:sourcePartyIds)");
+                        parameterWithList.putIfAbsent("sourcePartyIds", partLocationIds.values());
+                        filterSet = true;
+                    }
+                }
+            }
+            if (!filterSet) {
+                appendFilter(hqlFilter, "so.source.id = :sourcePartyId");
+                parameterList.putIfAbsent("sourcePartyId", filter.getSourcePartyId());
+            }
+        }
 
-		if (filter.getDestinationPartyId() != null) {
-			boolean filterSet = false;
-			if(filter.getDestinationPartyChildLocations() != null && filter.getDestinationPartyChildLocations()){
-				Party party = getPartyById(filter.getDestinationPartyId());
-				if(party == null){
-					return new Result<>(new ArrayList<>(),0);
-				}
-				if(party.getLocation() != null) {
-					List<Integer> locationIds = getCompleteLocationTree(party.getLocation().getLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
-					if (locationIds.isEmpty()) {
-						locationIds.add(party.getLocation().getLocationId());
-					}
-					Map<Integer, Integer> partLocationIds = getLocationPartyIds(locationIds);
-					if(!partLocationIds.isEmpty()) {
-						appendFilter(hqlFilter, "so.destination.id in (:destinationPartyIds)");
-						parameterWithList.putIfAbsent("destinationPartyIds", partLocationIds.values());
-						filterSet=true;
-					}
-				}
-			}
-			if(!filterSet) {
-				appendFilter(hqlFilter, "so.destination.id = :destinationPartyId");
-				parameterList.putIfAbsent("destinationPartyId", filter.getDestinationPartyId());
-			}
-		}
+        if (filter.getDestinationPartyId() != null) {
+            boolean filterSet = false;
+            if (filter.getDestinationPartyChildLocations() != null && filter.getDestinationPartyChildLocations()) {
+                Party party = getPartyById(filter.getDestinationPartyId());
+                if (party == null) {
+                    return new Result<>(new ArrayList<>(), 0);
+                }
+                if (party.getLocation() != null) {
+                    List<Integer> locationIds = getCompleteLocationTree(party.getLocation().getLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
+                    if (locationIds.isEmpty()) {
+                        locationIds.add(party.getLocation().getLocationId());
+                    }
+                    Map<Integer, Integer> partLocationIds = getLocationPartyIds(locationIds);
+                    if (!partLocationIds.isEmpty()) {
+                        appendFilter(hqlFilter, "so.destination.id in (:destinationPartyIds)");
+                        parameterWithList.putIfAbsent("destinationPartyIds", partLocationIds.values());
+                        filterSet = true;
+                    }
+                }
+            }
+            if (!filterSet) {
+                appendFilter(hqlFilter, "so.destination.id = :destinationPartyId");
+                parameterList.putIfAbsent("destinationPartyId", filter.getDestinationPartyId());
+            }
+        }
 
-		if (filter.getStockOperationTypes() != null && filter.getStockOperationTypes().size() > 0) {
-			if (filter.getStockOperationTypes().size() == 1) {
-				appendFilter(hqlFilter, "so.stockOperationType.id = :otid");
-				parameterList.putIfAbsent("otid", filter.getStockOperationTypes().get(0).getId());
-			} else {
-				appendFilter(hqlFilter, "so.stockOperationType.id in (:otid)");
-				parameterWithList.putIfAbsent("otid", filter.getStockOperationTypes());
-			}
-		}
+        if (filter.getStockOperationTypes() != null && filter.getStockOperationTypes().size() > 0) {
+            if (filter.getStockOperationTypes().size() == 1) {
+                appendFilter(hqlFilter, "so.stockOperationType.id = :otid");
+                parameterList.putIfAbsent("otid", filter.getStockOperationTypes().get(0).getId());
+            } else {
+                appendFilter(hqlFilter, "so.stockOperationType.id in (:otid)");
+                parameterWithList.putIfAbsent("otid", filter.getStockOperationTypes());
+            }
+        }
 
-		if (filter.getStockOperationStatuses() != null && filter.getStockOperationStatuses().size() > 0) {
-			if (filter.getStockOperationStatuses().size() == 1) {
-				appendFilter(hqlFilter, "so.status = :status");
-				parameterList.putIfAbsent("status", filter.getStockOperationStatuses().get(0));
-			} else {
-				appendFilter(hqlFilter, "so.status in (:status)");
-				parameterWithList.putIfAbsent("status", filter.getStockOperationStatuses());
-			}
-		}
+        if (filter.getStockOperationStatuses() != null && filter.getStockOperationStatuses().size() > 0) {
+            if (filter.getStockOperationStatuses().size() == 1) {
+                appendFilter(hqlFilter, "so.status = :status");
+                parameterList.putIfAbsent("status", filter.getStockOperationStatuses().get(0));
+            } else {
+                appendFilter(hqlFilter, "so.status in (:status)");
+                parameterWithList.putIfAbsent("status", filter.getStockOperationStatuses());
+            }
+        }
 
-		if (filter.getStartDate() != null) {
-			appendFilter(hqlFilter, "so.dateCreated >= :sodcm");
-			parameterList.putIfAbsent("sodcm", filter.getStartDate());
-		}
+        if (filter.getStartDate() != null) {
+            appendFilter(hqlFilter, "so.dateCreated >= :sodcm");
+            parameterList.putIfAbsent("sodcm", filter.getStartDate());
+        }
 
-		if (filter.getEndDate() != null) {
-			appendFilter(hqlFilter, "so.dateCreated <= :sodcmx");
-			parameterList.putIfAbsent("sodcmx", filter.getEndDate());
-		}
+        if (filter.getEndDate() != null) {
+            appendFilter(hqlFilter, "so.dateCreated <= :sodcmx");
+            parameterList.putIfAbsent("sodcmx", filter.getEndDate());
+        }
 
-		appendFilter(hqlFilter, "so.voided = :vdd");
-		parameterList.putIfAbsent("vdd", false);
+        appendFilter(hqlFilter, "so.voided = :vdd");
+        parameterList.putIfAbsent("vdd", false);
 
-		if (filter.getStockOperationItemIdMin() != null) {
-			appendFilter(hqlFilter, "soi.id > :stockOperationItemId");
-			parameterList.putIfAbsent("stockOperationItemId", filter.getStockOperationItemIdMin());
-		}
+        if (filter.getStockOperationItemIdMin() != null) {
+            appendFilter(hqlFilter, "soi.id > :stockOperationItemId");
+            parameterList.putIfAbsent("stockOperationItemId", filter.getStockOperationItemIdMin());
+        }
 
-		appendFilter(hqlFilter, "soi.voided = :vdd");
+        appendFilter(hqlFilter, "soi.voided = :vdd");
 
-		if(filter.getStockItemCategoryConceptId() != null){
-			appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
-			parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
-		}
+        if (filter.getStockItemCategoryConceptId() != null) {
+            appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
+            parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
+        }
 
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
 
-		Result<StockOperationLineItem> result = new Result<>();
-		DbSession dbSession = getSession();
-		hqlQuery.append(" order by so.id asc, soi.id asc");
-		Query query = dbSession.createQuery(hqlQuery.toString());
-		if (parameterList != null) {
-			for (Map.Entry<String, Object> entry : parameterList.entrySet())
-				query.setParameter(entry.getKey(), entry.getValue());
-		}
-		if (parameterWithList != null) {
-			for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-				query.setParameterList(entry.getKey(), entry.getValue());
-		}
+        Result<StockOperationLineItem> result = new Result<>();
+        DbSession dbSession = getSession();
+        hqlQuery.append(" order by so.id asc, soi.id asc");
+        Query query = dbSession.createQuery(hqlQuery.toString());
+        if (parameterList != null) {
+            for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                query.setParameter(entry.getKey(), entry.getValue());
+        }
+        if (parameterWithList != null) {
+            for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                query.setParameterList(entry.getKey(), entry.getValue());
+        }
 
-		query = query.setResultTransformer(new AliasToBeanResultTransformer(StockOperationLineItem.class));
-		if (filter.getStockOperationItemIdMin() != null) {
-			query.setFirstResult(0);
-		}else{
-			query.setFirstResult(filter.getLimit() * filter.getStartIndex());
-		}
-		query.setMaxResults(filter.getLimit());
-		query.setFetchSize(filter.getLimit());
-		result.setData(query.list());
+        query = query.setResultTransformer(new AliasToBeanResultTransformer(StockOperationLineItem.class));
+        if (filter.getStockOperationItemIdMin() != null) {
+            query.setFirstResult(0);
+        } else {
+            query.setFirstResult(filter.getLimit() * filter.getStartIndex());
+        }
+        query.setMaxResults(filter.getLimit());
+        query.setFetchSize(filter.getLimit());
+        result.setData(query.list());
 
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptIds = new ArrayList<>();
-			List<Integer> drugIds = new ArrayList<>();
+        if (!result.getData().isEmpty()) {
+            List<Integer> conceptIds = new ArrayList<>();
+            List<Integer> drugIds = new ArrayList<>();
 
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getPackagingUoMId() != null).map(p -> p.getPackagingUoMId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getQuantityRequestedPackagingUoMId() != null).map(p -> p.getQuantityRequestedPackagingUoMId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getReasonId() != null).map(p -> p.getReasonId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
-			drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
-			List<Integer> userIds = result.getData().stream().map(p -> p.getCreator()).filter(p -> p != null).collect(Collectors.toList());
-			userIds.addAll(result.getData().stream().map(p -> p.getCompletedBy()).filter(p -> p != null).collect(Collectors.toList()));
-			userIds.addAll(result.getData().stream().map(p -> p.getResponsiblePerson()).filter(p -> p != null).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getPackagingUoMId() != null).map(p -> p.getPackagingUoMId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getQuantityRequestedPackagingUoMId() != null).map(p -> p.getQuantityRequestedPackagingUoMId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getReasonId() != null).map(p -> p.getReasonId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
+            drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
+            List<Integer> userIds = result.getData().stream().map(p -> p.getCreator()).filter(p -> p != null).collect(Collectors.toList());
+            userIds.addAll(result.getData().stream().map(p -> p.getCompletedBy()).filter(p -> p != null).collect(Collectors.toList()));
+            userIds.addAll(result.getData().stream().map(p -> p.getResponsiblePerson()).filter(p -> p != null).collect(Collectors.toList()));
 
-			Map<Integer,List<ConceptNameDTO>> conceptNameDTOs = null;
-			if(conceptIds.isEmpty()){
-				conceptNameDTOs=new HashMap<>();
-			}else{
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
+            if (conceptIds.isEmpty()) {
+                conceptNameDTOs = new HashMap<>();
+            } else {
+                conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<ConceptNameDTO>> drugNames = null;
-			if(drugIds.isEmpty()){
-				drugNames =new HashMap<>();
-			} else{
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> drugNames = null;
+            if (drugIds.isEmpty()) {
+                drugNames = new HashMap<>();
+            } else {
+                drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getUserId()));
+            Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getUserId()));
 
-			for (StockOperationLineItem stockOperationItemDTO : result.getData()) {
+            for (StockOperationLineItem stockOperationItemDTO : result.getData()) {
 
-				List<ConceptNameDTO> conceptNameDTO = null;
-				if(stockOperationItemDTO.getReasonId() != null){
-					conceptNameDTO= conceptNameDTOs.get(stockOperationItemDTO.getReasonId());
-					if(conceptNameDTO != null){
-						stockOperationItemDTO.setReasonName(conceptNameDTO.get(0).getName());
-					}
-				}
+                List<ConceptNameDTO> conceptNameDTO = null;
+                if (stockOperationItemDTO.getReasonId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(stockOperationItemDTO.getReasonId());
+                    if (conceptNameDTO != null) {
+                        stockOperationItemDTO.setReasonName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getPackagingUoMId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(stockOperationItemDTO.getPackagingUoMId());
-					if(conceptNameDTO != null){
-						stockOperationItemDTO.setStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (stockOperationItemDTO.getPackagingUoMId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(stockOperationItemDTO.getPackagingUoMId());
+                    if (conceptNameDTO != null) {
+                        stockOperationItemDTO.setStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getQuantityRequestedPackagingUoMId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(stockOperationItemDTO.getQuantityRequestedPackagingUoMId());
-					if(conceptNameDTO != null){
-						stockOperationItemDTO.setQuantityRequestedPackagingUOMName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (stockOperationItemDTO.getQuantityRequestedPackagingUoMId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(stockOperationItemDTO.getQuantityRequestedPackagingUoMId());
+                    if (conceptNameDTO != null) {
+                        stockOperationItemDTO.setQuantityRequestedPackagingUOMName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getStockItemCategoryConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(stockOperationItemDTO.getStockItemCategoryConceptId());
-					if(conceptNameDTO != null){
-						stockOperationItemDTO.setStockItemCategoryName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (stockOperationItemDTO.getStockItemCategoryConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(stockOperationItemDTO.getStockItemCategoryConceptId());
+                    if (conceptNameDTO != null) {
+                        stockOperationItemDTO.setStockItemCategoryName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getStockItemConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(stockOperationItemDTO.getStockItemConceptId());
-					if(conceptNameDTO != null){
-						stockOperationItemDTO.setStockItemConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (stockOperationItemDTO.getStockItemConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(stockOperationItemDTO.getStockItemConceptId());
+                    if (conceptNameDTO != null) {
+                        stockOperationItemDTO.setStockItemConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getStockItemDrugId() != null) {
-					conceptNameDTO= drugNames.get(stockOperationItemDTO.getStockItemDrugId());
-					if(conceptNameDTO != null){
-						stockOperationItemDTO.setStockItemDrugName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (stockOperationItemDTO.getStockItemDrugId() != null) {
+                    conceptNameDTO = drugNames.get(stockOperationItemDTO.getStockItemDrugId());
+                    if (conceptNameDTO != null) {
+                        stockOperationItemDTO.setStockItemDrugName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getCreator() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = personNames.get(stockOperationItemDTO.getCreator());
-					if (userPersonNameDTO != null) {
-						stockOperationItemDTO.setCreatorFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						stockOperationItemDTO.setCreatorGivenName(userPersonNameDTO.get(0).getGivenName());
-					}
-				}
+                if (stockOperationItemDTO.getCreator() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = personNames.get(stockOperationItemDTO.getCreator());
+                    if (userPersonNameDTO != null) {
+                        stockOperationItemDTO.setCreatorFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        stockOperationItemDTO.setCreatorGivenName(userPersonNameDTO.get(0).getGivenName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getCompletedBy() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = personNames.get(stockOperationItemDTO.getCompletedBy());
-					if (userPersonNameDTO != null) {
-						stockOperationItemDTO.setCompletedByFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						stockOperationItemDTO.setCompletedByGivenName(userPersonNameDTO.get(0).getGivenName());
-					}
-				}
+                if (stockOperationItemDTO.getCompletedBy() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = personNames.get(stockOperationItemDTO.getCompletedBy());
+                    if (userPersonNameDTO != null) {
+                        stockOperationItemDTO.setCompletedByFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        stockOperationItemDTO.setCompletedByGivenName(userPersonNameDTO.get(0).getGivenName());
+                    }
+                }
 
-				if (stockOperationItemDTO.getResponsiblePerson() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = personNames.get(stockOperationItemDTO.getResponsiblePerson());
-					if (userPersonNameDTO != null) {
-						stockOperationItemDTO.setResponsiblePersonFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						stockOperationItemDTO.setResponsiblePersonGivenName(userPersonNameDTO.get(0).getGivenName());
-					}
-				}
-			}
+                if (stockOperationItemDTO.getResponsiblePerson() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = personNames.get(stockOperationItemDTO.getResponsiblePerson());
+                    if (userPersonNameDTO != null) {
+                        stockOperationItemDTO.setResponsiblePersonFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        stockOperationItemDTO.setResponsiblePersonGivenName(userPersonNameDTO.get(0).getGivenName());
+                    }
+                }
+            }
 
-		}
+        }
 
-		return result;
-	}
+        return result;
+    }
 	
 	public String getUserEmail(Integer userId) {
 		try {
@@ -4565,679 +4582,681 @@ public class StockManagementDao extends DaoBase {
 		return null;
 	}
 	
-	public void setStockItemInformation(List<StockItemInventory> reportStockItemInventories){
-		if(reportStockItemInventories == null ||reportStockItemInventories.isEmpty()) return;
+	public void setStockItemInformation(List<StockItemInventory> reportStockItemInventories) {
+        if (reportStockItemInventories == null || reportStockItemInventories.isEmpty()) return;
 
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select si.id as stockItemId,\n" +
-				"si.drug.drugId as stockItemDrugId,\n" +
-				"si.concept.conceptId as stockItemConceptId,\n" +
-				"si.commonName as commonName,\n" +
-				"si.acronym as acronym,\n" +
-				"si.category.conceptId as stockItemCategoryConceptId,\n" +
-				"si.reorderLevel as reorderLevel,\n" +
-				"rol.packagingUom.conceptId as reorderLevelUoMId,\n" +
-				"rol.factor as reorderLevelFactor\n" +
-				"from stockmanagement.StockItem si left join si.reorderLevelUOM rol"
-		);
-		StringBuilder hqlFilter = new StringBuilder();
-		appendFilter(hqlFilter, "si.id in (:ids)");
-		parameterWithList.putIfAbsent("ids", reportStockItemInventories.stream().map(p->p.getStockItemId()).distinct().collect(Collectors.toList()));
-		hqlQuery.append(" where ");
-		hqlQuery.append(hqlFilter);
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        StringBuilder hqlQuery = new StringBuilder("select si.id as stockItemId,\n" +
+                "si.drug.drugId as stockItemDrugId,\n" +
+                "si.concept.conceptId as stockItemConceptId,\n" +
+                "si.commonName as commonName,\n" +
+                "si.acronym as acronym,\n" +
+                "si.category.conceptId as stockItemCategoryConceptId,\n" +
+                "si.reorderLevel as reorderLevel,\n" +
+                "rol.packagingUom.conceptId as reorderLevelUoMId,\n" +
+                "rol.factor as reorderLevelFactor\n" +
+                "from stockmanagement.StockItem si left join si.reorderLevelUOM rol"
+        );
+        StringBuilder hqlFilter = new StringBuilder();
+        appendFilter(hqlFilter, "si.id in (:ids)");
+        parameterWithList.putIfAbsent("ids", reportStockItemInventories.stream().map(p -> p.getStockItemId()).distinct().collect(Collectors.toList()));
+        hqlQuery.append(" where ");
+        hqlQuery.append(hqlFilter);
 
-		Result<StockBatchLineItem> result = new Result<>();
-		result.setData(executeQuery(StockBatchLineItem.class, hqlQuery, result, null, new HashMap<>(), parameterWithList));
+        Result<StockBatchLineItem> result = new Result<>();
+        result.setData(executeQuery(StockBatchLineItem.class, hqlQuery, result, null, new HashMap<>(), parameterWithList));
 
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptIds = new ArrayList<>();
-			List<Integer> drugIds = new ArrayList<>();
+        if (!result.getData().isEmpty()) {
+            List<Integer> conceptIds = new ArrayList<>();
+            List<Integer> drugIds = new ArrayList<>();
 
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getReorderLevelUoMId() != null).map(p -> p.getReorderLevelUoMId()).collect(Collectors.toList()));
-			drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getReorderLevelUoMId() != null).map(p -> p.getReorderLevelUoMId()).collect(Collectors.toList()));
+            drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
 
-			Map<Integer,List<ConceptNameDTO>> conceptNameDTOs = null;
-			if(conceptIds.isEmpty()){
-				conceptNameDTOs=new HashMap<>();
-			}else{
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
+            if (conceptIds.isEmpty()) {
+                conceptNameDTOs = new HashMap<>();
+            } else {
+                conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<ConceptNameDTO>> drugNames = null;
-			if(drugIds.isEmpty()){
-				drugNames =new HashMap<>();
-			} else{
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> drugNames = null;
+            if (drugIds.isEmpty()) {
+                drugNames = new HashMap<>();
+            } else {
+                drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer, List<StockBatchLineItem>> dataGroup = result.getData().stream().collect(Collectors.groupingBy(p-> p.getStockItemId()));
-			for (StockItemInventory reportStockItemInventory : reportStockItemInventories) {
+            Map<Integer, List<StockBatchLineItem>> dataGroup = result.getData().stream().collect(Collectors.groupingBy(p -> p.getStockItemId()));
+            for (StockItemInventory reportStockItemInventory : reportStockItemInventories) {
 
-				List<StockBatchLineItem> infoLineItem = dataGroup.get(reportStockItemInventory.getStockItemId());
-				if(infoLineItem == null){
-					continue;
-				}
-				reportStockItemInventory.setConceptId(infoLineItem.get(0).getStockItemConceptId());
-				reportStockItemInventory.setDrugId(infoLineItem.get(0).getStockItemDrugId());
-				reportStockItemInventory.setCommonName(infoLineItem.get(0).getCommonName());
-				reportStockItemInventory.setAcronym(infoLineItem.get(0).getAcronym());
+                List<StockBatchLineItem> infoLineItem = dataGroup.get(reportStockItemInventory.getStockItemId());
+                if (infoLineItem == null) {
+                    continue;
+                }
+                reportStockItemInventory.setConceptId(infoLineItem.get(0).getStockItemConceptId());
+                reportStockItemInventory.setDrugId(infoLineItem.get(0).getStockItemDrugId());
+                reportStockItemInventory.setCommonName(infoLineItem.get(0).getCommonName());
+                reportStockItemInventory.setAcronym(infoLineItem.get(0).getAcronym());
 
-				reportStockItemInventory.setReorderLevel(infoLineItem.get(0).getReorderLevel());
-				reportStockItemInventory.setReorderLevelFactor(infoLineItem.get(0).getReorderLevelFactor());
+                reportStockItemInventory.setReorderLevel(infoLineItem.get(0).getReorderLevel());
+                reportStockItemInventory.setReorderLevelFactor(infoLineItem.get(0).getReorderLevelFactor());
 
-				List<ConceptNameDTO> conceptNameDTO = null;
+                List<ConceptNameDTO> conceptNameDTO = null;
 
-				if (infoLineItem.get(0).getStockItemCategoryConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(infoLineItem.get(0).getStockItemCategoryConceptId());
-					if(conceptNameDTO != null){
-						reportStockItemInventory.setStockItemCategoryName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (infoLineItem.get(0).getStockItemCategoryConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(infoLineItem.get(0).getStockItemCategoryConceptId());
+                    if (conceptNameDTO != null) {
+                        reportStockItemInventory.setStockItemCategoryName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (reportStockItemInventory.getConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(reportStockItemInventory.getConceptId());
-					if(conceptNameDTO != null){
-						reportStockItemInventory.setConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (reportStockItemInventory.getConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(reportStockItemInventory.getConceptId());
+                    if (conceptNameDTO != null) {
+                        reportStockItemInventory.setConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (reportStockItemInventory.getDrugId() != null) {
-					conceptNameDTO= drugNames.get(reportStockItemInventory.getDrugId());
-					if(conceptNameDTO != null){
-						reportStockItemInventory.setDrugName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (reportStockItemInventory.getDrugId() != null) {
+                    conceptNameDTO = drugNames.get(reportStockItemInventory.getDrugId());
+                    if (conceptNameDTO != null) {
+                        reportStockItemInventory.setDrugName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (infoLineItem.get(0).getReorderLevelUoMId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(infoLineItem.get(0).getReorderLevelUoMId());
-					if(conceptNameDTO != null){
-						reportStockItemInventory.setReorderLevelUoM(conceptNameDTO.get(0).getName());
-					}
-				}
-			}
-		}
-	}
+                if (infoLineItem.get(0).getReorderLevelUoMId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(infoLineItem.get(0).getReorderLevelUoMId());
+                    if (conceptNameDTO != null) {
+                        reportStockItemInventory.setReorderLevelUoM(conceptNameDTO.get(0).getName());
+                    }
+                }
+            }
+        }
+    }
 	
 	public Result<DispensingLineItem> findDispensingLineItems(DispensingLineFilter filter) {
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("SELECT sit.id as stockItemTransactionId, sit.dateCreated as dateCreated,\n" +
-				"sit.creator.userId as creator,\n" +
-				"sit.party.id as partyId,\n" +
-				"pl.name as partyName,\n" +
-				"sit.stockItem.id as stockItemId,\n" +
-				"si.drug.drugId as stockItemDrugId,\n" +
-				"si.concept.conceptId as stockItemConceptId,\n" +
-				"si.commonName as commonName,\n" +
-				"si.acronym as acronym,\n" +
-				"si.category.conceptId as stockItemCategoryConceptId,\n" +
-				"sipu.packagingUom.conceptId as packagingUoMId,\n" +
-				"sipu.factor as stockItemPackagingUOMFactor,\n" +
-				"sb.batchNo as batchNo,\n" +
-				"sb.expiration as expiration,\n" +
-				"sit.quantity as quantity," +
-				"sit.patient.id as patientId, sit.order.orderId as orderId,\n" +
-				"od.orderNumber as orderNumber\n" +
-				"from stockmanagement.StockItemTransaction sit join\n" +
-				"\t sit.stockItem si left join sit.party p left join p.location pl left join\n" +
-				" sit.stockBatch sb left join\n" +
-				" sit.stockItemPackagingUOM sipu left join\n" +
-				" sit.order od"
-		);
-		StringBuilder hqlFilter = new StringBuilder();
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
+        StringBuilder hqlQuery = new StringBuilder("SELECT sit.id as stockItemTransactionId, sit.dateCreated as dateCreated,\n" +
+                "sit.creator.userId as creator,\n" +
+                "sit.party.id as partyId,\n" +
+                "pl.name as partyName,\n" +
+                "sit.stockItem.id as stockItemId,\n" +
+                "si.drug.drugId as stockItemDrugId,\n" +
+                "si.concept.conceptId as stockItemConceptId,\n" +
+                "si.commonName as commonName,\n" +
+                "si.acronym as acronym,\n" +
+                "si.category.conceptId as stockItemCategoryConceptId,\n" +
+                "sipu.packagingUom.conceptId as packagingUoMId,\n" +
+                "sipu.factor as stockItemPackagingUOMFactor,\n" +
+                "sb.batchNo as batchNo,\n" +
+                "sb.expiration as expiration,\n" +
+                "sit.quantity as quantity," +
+                "sit.patient.id as patientId, sit.order.orderId as orderId,\n" +
+                "od.orderNumber as orderNumber\n" +
+                "from stockmanagement.StockItemTransaction sit join\n" +
+                "\t sit.stockItem si left join sit.party p left join p.location pl left join\n" +
+                " sit.stockBatch sb left join\n" +
+                " sit.stockItemPackagingUOM sipu left join\n" +
+                " sit.order od"
+        );
+        StringBuilder hqlFilter = new StringBuilder();
 
-		if(filter.getStockItemTransactionMin() != null){
-			appendFilter(hqlFilter, "sit.id > :stockItemTransactionId");
-			parameterList.putIfAbsent("stockItemTransactionId", filter.getStockItemTransactionMin());
-		}
+        if (filter.getStockItemTransactionMin() != null) {
+            appendFilter(hqlFilter, "sit.id > :stockItemTransactionId");
+            parameterList.putIfAbsent("stockItemTransactionId", filter.getStockItemTransactionMin());
+        }
 
-		if (filter.getAtLocationId() != null) {
-			boolean filterSet = false;
-			Location location = Context.getLocationService().getLocation(filter.getAtLocationId());
-			if(location == null){
-				return new Result<>(new ArrayList<>(),0);
-			}
-			Party party = getPartyByLocation(location);
-			if(party == null){
-				return new Result<>(new ArrayList<>(),0);
-			}
-			if(filter.getChildLocations() != null && filter.getChildLocations()){
-				if(party.getLocation() != null) {
-					List<Integer> locationIds = getCompleteLocationTree(party.getLocation().getLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
-					if (locationIds.isEmpty()) {
-						locationIds.add(filter.getAtLocationId());
-					}
-					Map<Integer, Integer> partLocationIds = getLocationPartyIds(locationIds);
-					if(!partLocationIds.isEmpty()) {
-						appendFilter(hqlFilter, "sit.party.id in (:partyIds)");
-						parameterWithList.putIfAbsent("partyIds", partLocationIds.values());
-						filterSet=true;
-					}
-				}
-			}
-			if(!filterSet){
-				appendFilter(hqlFilter, "sit.party.id = :partyId");
-				parameterList.putIfAbsent("partyId", party.getId());
-			}
-		}
+        if (filter.getAtLocationId() != null) {
+            boolean filterSet = false;
+            Location location = Context.getLocationService().getLocation(filter.getAtLocationId());
+            if (location == null) {
+                return new Result<>(new ArrayList<>(), 0);
+            }
+            Party party = getPartyByLocation(location);
+            if (party == null) {
+                return new Result<>(new ArrayList<>(), 0);
+            }
+            if (filter.getChildLocations() != null && filter.getChildLocations()) {
+                if (party.getLocation() != null) {
+                    List<Integer> locationIds = getCompleteLocationTree(party.getLocation().getLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
+                    if (locationIds.isEmpty()) {
+                        locationIds.add(filter.getAtLocationId());
+                    }
+                    Map<Integer, Integer> partLocationIds = getLocationPartyIds(locationIds);
+                    if (!partLocationIds.isEmpty()) {
+                        appendFilter(hqlFilter, "sit.party.id in (:partyIds)");
+                        parameterWithList.putIfAbsent("partyIds", partLocationIds.values());
+                        filterSet = true;
+                    }
+                }
+            }
+            if (!filterSet) {
+                appendFilter(hqlFilter, "sit.party.id = :partyId");
+                parameterList.putIfAbsent("partyId", party.getId());
+            }
+        }
 
-		if(filter.getStockItemId() != null){
-			appendFilter(hqlFilter, "sit.stockItem.id = :stockItemId");
-			parameterList.putIfAbsent("stockItemId", filter.getStockItemId());
-		}
+        if (filter.getStockItemId() != null) {
+            appendFilter(hqlFilter, "sit.stockItem.id = :stockItemId");
+            parameterList.putIfAbsent("stockItemId", filter.getStockItemId());
+        }
 
-		if(filter.getPatientId() != null){
-			appendFilter(hqlFilter, "sit.patient.patientId = :patientId");
-			parameterList.putIfAbsent("patientId", filter.getPatientId());
-		}else{
-			appendFilter(hqlFilter, "sit.patient.patientId is not null");
-		}
+        if (filter.getPatientId() != null) {
+            appendFilter(hqlFilter, "sit.patient.patientId = :patientId");
+            parameterList.putIfAbsent("patientId", filter.getPatientId());
+        } else {
+            appendFilter(hqlFilter, "sit.patient.patientId is not null");
+        }
 
-		if (filter.getStartDate() != null) {
-			appendFilter(hqlFilter, "sit.dateCreated >= :sitdcm");
-			parameterList.putIfAbsent("sitdcm", filter.getStartDate());
-		}
+        if (filter.getStartDate() != null) {
+            appendFilter(hqlFilter, "sit.dateCreated >= :sitdcm");
+            parameterList.putIfAbsent("sitdcm", filter.getStartDate());
+        }
 
-		if (filter.getEndDate() != null) {
-			appendFilter(hqlFilter, "sit.dateCreated <= :sitdcmx");
-			parameterList.putIfAbsent("sitdcmx", filter.getEndDate());
-		}
+        if (filter.getEndDate() != null) {
+            appendFilter(hqlFilter, "sit.dateCreated <= :sitdcmx");
+            parameterList.putIfAbsent("sitdcmx", filter.getEndDate());
+        }
 
-		if(filter.getStockItemCategoryConceptId() != null){
-			appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
-			parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
-		}
+        if (filter.getStockItemCategoryConceptId() != null) {
+            appendFilter(hqlFilter, "si.category.conceptId = :stockItemCategoryId");
+            parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
+        }
 
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
 
-		Result<DispensingLineItem> result = new Result<>();
-		org.hibernate.StatelessSession dbSession = null;
-		try {
-			dbSession = getStatelessHibernateSession();
-			hqlQuery.append(" order by sit.id asc");
-			Query query = dbSession.createQuery(hqlQuery.toString());
-			query.setReadOnly(true);
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
+        Result<DispensingLineItem> result = new Result<>();
+        org.hibernate.StatelessSession dbSession = null;
+        try {
+            dbSession = getStatelessHibernateSession();
+            hqlQuery.append(" order by sit.id asc");
+            Query query = dbSession.createQuery(hqlQuery.toString());
+            query.setReadOnly(true);
+            if (parameterList != null) {
+                for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                    query.setParameter(entry.getKey(), entry.getValue());
+            }
+            if (parameterWithList != null) {
+                for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                    query.setParameterList(entry.getKey(), entry.getValue());
+            }
 
-			query = query.setResultTransformer(new AliasToBeanResultTransformer(DispensingLineItem.class));
-			if (filter.getStockItemTransactionMin() != null) {
-				query.setFirstResult(0);
-			}else{
-				query.setFirstResult(filter.getLimit() * filter.getStartIndex());
-			}
-			query.setMaxResults(filter.getLimit());
-			query.setFetchSize(filter.getLimit());
-			result.setData(query.list());
-		}finally {
-			if(dbSession != null){
-				try{
-					dbSession.close();
-				}catch (Exception e){}
-			}
-		}
+            query = query.setResultTransformer(new AliasToBeanResultTransformer(DispensingLineItem.class));
+            if (filter.getStockItemTransactionMin() != null) {
+                query.setFirstResult(0);
+            } else {
+                query.setFirstResult(filter.getLimit() * filter.getStartIndex());
+            }
+            query.setMaxResults(filter.getLimit());
+            query.setFetchSize(filter.getLimit());
+            result.setData(query.list());
+        } finally {
+            if (dbSession != null) {
+                try {
+                    dbSession.close();
+                } catch (Exception e) {
+                }
+            }
+        }
 
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptIds = new ArrayList<>();
-			List<Integer> drugIds = new ArrayList<>();
+        if (!result.getData().isEmpty()) {
+            List<Integer> conceptIds = new ArrayList<>();
+            List<Integer> drugIds = new ArrayList<>();
 
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getPackagingUoMId() != null).map(p -> p.getPackagingUoMId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
-			drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
-			List<Integer> userIds = result.getData().stream().map(p -> p.getCreator()).filter(p -> p != null).collect(Collectors.toList());
-			List<Integer> patientIds = result.getData().stream().map(p -> p.getPatientId()).filter(p -> p != null).collect(Collectors.toList());
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getPackagingUoMId() != null).map(p -> p.getPackagingUoMId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
+            drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
+            List<Integer> userIds = result.getData().stream().map(p -> p.getCreator()).filter(p -> p != null).collect(Collectors.toList());
+            List<Integer> patientIds = result.getData().stream().map(p -> p.getPatientId()).filter(p -> p != null).collect(Collectors.toList());
 
-			Map<Integer,List<ConceptNameDTO>> conceptNameDTOs = null;
-			if(conceptIds.isEmpty()){
-				conceptNameDTOs=new HashMap<>();
-			}else{
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
+            if (conceptIds.isEmpty()) {
+                conceptNameDTOs = new HashMap<>();
+            } else {
+                conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<ConceptNameDTO>> drugNames = null;
-			if(drugIds.isEmpty()){
-				drugNames =new HashMap<>();
-			} else{
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> drugNames = null;
+            if (drugIds.isEmpty()) {
+                drugNames = new HashMap<>();
+            } else {
+                drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getUserId()));
-			Map<Integer,List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(patientIds.stream().distinct().collect(Collectors.toList()), true).stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
+            Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getUserId()));
+            Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(patientIds.stream().distinct().collect(Collectors.toList()), true).stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
 
-			for (DispensingLineItem dispensingLineItem : result.getData()) {
+            for (DispensingLineItem dispensingLineItem : result.getData()) {
 
-				List<ConceptNameDTO> conceptNameDTO = null;
+                List<ConceptNameDTO> conceptNameDTO = null;
 
-				if (dispensingLineItem.getPackagingUoMId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(dispensingLineItem.getPackagingUoMId());
-					if(conceptNameDTO != null){
-						dispensingLineItem.setStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (dispensingLineItem.getPackagingUoMId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(dispensingLineItem.getPackagingUoMId());
+                    if (conceptNameDTO != null) {
+                        dispensingLineItem.setStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (dispensingLineItem.getStockItemCategoryConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(dispensingLineItem.getStockItemCategoryConceptId());
-					if(conceptNameDTO != null){
-						dispensingLineItem.setStockItemCategoryName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (dispensingLineItem.getStockItemCategoryConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(dispensingLineItem.getStockItemCategoryConceptId());
+                    if (conceptNameDTO != null) {
+                        dispensingLineItem.setStockItemCategoryName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (dispensingLineItem.getStockItemConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(dispensingLineItem.getStockItemConceptId());
-					if(conceptNameDTO != null){
-						dispensingLineItem.setStockItemConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (dispensingLineItem.getStockItemConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(dispensingLineItem.getStockItemConceptId());
+                    if (conceptNameDTO != null) {
+                        dispensingLineItem.setStockItemConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (dispensingLineItem.getStockItemDrugId() != null) {
-					conceptNameDTO= drugNames.get(dispensingLineItem.getStockItemDrugId());
-					if(conceptNameDTO != null){
-						dispensingLineItem.setStockItemDrugName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (dispensingLineItem.getStockItemDrugId() != null) {
+                    conceptNameDTO = drugNames.get(dispensingLineItem.getStockItemDrugId());
+                    if (conceptNameDTO != null) {
+                        dispensingLineItem.setStockItemDrugName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (dispensingLineItem.getCreator() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = personNames.get(dispensingLineItem.getCreator());
-					if (userPersonNameDTO != null) {
-						dispensingLineItem.setCreatorFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						dispensingLineItem.setCreatorGivenName(userPersonNameDTO.get(0).getGivenName());
-					}
-				}
+                if (dispensingLineItem.getCreator() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = personNames.get(dispensingLineItem.getCreator());
+                    if (userPersonNameDTO != null) {
+                        dispensingLineItem.setCreatorFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        dispensingLineItem.setCreatorGivenName(userPersonNameDTO.get(0).getGivenName());
+                    }
+                }
 
-				if (dispensingLineItem.getPatientId() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = patientNames.get(dispensingLineItem.getPatientId());
-					if (userPersonNameDTO != null) {
-						dispensingLineItem.setPatientFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						dispensingLineItem.setPatientMiddleName(userPersonNameDTO.get(0).getMiddleName());
-						dispensingLineItem.setPatientGivenName(userPersonNameDTO.get(0).getGivenName());
-						dispensingLineItem.setPatientIdentifier(userPersonNameDTO.get(0).getPatientIdentifier());
-					}
-				}
+                if (dispensingLineItem.getPatientId() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = patientNames.get(dispensingLineItem.getPatientId());
+                    if (userPersonNameDTO != null) {
+                        dispensingLineItem.setPatientFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        dispensingLineItem.setPatientMiddleName(userPersonNameDTO.get(0).getMiddleName());
+                        dispensingLineItem.setPatientGivenName(userPersonNameDTO.get(0).getGivenName());
+                        dispensingLineItem.setPatientIdentifier(userPersonNameDTO.get(0).getPatientIdentifier());
+                    }
+                }
 
-			}
+            }
 
-		}
+        }
 
-		return result;
-	}
+        return result;
+    }
 	
 	public Result<PrescriptionLineItem> findPrescriptionLineItems(PrescriptionLineFilter filter) {
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
+        HashMap<String, Object> parameterList = new HashMap<>();
+        HashMap<String, Collection> parameterWithList = new HashMap<>();
 
-		boolean addFullfillmentInfo = filter.getFullfillments() != null && !filter.getFullfillments().isEmpty();
+        boolean addFullfillmentInfo = filter.getFullfillments() != null && !filter.getFullfillments().isEmpty();
 
-		StringBuilder hqlQuery = new StringBuilder("SELECT o.order_id as id, o.date_created as dateCreated,\n" +
-				"o.order_id as orderId,\n" +
-				"o.previous_order_id as previousOrderId,\n" +
-				"o.date_activated as dateActivated,\n" +
-				"o.date_stopped as dateStopped,\n" +
-				"o.patient_id as patientId,\n" +
-				"op.person_id as ordererPersonId,\n" +
-				"o.order_action as action,\n" +
-				"o.urgency as urgency,\n" +
-				"si.stock_item_id as stockItemId,\n" +
-				"si.drug_id as stockItemDrugId,\n" +
-				"si.concept_id as stockItemConceptId,\n" +
-				"si.common_name as commonName,\n" +
-				"si.acronym as acronym,\n" +
-				"si.category_id as stockItemCategoryConceptId,\n" +
-				"do.quantity_units as packagingUoMId,\n" +
-				"COALESCE(sipu.factor, sipu2.factor, 1) as stockItemPackagingUOMFactor,\n" +
-				"do.quantity as quantity," +
-				"cf.name as createdFrom,\n" +
-				"(select value_text from obs obs  where obs.encounter_id = o.encounter_id and obs.concept_id = :dispensingLocationConceptId and obs_group_id = (\n" +
-				"select obsdg.obs_group_id \n" +
-				"from obs obsdg \n" +
-				"where obsdg.encounter_id = o.encounter_id and obsdg.concept_id = :drugConceptId and obsdg.value_text=d.uuid \n" +
-				"order by obsdg.order_id desc limit 1\n" +
-				") order by obs.order_id desc  limit 1) as fulfilmentLocationUuid,\n" +
-				"do.dose as dose," +
-				"do.dose_units as doseUnitsConceptId," +
-				"of.frequency_per_day as frequencyPerDay," +
-				"of.concept_id as frequencyConceptId," +
-				"do.as_needed as asNeeded," +
-				"do.quantity_units as quantityUnitsConceptId," +
-				"do.as_needed_condition as asNeededCondition," +
-				"do.num_refills as numRefills," +
-				"do.dosing_instructions as dosingInstructions," +
-				"do.duration as duration," +
-				"do.duration_units as durationUnitsConceptId," +
-				"do.route as routeConceptId," +
-				"do.dispense_as_written as dispenseAsWritten," +
-				(addFullfillmentInfo ? (
-						"sit.quantity as quantityDispensed, sitsipu.packaging_uom_id quantityDispensedPackagingUoMId," +
-						"sitsipu.factor as quantityDispensedStockItemPackagingUOMFactor," +
-						"sit.stock_item_transaction_id as stockItemTransactionId," +
-						"sit.creator as dispenserUserId,spl.name as dispensingLocation," +
-						"sit.date_created as dateDispensed, sb.batch_no as batchNo, sb.expiration as batchExpiryDate,"
-						): "") +
-				"o.order_number as orderNumber" +
-				" from orders o join drug_order do on o.order_id = do.order_id left join" +
-				" drug d on do.drug_inventory_id = d.drug_id left join" +
-				" order_frequency of on do.frequency = of.order_frequency_id left join" +
-				" provider op on o.orderer = op.provider_id left join" +
-				" encounter e on o.encounter_id = e.encounter_id left join" +
-				" location cf on e.location_id = cf.location_id left join" +
-				" stockmgmt_stock_item si on do.drug_inventory_id = si.drug_id left join" +
-				" stockmgmt_stock_item_packaging_uom sipu on si.stock_item_id = sipu.stock_item_id and do.quantity_units=sipu.packaging_uom_id left join" +
-				" stockmgmt_stock_item_packaging_uom sipu2 on si.stock_item_id = sipu.stock_item_id and do.quantity_units=si.dispensing_unit_id and si.dispensing_unit_packaging_uom_id=sipu.stock_item_packaging_uom_id "
-		);
-		if(addFullfillmentInfo){
-hqlQuery.append(" left join stockmgmt_stock_item_transaction sit on o.order_id=sit.order_id left join" +
-		" stockmgmt_party sp on sit.party_id=sp.party_id left join location spl on sp.location_id = spl.location_id left join" +
-		" stockmgmt_stock_batch sb on sit.stock_batch_id = sb.stock_batch_id left join" +
-		" stockmgmt_stock_item_packaging_uom sitsipu on sit.stock_item_packaging_uom_id = sitsipu.stock_item_packaging_uom_id");
-		}
+        StringBuilder hqlQuery = new StringBuilder("SELECT o.order_id as id, o.date_created as dateCreated,\n" +
+                "o.order_id as orderId,\n" +
+                "o.previous_order_id as previousOrderId,\n" +
+                "o.date_activated as dateActivated,\n" +
+                "o.date_stopped as dateStopped,\n" +
+                "o.patient_id as patientId,\n" +
+                "op.person_id as ordererPersonId,\n" +
+                "o.order_action as action,\n" +
+                "o.urgency as urgency,\n" +
+                "si.stock_item_id as stockItemId,\n" +
+                "si.drug_id as stockItemDrugId,\n" +
+                "si.concept_id as stockItemConceptId,\n" +
+                "si.common_name as commonName,\n" +
+                "si.acronym as acronym,\n" +
+                "si.category_id as stockItemCategoryConceptId,\n" +
+                "do.quantity_units as packagingUoMId,\n" +
+                "COALESCE(sipu.factor, sipu2.factor, 1) as stockItemPackagingUOMFactor,\n" +
+                "do.quantity as quantity," +
+                "cf.name as createdFrom,\n" +
+                "(select value_text from obs obs  where obs.encounter_id = o.encounter_id and obs.concept_id = :dispensingLocationConceptId and obs_group_id = (\n" +
+                "select obsdg.obs_group_id \n" +
+                "from obs obsdg \n" +
+                "where obsdg.encounter_id = o.encounter_id and obsdg.concept_id = :drugConceptId and obsdg.value_text=d.uuid \n" +
+                "order by obsdg.order_id desc limit 1\n" +
+                ") order by obs.order_id desc  limit 1) as fulfilmentLocationUuid,\n" +
+                "do.dose as dose," +
+                "do.dose_units as doseUnitsConceptId," +
+                "of.frequency_per_day as frequencyPerDay," +
+                "of.concept_id as frequencyConceptId," +
+                "do.as_needed as asNeeded," +
+                "do.quantity_units as quantityUnitsConceptId," +
+                "do.as_needed_condition as asNeededCondition," +
+                "do.num_refills as numRefills," +
+                "do.dosing_instructions as dosingInstructions," +
+                "do.duration as duration," +
+                "do.duration_units as durationUnitsConceptId," +
+                "do.route as routeConceptId," +
+                "do.dispense_as_written as dispenseAsWritten," +
+                (addFullfillmentInfo ? (
+                        "sit.quantity as quantityDispensed, sitsipu.packaging_uom_id quantityDispensedPackagingUoMId," +
+                                "sitsipu.factor as quantityDispensedStockItemPackagingUOMFactor," +
+                                "sit.stock_item_transaction_id as stockItemTransactionId," +
+                                "sit.creator as dispenserUserId,spl.name as dispensingLocation," +
+                                "sit.date_created as dateDispensed, sb.batch_no as batchNo, sb.expiration as batchExpiryDate,"
+                ) : "") +
+                "o.order_number as orderNumber" +
+                " from orders o join drug_order do on o.order_id = do.order_id left join" +
+                " drug d on do.drug_inventory_id = d.drug_id left join" +
+                " order_frequency of on do.frequency = of.order_frequency_id left join" +
+                " provider op on o.orderer = op.provider_id left join" +
+                " encounter e on o.encounter_id = e.encounter_id left join" +
+                " location cf on e.location_id = cf.location_id left join" +
+                " stockmgmt_stock_item si on do.drug_inventory_id = si.drug_id left join" +
+                " stockmgmt_stock_item_packaging_uom sipu on si.stock_item_id = sipu.stock_item_id and do.quantity_units=sipu.packaging_uom_id left join" +
+                " stockmgmt_stock_item_packaging_uom sipu2 on si.stock_item_id = sipu.stock_item_id and do.quantity_units=si.dispensing_unit_id and si.dispensing_unit_packaging_uom_id=sipu.stock_item_packaging_uom_id "
+        );
+        if (addFullfillmentInfo) {
+            hqlQuery.append(" left join stockmgmt_stock_item_transaction sit on o.order_id=sit.order_id left join" +
+                    " stockmgmt_party sp on sit.party_id=sp.party_id left join location spl on sp.location_id = spl.location_id left join" +
+                    " stockmgmt_stock_batch sb on sit.stock_batch_id = sb.stock_batch_id left join" +
+                    " stockmgmt_stock_item_packaging_uom sitsipu on sit.stock_item_packaging_uom_id = sitsipu.stock_item_packaging_uom_id");
+        }
 
-		StringBuilder hqlFilter = new StringBuilder();
-		if(filter.getPrescriptionTransactionMin() != null){
-			appendFilter(hqlFilter, "o.order_id > :transactionIdMin");
-			parameterList.putIfAbsent("transactionIdMin", filter.getPrescriptionTransactionMin());
-		}
+        StringBuilder hqlFilter = new StringBuilder();
+        if (filter.getPrescriptionTransactionMin() != null) {
+            appendFilter(hqlFilter, "o.order_id > :transactionIdMin");
+            parameterList.putIfAbsent("transactionIdMin", filter.getPrescriptionTransactionMin());
+        }
 
-		if (filter.getAtLocationId() != null) {
-			boolean filterSet = false;
-			Location location = Context.getLocationService().getLocation(filter.getAtLocationId());
-			if(location == null){
-				return new Result<>(new ArrayList<>(),0);
-			}
-			if(filter.getChildLocations() != null && filter.getChildLocations()){
-				List<Integer> locationIds = getCompleteLocationTree(filter.getAtLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
-				if (locationIds.isEmpty()) {
-					locationIds.add(filter.getAtLocationId());
-				}
+        if (filter.getAtLocationId() != null) {
+            boolean filterSet = false;
+            Location location = Context.getLocationService().getLocation(filter.getAtLocationId());
+            if (location == null) {
+                return new Result<>(new ArrayList<>(), 0);
+            }
+            if (filter.getChildLocations() != null && filter.getChildLocations()) {
+                List<Integer> locationIds = getCompleteLocationTree(filter.getAtLocationId()).stream().map(p -> p.getChildLocationId()).collect(Collectors.toList());
+                if (locationIds.isEmpty()) {
+                    locationIds.add(filter.getAtLocationId());
+                }
 
-				appendFilter(hqlFilter, "e.location_id in (:locationIds)");
-				parameterWithList.putIfAbsent("locationIds", locationIds);
-				filterSet=true;
-			}
-			if(!filterSet){
-				appendFilter(hqlFilter, "e.location_id = :locationId");
-				parameterList.putIfAbsent("locationId", filter.getAtLocationId());
-			}
-		}
+                appendFilter(hqlFilter, "e.location_id in (:locationIds)");
+                parameterWithList.putIfAbsent("locationIds", locationIds);
+                filterSet = true;
+            }
+            if (!filterSet) {
+                appendFilter(hqlFilter, "e.location_id = :locationId");
+                parameterList.putIfAbsent("locationId", filter.getAtLocationId());
+            }
+        }
 
-		if(filter.getDrugId() != null){
-			appendFilter(hqlFilter, "do.drug_inventory_id = :drugId");
-			parameterList.putIfAbsent("drugId", filter.getDrugId());
-		}
+        if (filter.getDrugId() != null) {
+            appendFilter(hqlFilter, "do.drug_inventory_id = :drugId");
+            parameterList.putIfAbsent("drugId", filter.getDrugId());
+        }
 
-		if(filter.getStockItemId() != null){
-			appendFilter(hqlFilter, "si.stock_item_id = :stockItemId");
-			parameterList.putIfAbsent("stockItemId", filter.getStockItemId());
-		}
+        if (filter.getStockItemId() != null) {
+            appendFilter(hqlFilter, "si.stock_item_id = :stockItemId");
+            parameterList.putIfAbsent("stockItemId", filter.getStockItemId());
+        }
 
-		if(filter.getPatientId() != null){
-			appendFilter(hqlFilter, "o.patient_id = :patientId");
-			parameterList.putIfAbsent("patientId", filter.getPatientId());
-		}
+        if (filter.getPatientId() != null) {
+            appendFilter(hqlFilter, "o.patient_id = :patientId");
+            parameterList.putIfAbsent("patientId", filter.getPatientId());
+        }
 
-		if (filter.getStartDate() != null) {
-			appendFilter(hqlFilter, "o.date_created >= :sitdcm");
-			parameterList.putIfAbsent("sitdcm", filter.getStartDate());
-		}
+        if (filter.getStartDate() != null) {
+            appendFilter(hqlFilter, "o.date_created >= :sitdcm");
+            parameterList.putIfAbsent("sitdcm", filter.getStartDate());
+        }
 
-		if (filter.getEndDate() != null) {
-			appendFilter(hqlFilter, "o.date_created <= :sitdcmx");
-			parameterList.putIfAbsent("sitdcmx", filter.getEndDate());
-		}
+        if (filter.getEndDate() != null) {
+            appendFilter(hqlFilter, "o.date_created <= :sitdcmx");
+            parameterList.putIfAbsent("sitdcmx", filter.getEndDate());
+        }
 
-		if(filter.getStockItemCategoryConceptId() != null){
-			appendFilter(hqlFilter, "si.category_id = :stockItemCategoryId");
-			parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
-		}
+        if (filter.getStockItemCategoryConceptId() != null) {
+            appendFilter(hqlFilter, "si.category_id = :stockItemCategoryId");
+            parameterList.putIfAbsent("stockItemCategoryId", filter.getStockItemCategoryConceptId());
+        }
 
-		appendFilter(hqlFilter, "do.quantity > 0");
+        appendFilter(hqlFilter, "do.quantity > 0");
 
-		if(addFullfillmentInfo){
-			boolean hasPartial=false, hasFull=false, hasNone = false, hasAll = false;
-			for(Fullfillment fullfillment: filter.getFullfillments()){
-				switch (fullfillment){
-					case All:
-						hasAll=true;
-						break;
-					case Full:
-						hasFull=true;
-						break;
-					case Partial:
-						hasPartial=true;
-						break;
-					case None:
-						hasNone=true;
-						break;
-				}
-			}
-			if(!(hasAll || (hasPartial && hasNone && hasFull))){
-				StringBuilder fullFillmentFilter = new StringBuilder();
-				if(hasFull && hasPartial){
-					appendFilter(fullFillmentFilter, "sit.stock_item_transaction_id is not null");
-				}else if(hasFull){
-					appendFilter(fullFillmentFilter, "(sit.quantity * sitsipu.factor * -1) >= (do.quantity * COALESCE(sipu.factor, sipu2.factor, 1))");
-				}else if(hasPartial){
-					appendFilter(fullFillmentFilter, "(sit.quantity * sitsipu.factor * -1) < (do.quantity * COALESCE(sipu.factor, sipu2.factor, 1))");
-				}
-				if(hasNone){
-					appendORFilter(fullFillmentFilter, "sit.stock_item_transaction_id is null");
-				}
-				appendFilter(hqlFilter,fullFillmentFilter.toString());
-			}
-		}
+        if (addFullfillmentInfo) {
+            boolean hasPartial = false, hasFull = false, hasNone = false, hasAll = false;
+            for (Fullfillment fullfillment : filter.getFullfillments()) {
+                switch (fullfillment) {
+                    case All:
+                        hasAll = true;
+                        break;
+                    case Full:
+                        hasFull = true;
+                        break;
+                    case Partial:
+                        hasPartial = true;
+                        break;
+                    case None:
+                        hasNone = true;
+                        break;
+                }
+            }
+            if (!(hasAll || (hasPartial && hasNone && hasFull))) {
+                StringBuilder fullFillmentFilter = new StringBuilder();
+                if (hasFull && hasPartial) {
+                    appendFilter(fullFillmentFilter, "sit.stock_item_transaction_id is not null");
+                } else if (hasFull) {
+                    appendFilter(fullFillmentFilter, "(sit.quantity * sitsipu.factor * -1) >= (do.quantity * COALESCE(sipu.factor, sipu2.factor, 1))");
+                } else if (hasPartial) {
+                    appendFilter(fullFillmentFilter, "(sit.quantity * sitsipu.factor * -1) < (do.quantity * COALESCE(sipu.factor, sipu2.factor, 1))");
+                }
+                if (hasNone) {
+                    appendORFilter(fullFillmentFilter, "sit.stock_item_transaction_id is null");
+                }
+                appendFilter(hqlFilter, fullFillmentFilter.toString());
+            }
+        }
 
-		parameterList.put("dispensingLocationConceptId", filter.getObservationDispensingLocationConceptId());
-		parameterList.put("drugConceptId", filter.getObservationDrugConceptId());
+        parameterList.put("dispensingLocationConceptId", filter.getObservationDispensingLocationConceptId());
+        parameterList.put("drugConceptId", filter.getObservationDrugConceptId());
 
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
+        if (hqlFilter.length() > 0) {
+            hqlQuery.append(" where ");
+            hqlQuery.append(hqlFilter);
+        }
 
-		Result<PrescriptionLineItem> result = new Result<>();
-		org.hibernate.StatelessSession dbSession = null;
-		try {
-			dbSession = getStatelessHibernateSession();
-			hqlQuery.append(" order by o.order_id asc");
-			Query query = dbSession.createSQLQuery(hqlQuery.toString());
-			query.setReadOnly(true);
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
+        Result<PrescriptionLineItem> result = new Result<>();
+        org.hibernate.StatelessSession dbSession = null;
+        try {
+            dbSession = getStatelessHibernateSession();
+            hqlQuery.append(" order by o.order_id asc");
+            Query query = dbSession.createSQLQuery(hqlQuery.toString());
+            query.setReadOnly(true);
+            if (parameterList != null) {
+                for (Map.Entry<String, Object> entry : parameterList.entrySet())
+                    query.setParameter(entry.getKey(), entry.getValue());
+            }
+            if (parameterWithList != null) {
+                for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+                    query.setParameterList(entry.getKey(), entry.getValue());
+            }
 
-			query = query.setResultTransformer(new AliasToBeanResultTransformer(PrescriptionLineItem.class));
-			if (filter.getPrescriptionTransactionMin() != null) {
-				query.setFirstResult(0);
-			} else {
-				query.setFirstResult(filter.getLimit() * filter.getStartIndex());
-			}
-			query.setMaxResults(filter.getLimit());
-			query.setFetchSize(filter.getLimit());
-			result.setData(query.list());
-		}finally {
-			if(dbSession != null){
-				try{
-					dbSession.close();
-				}catch (Exception e){}
-			}
-		}
+            query = query.setResultTransformer(new AliasToBeanResultTransformer(PrescriptionLineItem.class));
+            if (filter.getPrescriptionTransactionMin() != null) {
+                query.setFirstResult(0);
+            } else {
+                query.setFirstResult(filter.getLimit() * filter.getStartIndex());
+            }
+            query.setMaxResults(filter.getLimit());
+            query.setFetchSize(filter.getLimit());
+            result.setData(query.list());
+        } finally {
+            if (dbSession != null) {
+                try {
+                    dbSession.close();
+                } catch (Exception e) {
+                }
+            }
+        }
 
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptIds = new ArrayList<>();
-			List<Integer> drugIds = new ArrayList<>();
-			List<String> fullfillmentLocationUuids=new ArrayList<>();
+        if (!result.getData().isEmpty()) {
+            List<Integer> conceptIds = new ArrayList<>();
+            List<Integer> drugIds = new ArrayList<>();
+            List<String> fullfillmentLocationUuids = new ArrayList<>();
 
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getPackagingUoMId() != null).map(p -> p.getPackagingUoMId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getPackagingUoMId() != null).map(p -> p.getPackagingUoMId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemCategoryConceptId() != null).map(p -> p.getStockItemCategoryConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getStockItemConceptId() != null).map(p -> p.getStockItemConceptId()).collect(Collectors.toList()));
 
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getDoseUnitsConceptId() != null).map(p -> p.getDoseUnitsConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getFrequencyConceptId() != null).map(p -> p.getFrequencyConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getQuantityUnitsConceptId() != null).map(p -> p.getQuantityUnitsConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getDurationUnitsConceptId() != null).map(p -> p.getDurationUnitsConceptId()).collect(Collectors.toList()));
-			conceptIds.addAll(result.getData().stream().filter(p -> p.getRouteConceptId() != null).map(p -> p.getRouteConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getDoseUnitsConceptId() != null).map(p -> p.getDoseUnitsConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getFrequencyConceptId() != null).map(p -> p.getFrequencyConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getQuantityUnitsConceptId() != null).map(p -> p.getQuantityUnitsConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getDurationUnitsConceptId() != null).map(p -> p.getDurationUnitsConceptId()).collect(Collectors.toList()));
+            conceptIds.addAll(result.getData().stream().filter(p -> p.getRouteConceptId() != null).map(p -> p.getRouteConceptId()).collect(Collectors.toList()));
 
-			if(addFullfillmentInfo){
-				conceptIds.addAll(result.getData().stream().filter(p -> p.getQuantityDispensedPackagingUoMId() != null).map(p -> p.getQuantityDispensedPackagingUoMId()).collect(Collectors.toList()));
-			}
+            if (addFullfillmentInfo) {
+                conceptIds.addAll(result.getData().stream().filter(p -> p.getQuantityDispensedPackagingUoMId() != null).map(p -> p.getQuantityDispensedPackagingUoMId()).collect(Collectors.toList()));
+            }
 
-			drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
-			List<Integer> userIds = result.getData().stream().map(p -> p.getOrdererPersonId()).filter(p -> p != null).collect(Collectors.toList());
-			if(addFullfillmentInfo){
-				userIds.addAll(result.getData().stream().map(p -> p.getDispenserUserId()).filter(p -> p != null).collect(Collectors.toList()));
-			}
-			List<Integer> patientIds = result.getData().stream().map(p -> p.getPatientId()).filter(p -> p != null).collect(Collectors.toList());
-			fullfillmentLocationUuids = result.getData().stream().map(p -> p.getFulfilmentLocationUuid()).filter(p -> p != null).distinct().collect(Collectors.toList());
+            drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null).map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
+            List<Integer> userIds = result.getData().stream().map(p -> p.getOrdererPersonId()).filter(p -> p != null).collect(Collectors.toList());
+            if (addFullfillmentInfo) {
+                userIds.addAll(result.getData().stream().map(p -> p.getDispenserUserId()).filter(p -> p != null).collect(Collectors.toList()));
+            }
+            List<Integer> patientIds = result.getData().stream().map(p -> p.getPatientId()).filter(p -> p != null).collect(Collectors.toList());
+            fullfillmentLocationUuids = result.getData().stream().map(p -> p.getFulfilmentLocationUuid()).filter(p -> p != null).distinct().collect(Collectors.toList());
 
-			//getPatientNameByPatientIds
-			Map<Integer,List<ConceptNameDTO>> conceptNameDTOs = null;
-			if(conceptIds.isEmpty()){
-				conceptNameDTOs=new HashMap<>();
-			}else{
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            //getPatientNameByPatientIds
+            Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
+            if (conceptIds.isEmpty()) {
+                conceptNameDTOs = new HashMap<>();
+            } else {
+                conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<ConceptNameDTO>> drugNames = null;
-			if(drugIds.isEmpty()){
-				drugNames =new HashMap<>();
-			} else{
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p->p.getConceptId()));
-			}
+            Map<Integer, List<ConceptNameDTO>> drugNames = null;
+            if (drugIds.isEmpty()) {
+                drugNames = new HashMap<>();
+            } else {
+                drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
+            }
 
-			Map<Integer,List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getUserId()));
-			Map<Integer,List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(patientIds.stream().distinct().collect(Collectors.toList()), true).stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
-			Map<String, String> locationNames = getLocationNamesByUuid(fullfillmentLocationUuids);
+            Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(userIds.stream().distinct().collect(Collectors.toList())).stream().collect(Collectors.groupingBy(p -> p.getUserId()));
+            Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(patientIds.stream().distinct().collect(Collectors.toList()), true).stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
+            Map<String, String> locationNames = getLocationNamesByUuid(fullfillmentLocationUuids);
 
-			for (PrescriptionLineItem prescriptionLineItem : result.getData()) {
+            for (PrescriptionLineItem prescriptionLineItem : result.getData()) {
 
-				List<ConceptNameDTO> conceptNameDTO = null;
+                List<ConceptNameDTO> conceptNameDTO = null;
 
-				if (prescriptionLineItem.getPackagingUoMId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getPackagingUoMId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getPackagingUoMId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getPackagingUoMId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getStockItemCategoryConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getStockItemCategoryConceptId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setStockItemCategoryName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getStockItemCategoryConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getStockItemCategoryConceptId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setStockItemCategoryName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getStockItemConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getStockItemConceptId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setStockItemConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getStockItemConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getStockItemConceptId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setStockItemConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getDoseUnitsConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getDoseUnitsConceptId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setDoseUnitsConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getDoseUnitsConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getDoseUnitsConceptId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setDoseUnitsConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getFrequencyConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getFrequencyConceptId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setFrequencyConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getFrequencyConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getFrequencyConceptId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setFrequencyConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getQuantityUnitsConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getQuantityUnitsConceptId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setQuantityUnitsConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getQuantityUnitsConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getQuantityUnitsConceptId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setQuantityUnitsConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getDurationUnitsConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getDurationUnitsConceptId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setDurationUnitsConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getDurationUnitsConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getDurationUnitsConceptId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setDurationUnitsConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getRouteConceptId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getRouteConceptId());
-					if (conceptNameDTO != null){
-						prescriptionLineItem.setRouteConceptName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getRouteConceptId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getRouteConceptId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setRouteConceptName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getQuantityDispensedPackagingUoMId() != null) {
-					conceptNameDTO= conceptNameDTOs.get(prescriptionLineItem.getQuantityDispensedPackagingUoMId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setQuantityDispensedStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getQuantityDispensedPackagingUoMId() != null) {
+                    conceptNameDTO = conceptNameDTOs.get(prescriptionLineItem.getQuantityDispensedPackagingUoMId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setQuantityDispensedStockItemPackagingUOMName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getStockItemDrugId() != null) {
-					conceptNameDTO= drugNames.get(prescriptionLineItem.getStockItemDrugId());
-					if(conceptNameDTO != null){
-						prescriptionLineItem.setStockItemDrugName(conceptNameDTO.get(0).getName());
-					}
-				}
+                if (prescriptionLineItem.getStockItemDrugId() != null) {
+                    conceptNameDTO = drugNames.get(prescriptionLineItem.getStockItemDrugId());
+                    if (conceptNameDTO != null) {
+                        prescriptionLineItem.setStockItemDrugName(conceptNameDTO.get(0).getName());
+                    }
+                }
 
-				if (prescriptionLineItem.getOrdererPersonId() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = personNames.get(prescriptionLineItem.getOrdererPersonId());
-					if (userPersonNameDTO != null) {
-						prescriptionLineItem.setOrdererFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						prescriptionLineItem.setOrdererMiddleName(userPersonNameDTO.get(0).getMiddleName());
-						prescriptionLineItem.setOrdererGivenName(userPersonNameDTO.get(0).getGivenName());
-					}
-				}
+                if (prescriptionLineItem.getOrdererPersonId() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = personNames.get(prescriptionLineItem.getOrdererPersonId());
+                    if (userPersonNameDTO != null) {
+                        prescriptionLineItem.setOrdererFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        prescriptionLineItem.setOrdererMiddleName(userPersonNameDTO.get(0).getMiddleName());
+                        prescriptionLineItem.setOrdererGivenName(userPersonNameDTO.get(0).getGivenName());
+                    }
+                }
 
-				if (prescriptionLineItem.getDispenserUserId() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = personNames.get(prescriptionLineItem.getDispenserUserId());
-					if (userPersonNameDTO != null) {
-						prescriptionLineItem.setDispenserFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						prescriptionLineItem.setDispenserMiddleName(userPersonNameDTO.get(0).getMiddleName());
-						prescriptionLineItem.setDispenserGivenName(userPersonNameDTO.get(0).getGivenName());
-					}
-				}
+                if (prescriptionLineItem.getDispenserUserId() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = personNames.get(prescriptionLineItem.getDispenserUserId());
+                    if (userPersonNameDTO != null) {
+                        prescriptionLineItem.setDispenserFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        prescriptionLineItem.setDispenserMiddleName(userPersonNameDTO.get(0).getMiddleName());
+                        prescriptionLineItem.setDispenserGivenName(userPersonNameDTO.get(0).getGivenName());
+                    }
+                }
 
-				if (prescriptionLineItem.getPatientId() != null) {
-					List<UserPersonNameDTO> userPersonNameDTO = patientNames.get(prescriptionLineItem.getPatientId());
-					if (userPersonNameDTO != null) {
-						prescriptionLineItem.setPatientFamilyName(userPersonNameDTO.get(0).getFamilyName());
-						prescriptionLineItem.setPatientMiddleName(userPersonNameDTO.get(0).getMiddleName());
-						prescriptionLineItem.setPatientGivenName(userPersonNameDTO.get(0).getGivenName());
-						prescriptionLineItem.setPatientIdentifier(userPersonNameDTO.get(0).getPatientIdentifier());
-					}
-				}
+                if (prescriptionLineItem.getPatientId() != null) {
+                    List<UserPersonNameDTO> userPersonNameDTO = patientNames.get(prescriptionLineItem.getPatientId());
+                    if (userPersonNameDTO != null) {
+                        prescriptionLineItem.setPatientFamilyName(userPersonNameDTO.get(0).getFamilyName());
+                        prescriptionLineItem.setPatientMiddleName(userPersonNameDTO.get(0).getMiddleName());
+                        prescriptionLineItem.setPatientGivenName(userPersonNameDTO.get(0).getGivenName());
+                        prescriptionLineItem.setPatientIdentifier(userPersonNameDTO.get(0).getPatientIdentifier());
+                    }
+                }
 
-				if(!locationNames.isEmpty() && !StringUtils.isBlank(prescriptionLineItem.getFulfilmentLocationUuid())){
-					String locationName = locationNames.get(prescriptionLineItem.getFulfilmentLocationUuid());
-					if(locationName != null){
-						prescriptionLineItem.setFulfilmentLocation(locationName);
-					}
-				}
+                if (!locationNames.isEmpty() && !StringUtils.isBlank(prescriptionLineItem.getFulfilmentLocationUuid())) {
+                    String locationName = locationNames.get(prescriptionLineItem.getFulfilmentLocationUuid());
+                    if (locationName != null) {
+                        prescriptionLineItem.setFulfilmentLocation(locationName);
+                    }
+                }
 
-			}
+            }
 
-		}
+        }
 
-		return result;
-	}
+        return result;
+    }
 	
 	public List<BatchJob> getExpiredBatchJobs() {
 		return getSession().createCriteria(BatchJob.class).add(Restrictions.le("expiration", new Date())).list();
@@ -5254,34 +5273,34 @@ hqlQuery.append(" left join stockmgmt_stock_item_transaction sit on o.order_id=s
 		query.executeUpdate();
 	}
 	
-	public Map<Integer, Boolean> checkStockBatchHasTransactionsAfterOperation(Integer stockOperationId, List<Integer> stockBatchIds){
-		if(stockOperationId == null || stockBatchIds == null || stockBatchIds.isEmpty() ){
-			return new HashMap<>();
-		}
+	public Map<Integer, Boolean> checkStockBatchHasTransactionsAfterOperation(Integer stockOperationId, List<Integer> stockBatchIds) {
+        if (stockOperationId == null || stockBatchIds == null || stockBatchIds.isEmpty()) {
+            return new HashMap<>();
+        }
 
-		DbSession session = getSession();
-		Query query = session.createQuery("SELECT max(sit.id) as id from stockmanagement.StockItemTransaction sit where sit.stockOperation.id = :soid");
-		query.setParameter("soid", stockOperationId);
-		List result = query.list();
-		if(result.isEmpty() || (result.get(0) == null)){
-			return new HashMap<>();
-		}
-		int maxStockOperationItemTransactionId = ((Number)result.get(0)).intValue();
-		query = session.createQuery("SELECT sit.stockBatch.id as id from stockmanagement.StockItemTransaction sit where sit.id > :id and sit.stockBatch.id in (:batchids) group by sit.stockBatch.id");
-		query.setParameter("id", maxStockOperationItemTransactionId);
-		query.setParameterList("batchids", stockBatchIds);
-		result = query.list();
-		if(result.isEmpty()){
-			return new HashMap<>();
-		}
+        DbSession session = getSession();
+        Query query = session.createQuery("SELECT max(sit.id) as id from stockmanagement.StockItemTransaction sit where sit.stockOperation.id = :soid");
+        query.setParameter("soid", stockOperationId);
+        List result = query.list();
+        if (result.isEmpty() || (result.get(0) == null)) {
+            return new HashMap<>();
+        }
+        int maxStockOperationItemTransactionId = ((Number) result.get(0)).intValue();
+        query = session.createQuery("SELECT sit.stockBatch.id as id from stockmanagement.StockItemTransaction sit where sit.id > :id and sit.stockBatch.id in (:batchids) group by sit.stockBatch.id");
+        query.setParameter("id", maxStockOperationItemTransactionId);
+        query.setParameterList("batchids", stockBatchIds);
+        result = query.list();
+        if (result.isEmpty()) {
+            return new HashMap<>();
+        }
 
-		Map<Integer,Boolean> mapResult = new HashMap<>();
-		for(Object object : result){
-			mapResult.put(((Number)object).intValue(), Boolean.TRUE);
-		}
+        Map<Integer, Boolean> mapResult = new HashMap<>();
+        for (Object object : result) {
+            mapResult.put(((Number) object).intValue(), Boolean.TRUE);
+        }
 
-		return mapResult;
-	}
+        return mapResult;
+    }
 	
 	public StockItemReference getStockItemByReference(StockSource stockSource, String stockReferenceCode) {
 		Criteria criteria = getSession().createCriteria(StockItemReference.class);
