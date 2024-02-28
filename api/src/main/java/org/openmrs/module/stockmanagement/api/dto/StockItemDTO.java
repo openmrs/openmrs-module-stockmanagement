@@ -50,6 +50,8 @@ public class StockItemDTO {
 	
 	private String purchasePriceUoMName;
 	
+	private BigDecimal purchasePriceUoMFactor;
+	
 	private Integer dispensingUnitId;
 	
 	private String dispensingUnitName;
@@ -64,6 +66,8 @@ public class StockItemDTO {
 	
 	private String dispensingUnitPackagingUoMName;
 	
+	private BigDecimal dispensingUnitPackagingUoMFactor;
+	
 	private Integer defaultStockOperationsUoMId;
 	
 	private String defaultStockOperationsUoMUuid;
@@ -71,6 +75,8 @@ public class StockItemDTO {
 	private Integer defaultStockOperationsConceptId;
 	
 	private String defaultStockOperationsUoMName;
+	
+	private BigDecimal defaultStockOperationsUoMFactor;
 	
 	private List<StockItemPackagingUOMDTO> stockItemPackagingUOMs;
 	
@@ -99,6 +105,8 @@ public class StockItemDTO {
 	private Integer reorderLevelConceptId;
 	
 	private String reorderLevelUoMName;
+	
+	private BigDecimal reorderLevelUoMFactor;
 	
 	private String drugStrength;
 	
@@ -492,5 +500,37 @@ public class StockItemDTO {
 	
 	public void setExpiryNotice(Integer expiryNotice) {
 		this.expiryNotice = expiryNotice;
+	}
+	
+	public BigDecimal getPurchasePriceUoMFactor() {
+		return purchasePriceUoMFactor;
+	}
+	
+	public void setPurchasePriceUoMFactor(BigDecimal purchasePriceUoMFactor) {
+		this.purchasePriceUoMFactor = purchasePriceUoMFactor;
+	}
+	
+	public BigDecimal getDispensingUnitPackagingUoMFactor() {
+		return dispensingUnitPackagingUoMFactor;
+	}
+	
+	public void setDispensingUnitPackagingUoMFactor(BigDecimal dispensingUnitPackagingUoMFactor) {
+		this.dispensingUnitPackagingUoMFactor = dispensingUnitPackagingUoMFactor;
+	}
+	
+	public BigDecimal getDefaultStockOperationsUoMFactor() {
+		return defaultStockOperationsUoMFactor;
+	}
+	
+	public void setDefaultStockOperationsUoMFactor(BigDecimal defaultStockOperationsUoMFactor) {
+		this.defaultStockOperationsUoMFactor = defaultStockOperationsUoMFactor;
+	}
+	
+	public BigDecimal getReorderLevelUoMFactor() {
+		return reorderLevelUoMFactor;
+	}
+	
+	public void setReorderLevelUoMFactor(BigDecimal reorderLevelUoMFactor) {
+		this.reorderLevelUoMFactor = reorderLevelUoMFactor;
 	}
 }

@@ -457,20 +457,24 @@ public class StockManagementDao extends DaoBase {
                 "si.purchasePrice as purchasePrice,\n" +
                 "si.purchasePriceUoM.id as purchasePriceUoMId,\n" +
                 "ppu.uuid as purchasePriceUoMUuid,\n" +
+                "ppu.factor as purchasePriceUoMFactor,\n" +
                 "ppu.packagingUom.conceptId as purchasePriceConceptId,\n" +
                 "si.dispensingUnit.conceptId as dispensingUnitId,\n" +
                 "du.uuid as dispensingUnitUuid,\n" +
                 "si.dispensingUnitPackagingUoM.id as dispensingUnitPackagingUoMId,\n" +
                 "dupu.uuid as dispensingUnitPackagingUoMUuid,\n" +
+                "dupu.factor as dispensingUnitPackagingUoMFactor,\n" +
                 "dupu.packagingUom.conceptId as dispensingUnitPackagingConceptId,\n" +
                 "si.defaultStockOperationsUoM.id as defaultStockOperationsUoMId,\n" +
                 "dsou.uuid as defaultStockOperationsUoMUuid,\n" +
+                "dsou.factor as defaultStockOperationsUoMFactor,\n" +
                 "dsou.packagingUom.conceptId as defaultStockOperationsConceptId,\n" +
                 "si.commonName as commonName,\n" +
                 "si.acronym as acronym,\n" +
                 "si.reorderLevel as reorderLevel,\n" +
                 "si.reorderLevelUOM.id as reorderLevelUoMId,\n" +
                 "rol.uuid as reorderLevelUoMUuid,\n" +
+                "rol.factor as reorderLevelUoMFactor,\n" +
                 "si.category.conceptId as categoryId,\n" +
                 "cg.uuid as categoryUuid,\n" +
                 "rol.packagingUom.conceptId as reorderLevelConceptId,\n" +

@@ -281,12 +281,15 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 			description.addProperty("purchasePrice");
 			description.addProperty("purchasePriceUoMUuid");
 			description.addProperty("purchasePriceUoMName");
+			description.addProperty("purchasePriceUoMFactor");
 			description.addProperty("dispensingUnitName");
 			description.addProperty("dispensingUnitUuid");
 			description.addProperty("dispensingUnitPackagingUoMUuid");
 			description.addProperty("dispensingUnitPackagingUoMName");
+			description.addProperty("dispensingUnitPackagingUoMFactor");
 			description.addProperty("defaultStockOperationsUoMUuid");
 			description.addProperty("defaultStockOperationsUoMName");
+			description.addProperty("defaultStockOperationsUoMFactor");
 			description.addProperty("categoryUuid");
 			description.addProperty("categoryName");
 			description.addProperty("commonName");
@@ -294,6 +297,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 			description.addProperty("reorderLevel");
 			description.addProperty("reorderLevelUoMUuid");
 			description.addProperty("reorderLevelUoMName");
+			description.addProperty("reorderLevelUoMFactor");
 			description.addProperty("dateCreated");
 			description.addProperty("creatorGivenName");
 			description.addProperty("creatorFamilyName");
@@ -369,18 +373,23 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 			        .property("preferredVendorName", new StringProperty()).property("purchasePrice", new DecimalProperty())
 			        .property("purchasePriceUoMUuid", new StringProperty())
 			        .property("purchasePriceUoMName", new StringProperty())
+			        .property("purchasePriceUoMFactor", new DecimalProperty())
 			        .property("dispensingUnitName", new StringProperty())
 			        .property("dispensingUnitUuid", new StringProperty())
 			        .property("dispensingUnitPackagingUoMUuid", new StringProperty())
 			        .property("dispensingUnitPackagingUoMName", new StringProperty())
+			        .property("dispensingUnitPackagingUoMFactor", new DecimalProperty())
 			        .property("defaultStockOperationsUoMUuid", new StringProperty())
 			        .property("defaultStockOperationsUoMName", new StringProperty())
+			        .property("defaultStockOperationsUoMFactor", new DecimalProperty())
 			        .property("categoryUuid", new StringProperty()).property("categoryName", new StringProperty())
 			        .property("dateCreated", new DateTimeProperty()).property("creatorGivenName", new StringProperty())
 			        .property("creatorFamilyName", new StringProperty()).property("voided", new BooleanProperty())
 			        .property("commonName", new StringProperty()).property("acronym", new StringProperty())
 			        .property("reorderLevel", new DecimalProperty()).property("reorderLevelUoMUuid", new StringProperty())
-			        .property("reorderLevelUoMName", new StringProperty()).property("expiryNotice", new IntegerProperty());
+			        .property("reorderLevelUoMName", new StringProperty())
+			        .property("reorderLevelUoMFactor", new DecimalProperty())
+			        .property("expiryNotice", new IntegerProperty());
 		}
 		if (rep instanceof DefaultRepresentation) {}
 		

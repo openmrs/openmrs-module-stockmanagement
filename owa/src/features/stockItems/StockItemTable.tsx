@@ -146,9 +146,9 @@ const StockItemTable: React.FC<StockItemTableProps> = ({
       retired: stockItem?.voided ? t("stockmanagement.yes") : t("stockmanagement.no"),
       isdrug: stockItem?.drugUuid ? t("stockmanagement.yes") : t("stockmanagement.no"),
       preferredVendorName: stockItem?.preferredVendorName,
-      defaultStockOperationsUoMName: stockItem?.defaultStockOperationsUoMName,
+      defaultStockOperationsUoMName: `${stockItem?.defaultStockOperationsUoMName} of ${stockItem?.defaultStockOperationsUoMFactor}`,
       dispensingUnitName: stockItem?.dispensingUnitName,
-      reorderLevel: stockItem?.reorderLevelUoMName && stockItem?.reorderLevel ? `${stockItem?.reorderLevel?.toLocaleString()} ${stockItem?.reorderLevelUoMName}` : "",
+      reorderLevel: stockItem?.reorderLevelUoMName && stockItem?.reorderLevel ? `${stockItem?.reorderLevel?.toLocaleString()} ${stockItem?.reorderLevelUoMName} of ${stockItem?.reorderLevelUoMFactor}` : "",
       details: <div className='tbl-expand-display-fields'>
         <div className='field-label'>
           <span className='field-title'>{t('stockmanagement.stockitem.edit.commonname')}</span>
