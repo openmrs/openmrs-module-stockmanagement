@@ -145,12 +145,12 @@ const ReceiveItemsTable: React.FC<ReceiveItemTableProps> = ({
                                             key={row.uuid}>
                                             <TableCell><Link target={"_blank"} to={URL_STOCK_ITEM(row?.stockItemUuid!)}>{`${row?.stockItemName}`}</Link></TableCell>
                                             <TableCell>
-                                                {row?.quantityRequested?.toLocaleString() ?? ""} {row?.quantityRequestedPackagingUOMName ?? ""}
+                                                {row?.quantityRequestedPackagingUOMName ? `${row.quantityRequestedPackagingUOMName} ${row?.quantityRequestedPackagingUOMFactor ?` of ${row?.quantityRequestedPackagingUOMFactor}`: ""}` : ""}
                                             </TableCell>
                                             <TableCell>{row?.batchNo}</TableCell>
                                             <TableCell>{formatForDatePicker(row?.expiration)}</TableCell>
                                             <TableCell>
-                                                {row?.quantity?.toLocaleString()} {row?.stockItemPackagingUOMName}
+                                                {row?.quantity?.toLocaleString()} {row?.stockItemPackagingUOMName ? `${row.stockItemPackagingUOMName} ${row?.stockItemPackagingUOMFactor ?` of ${row?.stockItemPackagingUOMFactor}`: ""}` : ""}
                                             </TableCell>
                                             <TableCell>
                                                 {/* {canReceiveItems && <NumberInput size='sm' id={`qty-${row.uuid}`} allowEmpty={false}
@@ -176,7 +176,7 @@ const ReceiveItemsTable: React.FC<ReceiveItemTableProps> = ({
                                                     </Select>
                                                 }
                                                 {!canReceiveItems && row?.quantityReceivedPackagingUOMName} */}
-                                                {row?.quantityReceivedPackagingUOMName}
+                                                {row?.quantityReceivedPackagingUOMName ? `${row.quantityReceivedPackagingUOMName} ${row?.quantityReceivedPackagingUOMFactor ?` of ${row?.quantityReceivedPackagingUOMFactor}`: ""}` : ""}
                                             </TableCell>
                                         </TableRow>
                                     )
