@@ -61,7 +61,7 @@ const StockItemBatchInformationTable: React.FC<StockItemBatchInformationTablePro
       location: row?.partyName,
       quantity: row?.quantity?.toLocaleString() ?? "",
       batchno: row.batchNumber ?? "",
-      quantityuom: `${row.quantityUoM ?? ""} of  ${row.quantityFactor ?? ""}`
+      quantityuom: `${row?.quantityUoM ? `${row.quantityUoM} ${row?.quantityFactor ?` of ${row?.quantityFactor}`: ""}` : ""}`
     })) ?? [],
     [stockItemBatchInformation],
   );

@@ -549,7 +549,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                                 id="dispensingUnitPackagingUoMUuid" value={model.dispensingUnitPackagingUoMUuid ?? "placeholder-item"} onChange={onDispensingUnitPackagingUoMChange}>
                                 <SelectItem disabled hidden value="placeholder-item" text={t("stockmanagement.stockitem.edit.choosepackaginguom")} />
                                 {packagingUnits?.map(uom => {
-                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom.packagingUomName ?? ""} - ${uom.factor ?? ""}`} />
+                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom?.packagingUomName ? `${uom.packagingUomName} ${uom?.factor ?` - ${uom?.factor}`: ""}` : ""}`} />
                                 })}
                             </Select>
                         }
@@ -575,7 +575,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                                 id="defaultStockOperationsUoMUuid" value={model.defaultStockOperationsUoMUuid ?? "placeholder-item"} onChange={onDefaultStockOperationsUoMChange}>
                                 <SelectItem disabled hidden value="placeholder-item" text={t("stockmanagement.stockitem.edit.choosepackaginguom")} />
                                 {packagingUnits?.map(uom => {
-                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom.packagingUomName ?? ""} - ${uom.factor ?? ""}`} />
+                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom?.packagingUomName ? `${uom.packagingUomName} ${uom?.factor ?` - ${uom?.factor}`: ""}` : ""}`} />
                                 })}
                             </Select>
                         }
@@ -610,7 +610,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                                 id="reorderLevelUoMUuid" value={model.reorderLevelUoMUuid ?? "placeholder-item"} onChange={onReorderLevelUoMChange}>
                                 <SelectItem value="placeholder-item" text={t("stockmanagement.notset")} />
                                 {packagingUnits?.map(uom => {
-                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom.packagingUomName ?? ""} - ${uom.factor ?? ""}`} />
+                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom?.packagingUomName ? `${uom.packagingUomName} ${uom?.factor ?` - ${uom?.factor}`: ""}` : ""}`} />
                                 })}
                             </Select>
                         }
@@ -645,7 +645,7 @@ export const EditStockItem: React.FC<EditStockItemProps> = ({
                                 id="purchasePriceUoMUuid" value={model.purchasePriceUoMUuid ?? "placeholder-item"} onChange={onPurchasePriceUoMChange}>
                                 <SelectItem value="placeholder-item" text={t("stockmanagement.notset")} />
                                 {packagingUnits?.map(uom => {
-                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom.packagingUomName ?? ""} - ${uom.factor ?? ""}`} />
+                                    return <SelectItem key={uom.uuid} value={uom.uuid} text={`${uom?.packagingUomName ? `${uom.packagingUomName} ${uom?.factor ?` - ${uom?.factor}`: ""}` : ""}`} />
                                 })}
                             </Select>
                         }
