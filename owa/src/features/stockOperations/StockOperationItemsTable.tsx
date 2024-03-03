@@ -638,7 +638,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                 {canEdit && <ComboBox titleText="" size='sm' id={`quantityuom-${row.uuid}`}
                                                     initialSelectedItem={(row?.stockItemPackagingUOMUuid) ? {
                                                         uuid: row?.stockItemPackagingUOMUuid,
-                                                        display: (row?.stockItemPackagingUOMName)+"-"+(row?.stockItemPackagingUOMFactor)
+                                                        display: `${row?.stockItemPackagingUOMName ? `${row.stockItemPackagingUOMName} ${row?.stockItemPackagingUOMFactor ?` - ${row?.stockItemPackagingUOMFactor}`: ""}` : ""}`
                                                     } as any : null}
 
                                                     //items={row?.stockItemPackagingUOMUuid ? [...((row.stockItemUuid in itemUoM && itemUoM[row.stockItemUuid] && itemUoM[row.stockItemUuid].some(x => x.uuid === row.stockItemPackagingUOMUuid)) ? [] : [{ uuid: row?.stockItemPackagingUOMUuid, display: row?.stockItemPackagingUOMName }]), ...(row.packagingUnits ?? (row.stockItemUuid && (row.stockItemUuid in itemUoM) ? itemUoM[row.stockItemUuid] : null) ?? [])] : (row.packagingUnits ?? (row.stockItemUuid && (row.stockItemUuid in itemUoM) ? itemUoM[row.stockItemUuid] : null) ?? [])}
@@ -648,11 +648,12 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                     onToggleClick={(e => handleStockItemPackagingUoMsSearch(row, ""))}
                                                     shouldFilterItem={(data) => true}
                                                     onInputChange={(q) => handleStockItemPackagingUoMsSearch(row, q)}
-                                                    itemToString={item => (item?.display ?? item?.packagingUomName ?? '')+"-"+(item?.factor ?? '')}
+                                                    itemToString={item => `${item?.packagingUomName ? `${item.packagingUomName} ${item?.factor ?` - ${item?.factor}`: ""}` : ""}`}
+
                                                     placeholder={'Filter...'}
                                                     invalid={(row.uuid in errors) && ("stockItemPackagingUOMUuid" in errors[row.uuid]) && !errors[row.uuid]["stockItemPackagingUOMUuid"]}
                                                 />}
-                                                {!canEdit && (row?.stockItemPackagingUOMName)+"-"+(row?.stockItemPackagingUOMFactor)}
+                                                {!canEdit && `${row?.stockItemPackagingUOMName ? `${row.stockItemPackagingUOMName} ${row?.stockItemPackagingUOMFactor ?` - ${row?.stockItemPackagingUOMFactor}`: ""}` : ""}`}
                                             </TableCell>
                                             {canCapturePurchasePrice && <TableCell>
                                                 {canEdit && <NumberInput size='sm'
