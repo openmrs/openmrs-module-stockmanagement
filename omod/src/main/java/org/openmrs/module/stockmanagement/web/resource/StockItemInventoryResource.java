@@ -371,6 +371,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			description.addProperty("batchNumber");
 			description.addProperty("quantity");
 			description.addProperty("quantityUoM");
+			description.addProperty("quantityFactor");
 			description.addProperty("quantityUoMUuid");
 			description.addProperty("expiration");
 			description.addProperty("commonName");
@@ -406,10 +407,10 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			        .property("drugStrength", new StringProperty()).property("conceptId", new StringProperty())
 			        .property("conceptUuid", new StringProperty()).property("stockBatchUuid", new StringProperty())
 			        .property("batchNumber", new StringProperty()).property("quantity", new DecimalProperty())
-			        .property("quantityUoM", new StringProperty()).property("quantityUoMUuid", new StringProperty())
-			        .property("expiration", new DateTimeProperty()).property("commonName", new StringProperty())
-			        .property("acronym", new StringProperty()).property("drugName", new StringProperty())
-			        .property("conceptName", new StringProperty());
+			        .property("quantityUoM", new StringProperty()).property("quantityFactor", new DecimalProperty())
+			        .property("quantityUoMUuid", new StringProperty()).property("expiration", new DateTimeProperty())
+			        .property("commonName", new StringProperty()).property("acronym", new StringProperty())
+			        .property("drugName", new StringProperty()).property("conceptName", new StringProperty());
 			
 		}
 		if (rep instanceof DefaultRepresentation) {

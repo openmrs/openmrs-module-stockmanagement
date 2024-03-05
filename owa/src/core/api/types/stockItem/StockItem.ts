@@ -33,11 +33,14 @@ export interface StockItemDTO {
     dispensingUnitUuid: string | null | undefined;
     dispensingUnitPackagingUoMUuid: string | null | undefined;
     dispensingUnitPackagingUoMName: string | null | undefined;
+    dispensingUnitPackagingUoMFactor: string | null | undefined;
     defaultStockOperationsUoMUuid: string | null | undefined;
     defaultStockOperationsUoMName: string | null | undefined;
+    defaultStockOperationsUoMFactor: string | null | undefined;
     reorderLevel: number | null | undefined;
     reorderLevelUoMUuid: string | null | undefined;
     reorderLevelUoMName: string | null | undefined;
+    reorderLevelUoMFactor: string | null | undefined;
     dateCreated: Date | null | undefined;
     creatorGivenName: string | null | undefined;
     creatorFamilyName: string | null | undefined;
