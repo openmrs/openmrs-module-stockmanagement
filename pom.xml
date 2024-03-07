@@ -17,9 +17,9 @@
     <url>https://wiki.openmrs.org/x/FQ4z</url>
 
     <scm>
-        <connection>scm:git:git@github.com:METS-Programme/openmrs-module-ugandaemr-commodity.git</connection>
-        <developerConnection>scm:git:git@github.com:METS-Programme/openmrs-module-ugandaemr-commodity.git</developerConnection>
-        <url>scm:git:https://github.com/METS-Programme/openmrs-module-ugandaemr-commodity</url>
+        <connection>scm:git:git@github.com:openmrs/openmrs-module-stockmanagement.git</connection>
+        <developerConnection>scm:git:git@github.com:openmrs/openmrs-module-stockmanagement.git</developerConnection>
+        <url>scm:git:https://github.com/openmrs/openmrs-module-stockmanagement.git</url>
       <tag>HEAD</tag>
   </scm>
 
