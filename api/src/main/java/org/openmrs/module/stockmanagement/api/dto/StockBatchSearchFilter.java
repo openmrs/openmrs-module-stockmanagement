@@ -20,6 +20,10 @@ public class StockBatchSearchFilter {
 	
 	private Integer limit;
 	
+	private String locationUuid;
+
+	private Boolean excludeEmptyStock;
+
 	public Integer getStockItemId() {
 		return stockItemId;
 	}
@@ -82,5 +86,21 @@ public class StockBatchSearchFilter {
 	
 	public void setExcludeExpired(Boolean excludeExpired) {
 		this.excludeExpired = excludeExpired;
+	}
+
+	public String getLocationUuid() {
+		return locationUuid;
+	}
+
+	public void setLocationUuid(String locationUuid) {
+		this.locationUuid = locationUuid;
+	}
+
+	public Boolean getExcludeEmptyStock() {
+		return excludeEmptyStock;
+	}
+
+	public void setExcludeEmptyStock(Boolean excludeEmptyStock) {
+		this.excludeEmptyStock = excludeEmptyStock;
 	}
 }
