@@ -600,7 +600,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                         onToggleClick={(e => handleStockBatchSearch(row, ""))}
                                                         shouldFilterItem={(data) => true}
                                                         onInputChange={(q) => handleStockBatchSearch(row, q)}
-                                                        itemToString={item => `${item?.batchNo ? `${item.batchNo} ${item?.expiration ?` - ${formatForDatePicker(item?.expiration)}`: ""} ${item?.quantity ?` - ${item?.quantity}`: ""}` : ""}`}
+                                                        itemToString={item => `${item?.batchNo ? `${item.batchNo} ${item?.expiration ?` - ${formatForDatePicker(item?.expiration)}`: ""}` : ""}`}
                                                         placeholder={'Filter...'}
                                                         invalid={(row.uuid in errors) && ("stockBatchUuid" in errors[row.uuid]) && !errors[row.uuid]["stockBatchUuid"]} />
                                                 }
