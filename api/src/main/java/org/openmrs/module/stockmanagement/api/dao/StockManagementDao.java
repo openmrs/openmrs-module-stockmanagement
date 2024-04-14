@@ -1509,36 +1509,32 @@ public class StockManagementDao extends DaoBase {
 
                     if (filter.getIncludePackagingUnitName()) {
                         Optional<ConceptNameDTO> conceptNameDTO = null;
-                        if (stockOperationItemDTO.getPackagingUoMId() != null) {
+                        if (stockOperationItemDTO.getPackagingUoMId() != null && stockOperationItemDTO.getStockItemPackagingUOMUuid()!=null) {
                             conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockOperationItemDTO.getPackagingUoMId())).findFirst();
                             if (conceptNameDTO.isPresent()) {
                                 stockOperationItemDTO.setStockItemPackagingUOMName(conceptNameDTO.get().getName());
                             }
 
-                            BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockOperationItemDTO.getStockItemPackagingUOMUuid()).getFactor();
+							BigDecimal factor = getStockItemPackagingUOMByUuid(stockOperationItemDTO.getStockItemPackagingUOMUuid()).getFactor();
 
-                            stockOperationItemDTO.setStockItemPackagingUOMFactor(factor);
+							stockOperationItemDTO.setStockItemPackagingUOMFactor(factor);
                         }
 
-                        if (stockOperationItemDTO.getQuantityReceivedPackagingUOMUoMId() != null) {
+                        if (stockOperationItemDTO.getQuantityReceivedPackagingUOMUoMId() != null && stockOperationItemDTO.getQuantityReceivedPackagingUOMUuid()!=null) {
                             conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockOperationItemDTO.getQuantityReceivedPackagingUOMUoMId())).findFirst();
                             if (conceptNameDTO.isPresent()) {
                                 stockOperationItemDTO.setQuantityReceivedPackagingUOMName(conceptNameDTO.get().getName());
                             }
-
-							BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockOperationItemDTO.getQuantityReceivedPackagingUOMUuid()).getFactor();
-
+							BigDecimal factor = getStockItemPackagingUOMByUuid(stockOperationItemDTO.getQuantityReceivedPackagingUOMUuid()).getFactor();
 							stockOperationItemDTO.setQuantityReceivedPackagingUOMFactor(factor);
                         }
 
-                        if (stockOperationItemDTO.getQuantityRequestedPackagingUOMUoMId() != null) {
+                        if (stockOperationItemDTO.getQuantityRequestedPackagingUOMUoMId() != null && stockOperationItemDTO.getQuantityRequestedPackagingUOMUuid()!=null) {
                             conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockOperationItemDTO.getQuantityRequestedPackagingUOMUoMId())).findFirst();
                             if (conceptNameDTO.isPresent()) {
                                 stockOperationItemDTO.setQuantityRequestedPackagingUOMName(conceptNameDTO.get().getName());
                             }
-
-							BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockOperationItemDTO.getQuantityReceivedPackagingUOMUuid()).getFactor();
-
+							BigDecimal factor = getStockItemPackagingUOMByUuid(stockOperationItemDTO.getQuantityRequestedPackagingUOMUuid()).getFactor();
 							stockOperationItemDTO.setQuantityRequestedPackagingUOMFactor(factor);
                         }
                     }
@@ -3208,13 +3204,13 @@ public class StockManagementDao extends DaoBase {
 
             for (StockItemTransactionDTO stockItemTransactionDTO : result.getData()) {
 
-                if (stockItemTransactionDTO.getPackagingUoMId() != null) {
+                if (stockItemTransactionDTO.getPackagingUoMId() != null && stockItemTransactionDTO.getStockItemPackagingUOMUuid() != null) {
                     Optional<ConceptNameDTO> conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockItemTransactionDTO.getPackagingUoMId())).findFirst();
                     if (conceptNameDTO.isPresent()) {
                         stockItemTransactionDTO.setPackagingUomName(conceptNameDTO.get().getName());
                     }
 
-					BigDecimal factor = Context.getService(StockManagementService.class).getStockItemPackagingUOMByUuid(stockItemTransactionDTO.getStockItemPackagingUOMUuid()).getFactor();
+					BigDecimal factor = getStockItemPackagingUOMByUuid(stockItemTransactionDTO.getStockItemPackagingUOMUuid()).getFactor();
 
 					stockItemTransactionDTO.setPackagingUomFactor(factor);
                 }
