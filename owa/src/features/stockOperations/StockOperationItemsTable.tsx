@@ -309,7 +309,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
             })
 
     }
-        , 300), [getStockBatchesQuery, itemBatchNos, noItemBatchNos, t, allowExpiredBatchNumbers]);
+        , 300), [getStockBatchesQuery,atLocation,itemBatchNos, noItemBatchNos, t, allowExpiredBatchNumbers]);
 
     const onBatchNoChange = (row: any, evt: React.ChangeEvent<HTMLInputElement>) => {
         if (canEdit) {
