@@ -287,7 +287,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
 
         if (row && row.batchNo && searchTerm === row.batchNo) return;
 
-        getStockBatchesQuery({ startIndex: 0, v: ResourceRepresentation.Default, limit: 100, q: searchTerm, stockItemUuid: stockItemUuid, excludeExpired: !allowExpiredBatchNumbers })
+        getStockBatchesQuery({ startIndex: 0, v: ResourceRepresentation.Default, limit: 100, q: searchTerm, stockItemUuid: stockItemUuid, excludeExpired: !allowExpiredBatchNumbers, locationUuid:atLocation, excludeEmptyStock: true})
             .unwrap().then(
                 (payload: any) => {
                     if ((payload as any).error) {
@@ -309,7 +309,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
             })
 
     }
-        , 300), [getStockBatchesQuery, itemBatchNos, noItemBatchNos, t, allowExpiredBatchNumbers]);
+        , 300), [getStockBatchesQuery,atLocation,itemBatchNos, noItemBatchNos, t, allowExpiredBatchNumbers]);
 
     const onBatchNoChange = (row: any, evt: React.ChangeEvent<HTMLInputElement>) => {
         if (canEdit) {
