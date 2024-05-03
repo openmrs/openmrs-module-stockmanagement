@@ -20,7 +20,7 @@
         <property name="target">
             <bean class="org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl">
                 <property name="dao">
-                    <bean class="org.openmrs.module.stockmanagement.api.dao.StockManagementDao">
+                    <bean class="${project.parent.groupId}.${project.parent.artifactId}.api.dao.StockManagementDao">
                         <property name="sessionFactory">
                             <ref bean="dbSessionFactory" />
                         </property>
