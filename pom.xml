@@ -30,7 +30,6 @@
         -->
         <openmrsPlatformVersion>2.4.3</openmrsPlatformVersion>
         <javaCompilerVersion>1.8</javaCompilerVersion>
-        <dataexchangeVersion>1.3.3</dataexchangeVersion>
         <webservicesRestVersion>2.32.0</webservicesRestVersion>
     </properties>
 
@@ -78,18 +77,6 @@
             <!-- End OpenMRS core -->
 
             <!-- Importing versions from refapp distro -->
-            <dependency>
-                <groupId>org.openmrs.module</groupId>
-                <artifactId>dataexchange-omod</artifactId>
-                <version>${dataexchangeVersion}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.openmrs.module</groupId>
-                <artifactId>dataexchange-api</artifactId>
-                <version>${dataexchangeVersion}</version>
-                <scope>provided</scope>
-            </dependency>
             <dependency>
                 <groupId>org.openmrs.module</groupId>
                 <artifactId>webservices.rest-omod</artifactId>

@@ -45,11 +45,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.openmrs.module</groupId>
-            <artifactId>dataexchange-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
             <version>2.10.6</version>
