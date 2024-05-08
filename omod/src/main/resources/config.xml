@@ -8,9 +8,9 @@
     <version>${project.parent.version}</version>
     <package>org.openmrs.module.stockmanagement</package>
     <author>METS Program</author>
-    <dçescription>
+    <description>
         ${project.parent.description}
-    </dçescription>
+    </description>
 
     <activator>org.openmrs.module.stockmanagement.StockManagementActivator</activator>
 
