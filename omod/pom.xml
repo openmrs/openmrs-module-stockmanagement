@@ -17,35 +17,53 @@
             <artifactId>${project.parent.artifactId}-api</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+
+        <!-- Begin OpenMRS core -->
+
+        <dependency>
+            <groupId>org.openmrs.api</groupId>
+            <artifactId>openmrs-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.openmrs.web</groupId>
             <artifactId>openmrs-web</artifactId>
             <scope>provided</scope>
         </dependency>
+
         <dependency>
             <groupId>org.openmrs.web</groupId>
             <artifactId>openmrs-web</artifactId>
             <scope>provided</scope>
             <classifier>tests</classifier>
         </dependency>
-        <dependency>
-            <groupId>org.openmrs.module</groupId>
-            <artifactId>uiframework-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
+
+        <!-- End OpenMRS core -->
+
         <dependency>
             <groupId>org.openmrs.module</groupId>
             <artifactId>webservices.rest-omod</artifactId>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.openmrs.module</groupId>
-            <artifactId>appframework-api</artifactId>
-        </dependency>
     </dependencies>
 
     <build>
         <finalName>${project.parent.artifactId}-${project.parent.version}</finalName>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+                <filtering>true</filtering>
+            </testResource>
+        </testResources>
 
         <plugins>
             <plugin>
@@ -56,7 +74,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
-
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
         </plugins>
     </build>
 

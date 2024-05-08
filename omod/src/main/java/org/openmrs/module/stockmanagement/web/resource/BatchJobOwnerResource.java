@@ -2,41 +2,21 @@ package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
-import io.swagger.models.properties.*;
+import io.swagger.models.properties.DateTimeProperty;
 import io.swagger.models.properties.StringProperty;
-import org.apache.commons.lang.StringUtils;
-import org.openmrs.Location;
-import org.openmrs.api.context.Context;
-import io.swagger.models.properties.*;
-import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.appframework.service.AppFrameworkService;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
-import org.openmrs.module.stockmanagement.api.Privileges;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
-import org.openmrs.module.stockmanagement.api.dto.*;
-import org.openmrs.module.stockmanagement.api.model.*;
-import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.stockmanagement.api.dto.BatchJobOwnerDTO;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
-import org.openmrs.module.webservices.rest.web.annotation.PropertyGetter;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
-import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.representation.DefaultRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.FullRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
+import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
-import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
-import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingCrudResource;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
-import org.openmrs.module.webservices.rest.web.resource.impl.NeedsPaging;
-import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/batchjobowner", supportedClass = BatchJobOwnerDTO.class, supportedOpenmrsVersions = {
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })

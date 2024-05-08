@@ -35,7 +35,6 @@ public class StockManagementActivator extends BaseModuleActivator {
 			List<StartupTask> startUpTasks = new ArrayList<>();
 			startUpTasks.add(new LocationTagsSynchronize());
 			startUpTasks.add(new LocationTreeSynchronize());
-			startUpTasks.add(new DataImport());
 			startUpTasks.add(new PartySynchronize());
 			startUpTasks.sort(Comparator.comparing(StartupTask::getPriority));
 
