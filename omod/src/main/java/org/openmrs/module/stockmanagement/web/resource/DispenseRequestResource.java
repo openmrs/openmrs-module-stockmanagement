@@ -95,7 +95,7 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
         }
 
         if (dispenseItem.get("encounter") != null) {
-            encounter = Context.getEncounterService().getEncounterByUuid(dispenseItem.get("patient").toString());
+            encounter = Context.getEncounterService().getEncounterByUuid(dispenseItem.get("encounter").toString());
         }
 
         if (dispenseItem.get("order") != null) {
