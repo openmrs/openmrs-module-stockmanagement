@@ -52,6 +52,17 @@ public class StockBatchResource extends ResourceBase<StockBatch> {
 			filter.setExcludeExpired(excludeExpired);
 		}
 		
+		param = context.getParameter("locationUuid");
+		if (StringUtils.isNotBlank(param)) {
+			filter.setLocationUuid(param);
+		}
+
+		param = context.getParameter("excludeEmptyStock");
+		if (StringUtils.isNotBlank(param)) {
+			boolean excludeEmptyStock = param.equalsIgnoreCase("true") || param.equalsIgnoreCase("1");
+			filter.setExcludeEmptyStock(excludeEmptyStock && StringUtils.isNotBlank(filter.getLocationUuid()));
+		}
+
 		filter.setIncludeVoided(context.getIncludeAll());
 		Result<StockBatchDTO> result = getStockManagementService().findStockBatches(filter);
 		return toAlreadyPaged(result, context);

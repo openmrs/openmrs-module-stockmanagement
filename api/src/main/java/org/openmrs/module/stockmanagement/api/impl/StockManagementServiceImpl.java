@@ -1412,7 +1412,32 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     public Result<StockBatchDTO> findStockBatches(StockBatchSearchFilter filter) {
-        return dao.findStockBatches(filter);
+        Result<StockBatchDTO> stockBatchDTOResult = dao.findStockBatches(filter);
+        if (!stockBatchDTOResult.getData().isEmpty() && !StringUtils.isBlank(filter.getLocationUuid())) {
+            Location location = Context.getLocationService().getLocationByUuid(filter.getLocationUuid());
+            if (location == null)
+                return new Result<>(new ArrayList<>(), 0);
+
+            Party party = getPartyByLocation(location);
+            if (party == null)
+                return new Result<>(new ArrayList<>(), 0);
+
+            List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = stockBatchDTOResult.getData().stream().map(p ->
+            {
+                StockItemInventorySearchFilter.ItemGroupFilter k = new StockItemInventorySearchFilter.ItemGroupFilter();
+                k.setStockItemUuid(filter.getStockItemUuid());
+                k.setStockBatchIds(Arrays.asList(p.getId()));
+                k.setPartyIds(Arrays.asList(party.getId()));
+                return k;
+            }).collect(Collectors.toList());
+
+            StockItemInventorySearchFilter searchFilter = new StockItemInventorySearchFilter();
+            searchFilter.setItemGroupFilters(itemsToSearch);
+            List<StockItemInventory> stockItemInventories = dao.getStockItemInventory(searchFilter, null).getData();
+            stockBatchDTOResult.setData(stockBatchDTOResult.getData().stream().filter(p -> stockItemInventories.stream().anyMatch(x -> x.getStockBatchId().equals(p.getId()) && (!filter.getExcludeEmptyStock() || x.getQuantity().compareTo(BigDecimal.ZERO) > 0))).collect(Collectors.toList()));
+        }
+
+        return stockBatchDTOResult;
     }
 
     public StockOperationItem getStockOperationItemByUuid(String uuid) {

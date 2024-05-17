@@ -61,7 +61,9 @@ export interface StockItemReferenceFilter extends ResourceFilterCriteria {
 
 export interface StockBatchFilter extends ResourceFilterCriteria {
   stockItemUuid?: string | null | undefined;
+  locationUuid?: string | null;
   excludeExpired?: boolean | null;
+  excludeEmptyStock: boolean | null;
 }
 
 export interface StockInventoryResult extends PageableResult<StockItemInventory> {
