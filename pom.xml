@@ -9,7 +9,7 @@
 
     <groupId>org.openmrs.module</groupId>
     <artifactId>stockmanagement</artifactId>
-    <version>1.4.0</version>
+    <version>1.4.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Stock Management</name>
     <description>This module supports stock management of medical supplies at health facilities with in Uganda.</description>
@@ -20,7 +20,7 @@
         <connection>scm:git:git@github.com:openmrs/openmrs-module-stockmanagement.git</connection>
         <developerConnection>scm:git:git@github.com:openmrs/openmrs-module-stockmanagement.git</developerConnection>
         <url>scm:git:https://github.com/openmrs/openmrs-module-stockmanagement.git</url>
-      <tag>1.4.0</tag>
+      <tag>HEAD</tag>
   </scm>
 
     <modules>
