@@ -104,8 +104,8 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
 
         if (patient != null && order != null && encounter != null) {
             dispenseRequest.setPatientId(patient.getPatientId());
-            dispenseRequest.setOrderId(Integer.parseInt(dispenseItem.get("order").toString()));
-            dispenseRequest.setEncounterId(Integer.parseInt(dispenseItem.get("encounter").toString()));
+            dispenseRequest.setOrderId(order.getOrderId());
+            dispenseRequest.setEncounterId(encounter.getEncounterId());
         } else {
             throw new IllegalArgumentException("patient,order,and encounter can not be null");
         }
