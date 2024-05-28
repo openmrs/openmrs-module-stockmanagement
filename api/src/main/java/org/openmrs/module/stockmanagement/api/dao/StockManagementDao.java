@@ -1091,7 +1091,7 @@ public class StockManagementDao extends DaoBase {
 	public void voidStockItemPackagingUOM(String uuid, String reason, int voidedBy) {
 		DbSession session = getSession();
 		Query query = session
-		        .createQuery("UPDATE stockmanagement.StockItemPackagingUOM SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid)");
+		        .createQuery("UPDATE stockmanagement.StockItemPackagingUOM SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid");
 		query.setParameter("uuid", uuid);
 		query.setDate("dateVoided", new Date());
 		query.setInteger("voidedBy", voidedBy);
@@ -1102,7 +1102,7 @@ public class StockManagementDao extends DaoBase {
 	public void voidStockItemReference(String uuid, String reason, int voidedBy) {
 		DbSession session = getSession();
 		Query query = session
-		        .createQuery("UPDATE stockmanagement.StockItemReference SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid)");
+		        .createQuery("UPDATE stockmanagement.StockItemReference SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid");
 		query.setParameter("uuid", uuid);
 		query.setDate("dateVoided", new Date());
 		query.setInteger("voidedBy", voidedBy);
