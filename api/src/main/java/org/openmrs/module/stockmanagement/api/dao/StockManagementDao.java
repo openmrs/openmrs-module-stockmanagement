@@ -1012,7 +1012,7 @@ public class StockManagementDao extends DaoBase {
 	
 	public List<ConceptNameDTO> getConceptNamesByConceptIds(List<Integer> ids) {
         if (ids == null || ids.isEmpty()) return new ArrayList<>();
-        Query query = getSession().createQuery("select cc.concept.conceptId as conceptId, cc.name as name from ConceptName cc where cc.concept.conceptId in (:ids) and cc.conceptNameType = (:cnt)")
+        Query query = getSession().createQuery("select cc.concept.conceptId as conceptId, cc.name as name, cc.locale as locale from ConceptName cc where cc.concept.conceptId in (:ids) and cc.conceptNameType = (:cnt)")
                 .setParameterList("ids", ids)
                 .setParameter("cnt", ConceptNameType.FULLY_SPECIFIED);
         query = query.setResultTransformer(new AliasToBeanResultTransformer(ConceptNameDTO.class));
@@ -1395,10 +1395,16 @@ public class StockManagementDao extends DaoBase {
             }
             List<ConceptNameDTO> conceptNameDTOs = getConceptNamesByConceptIds(conceptIdsToFetch);
             for (StockItemPackagingUOMDTO stockItemPackagingUOMDTO : result.getData()) {
-                Optional<ConceptNameDTO> conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getPackagingUomId())).findFirst();
-                if (conceptNameDTO.isPresent()) {
+                Optional<ConceptNameDTO> conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getPackagingUomId())
+				&& p.getLocale().getDisplayName().equals(Context.getLocale().getDisplayName())).findFirst();
+				if (conceptNameDTO.isPresent()) {
                     stockItemPackagingUOMDTO.setPackagingUomName(conceptNameDTO.get().getName());
-                }
+                } else {
+					conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getPackagingUomId())).findFirst();
+					if(conceptNameDTO.isPresent()){
+						stockItemPackagingUOMDTO.setPackagingUomName(conceptNameDTO.get().getName());
+					}
+				}
                 if (filter.includingDispensingUnit() && stockItemPackagingUOMDTO.getStockItemDispensingUnitId() != null) {
                     conceptNameDTO = conceptNameDTOs.stream().filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getStockItemDispensingUnitId())).findFirst();
                     if (conceptNameDTO.isPresent()) {
