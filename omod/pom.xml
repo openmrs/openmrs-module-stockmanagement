@@ -43,6 +43,16 @@
 
         <dependency>
             <groupId>org.openmrs.module</groupId>
+            <artifactId>fhir2-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openmrs.fhir</groupId>
+            <artifactId>fhir-structures-backport-r4</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openmrs.module</groupId>
             <artifactId>webservices.rest-omod</artifactId>
             <scope>provided</scope>
         </dependency>

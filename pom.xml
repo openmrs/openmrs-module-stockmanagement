@@ -1,4 +1,6 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.openmrs.module</groupId>
@@ -24,7 +26,8 @@
 
     <properties>
         <!--
-        changed this from 1.12.0 to 2.0.0 to support unit tests failing with error ASM ClassReader failed to parse class file
+        changed this from 1.12.0 to 2.0.0 to support unit tests failing with error ASM ClassReader failed
+        to parse class file
         https://talk.openmrs.org/t/how-can-i-fix-this-issue-failed-to-load-applicationcontext/33980/10
         -->
         <openmrsPlatformVersion>2.4.3</openmrsPlatformVersion>
@@ -74,6 +77,22 @@
             </dependency>
 
             <!-- End OpenMRS core -->
+
+            <!-- FHIR2 Dependencies -->
+
+            <dependency>
+                <groupId>org.openmrs.module</groupId>
+                <artifactId>fhir2-api</artifactId>
+                <version>2.2.0</version>
+                <scope>provided</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.openmrs.fhir</groupId>
+                <artifactId>fhir-structures-backport-r4</artifactId>
+                <version>1.0.0-SNAPSHOT</version>
+                <scope>provided</scope>
+            </dependency>
 
             <!-- Importing versions from refapp distro -->
             <dependency>
