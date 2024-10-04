@@ -24,7 +24,6 @@
             org.openmrs.module.webservices.rest
         </require_module>
         <require_module version="2.2.0">org.openmrs.module.fhir2</require_module>
-        <require_module version="2.2.0">org.openmrs.module.fhir2</require_module>
     </require_modules>
 
     <aware_of_modules>

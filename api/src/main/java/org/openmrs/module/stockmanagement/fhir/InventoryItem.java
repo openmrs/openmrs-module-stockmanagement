@@ -5,8 +5,9 @@ import org.hl7.fhir.r4.model.Identifier;
 import org.hl7.fhir.r4.model.Quantity;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.DomainResource;
-
 import org.openmrs.fhir.InventoryItem.InventoryItemStatusCodes;
+import ca.uhn.fhir.model.api.annotation.SearchParamDefinition;
+import ca.uhn.fhir.rest.gclient.TokenClientParam;
 
 import java.util.List;
 
@@ -15,6 +16,15 @@ public class InventoryItem extends DomainResource {
     private List<CodeableConcept> code;
     private Quantity netContent;
     private List<Identifier> identifier;
+
+    @SearchParamDefinition(name = "code", path = "InventoryItem.code", description = "Search for products that match this code", type = "token")
+    public static final String SP_CODE = "code";
+    
+    @SearchParamDefinition(name = "status", path = "InventoryItem.status", description = "The status of the item", type = "token")
+    public static final String SP_STATUS = "status";
+    
+    public static final TokenClientParam CODE = new TokenClientParam(SP_CODE);
+    public static final TokenClientParam STATUS = new TokenClientParam(SP_STATUS);
 
     // Getters and Setters
     public InventoryItemStatusCodes getStatus() {
@@ -59,16 +69,16 @@ public class InventoryItem extends DomainResource {
 
     @Override
     public ResourceType getResourceType() {
-        return ResourceType.Basic; // Replace with the appropriate ResourceType if available
+        return ResourceType.Basic;
     }
 
     @Override
     public InventoryItem copy() {
         InventoryItem copy = new InventoryItem();
         copy.status = this.status;
-        copy.code = this.code; // Assuming CodeableConcept is immutable or deep copy is not needed
-        copy.netContent = this.netContent; // Assuming Quantity is immutable or deep copy is not needed
-        copy.identifier = this.identifier; // Assuming Identifier is immutable or deep copy is not needed
+        copy.code = this.code;
+        copy.netContent = this.netContent;
+        copy.identifier = this.identifier;
         return copy;
     }
 }
