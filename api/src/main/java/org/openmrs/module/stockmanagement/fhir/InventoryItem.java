@@ -6,11 +6,13 @@ import org.hl7.fhir.r4.model.Quantity;
 import org.hl7.fhir.r4.model.ResourceType;
 import org.hl7.fhir.r4.model.DomainResource;
 import org.openmrs.fhir.InventoryItem.InventoryItemStatusCodes;
+
+import ca.uhn.fhir.model.api.annotation.ResourceDef;
 import ca.uhn.fhir.model.api.annotation.SearchParamDefinition;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 
 import java.util.List;
-
+@ResourceDef(name = "InventoryItem", profile = "http://hl7.org/fhir/StructureDefinition/InventoryItem")
 public class InventoryItem extends DomainResource {
     private InventoryItemStatusCodes status;
     private List<CodeableConcept> code;

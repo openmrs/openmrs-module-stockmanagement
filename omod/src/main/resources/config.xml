@@ -28,6 +28,7 @@
 
     <aware_of_modules>
         <aware_of_module>org.openmrs.module.legacyui</aware_of_module>
+        <aware_of_module>org.openmrs.fhir.fhir-structures-backport-r4</aware_of_module>
     </aware_of_modules>
 
 

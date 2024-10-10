@@ -10,6 +10,8 @@
     <context:component-scan base-package="org.openmrs.module.stockmanagement.web"/>
 
 	 <!-- Register InventoryItemService bean -->
+	 <bean id="inventoryItemProvider" class="org.openmrs.module.stockmanagement.web.resource.InventoryItemProvider"/>
 	 <bean id="inventoryItemService" class="org.openmrs.module.stockmanagement.api.impl.InventoryItemServiceImpl"/>
+	 <bean id="InventoryItemController" class="org.openmrs.module.stockmanagement.web.controller.InventoryItemController"/>
 
 </beans>
