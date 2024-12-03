@@ -16,7 +16,7 @@ import java.util.List;
 public class StockInventoryPageableResult extends AlreadyPaged<StockItemInventory> {
 	
 	private List<StockItemInventory> totals = null;
-	private double totalQuantities = 0;
+	private double totalQuantity = 0;
 	
 	public StockInventoryPageableResult(RequestContext context, List<StockItemInventory> results, boolean hasMoreResults) {
 		super(context, results, hasMoreResults);
@@ -36,14 +36,14 @@ public class StockInventoryPageableResult extends AlreadyPaged<StockItemInventor
 	    Long totalCount) {
 		super(context, results.getData(), hasMoreResults, totalCount);
         List<StockItemInventory> totals = results.getTotals();
-		totalQuantities = totals.get(0).getQuantity().doubleValue();
+		totalQuantity = totals.get(0).getQuantity().doubleValue();
 	}
 	
 	
 	@Override
 	public SimpleObject toSimpleObject(Converter preferredConverter) throws ResponseException {
 		SimpleObject result = super.toSimpleObject(preferredConverter);
-		result.add("total", totalQuantities);
+		result.add("total", totalQuantity);
 		return result;
 	}
 
