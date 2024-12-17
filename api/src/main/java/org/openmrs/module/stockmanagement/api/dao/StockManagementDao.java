@@ -3181,6 +3181,14 @@ public class StockManagementDao extends DaoBase {
             parameterList.putIfAbsent("odmx", filter.getTransactionDateMax());
         }
 
+        if (filter.getIsPatientTransaction() != null) {
+            if( filter.getIsPatientTransaction() == true) {
+                appendFilter(hqlFilter, "sit.patient.id is not null");
+            } else {
+                appendFilter(hqlFilter, "sit.patient.id is null");
+            }
+        }
+
         if (hqlFilter.length() > 0) {
             hqlQuery.append(" where ");
             hqlQuery.append(hqlFilter);
@@ -3191,6 +3199,7 @@ public class StockManagementDao extends DaoBase {
             result.setPageIndex(filter.getStartIndex());
             result.setPageSize(filter.getLimit());
         }
+        System.out.println("STOCK: executing query: " + hqlQuery);
         result.setData(executeQuery(StockItemTransactionDTO.class, hqlQuery, result, " order by sit.id desc", parameterList, parameterWithList));
 
         if (!result.getData().isEmpty()) {
@@ -3240,6 +3249,15 @@ public class StockManagementDao extends DaoBase {
                     if (party != null) {
                         stockItemTransactionDTO.setOperationDestinationPartyName(party.get(0).getName());
                     }
+                }
+                // stockItemTransactionDTO.setPatientId(1000);
+                Integer patientId = stockItemTransactionDTO.getPatientId();
+                System.out.println("Got patient id as: " + patientId);
+                if(patientId != null) {
+                    Patient patient = Context.getPatientService().getPatient(patientId);
+                    String patientUuid = patient.getUuid();
+                    System.out.println("Got patient uuid as: " + patientUuid);
+                    stockItemTransactionDTO.setPatientUuid(patientUuid);
                 }
             }
 

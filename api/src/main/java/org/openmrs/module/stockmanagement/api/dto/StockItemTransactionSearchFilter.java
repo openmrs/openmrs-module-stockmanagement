@@ -21,6 +21,8 @@ public class StockItemTransactionSearchFilter {
 	Date transactionDateMax;
 	
 	public Integer afterLastStockOperationId;
+
+	private Boolean isPatientTransaction;
 	
 	public String getUuid() {
 		return uuid;
@@ -93,4 +95,14 @@ public class StockItemTransactionSearchFilter {
 	public void setAfterLastStockOperationId(Integer afterLastStockOperationId) {
 		this.afterLastStockOperationId = afterLastStockOperationId;
 	}
+
+	public Boolean getIsPatientTransaction() {
+		return isPatientTransaction;
+	}
+
+	public void setIsPatientTransaction(Boolean isPatientTransaction) {
+		this.isPatientTransaction = isPatientTransaction;
+	}
+
+	
 }

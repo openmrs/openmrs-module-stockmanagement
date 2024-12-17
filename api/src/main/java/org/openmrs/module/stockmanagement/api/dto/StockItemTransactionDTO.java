@@ -19,6 +19,8 @@ public class StockItemTransactionDTO {
 	private String partyName;
 	
 	private Integer patientId;
+
+	private String patientUuid;
 	
 	private Integer orderId;
 	
@@ -266,5 +268,13 @@ public class StockItemTransactionDTO {
 	
 	public void setExpiration(Date expiration) {
 		this.expiration = expiration;
+	}
+
+	public String getPatientUuid() {
+		return patientUuid;
+	}
+
+	public void setPatientUuid(String patientUuid) {
+		this.patientUuid = patientUuid;
 	}
 }
