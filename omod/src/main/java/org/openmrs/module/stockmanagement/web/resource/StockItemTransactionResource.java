@@ -93,6 +93,15 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			}
 			filter.setTransactionDateMax(date);
 		}
+
+		param = context.getParameter("isPatientTransaction");
+		if (StringUtils.isNotBlank(param)) {
+			if(param.trim().equalsIgnoreCase("true")) {
+				filter.setIsPatientTransaction(true);
+			} else if(param.trim().equalsIgnoreCase("false")) {
+				filter.setIsPatientTransaction(false);
+			}
+		}
 		
 		StockManagementService stockManagementService = getStockManagementService();
 		Result<StockItemTransactionDTO> result = stockManagementService.findStockItemTransactions(filter);
@@ -142,7 +151,8 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			description.addProperty("packagingUomFactor");
 			description.addProperty("operationSourcePartyName");
 			description.addProperty("operationDestinationPartyName");
-			
+			description.addProperty("patientId");
+			description.addProperty("patientUuid");
 		}
 		
 		if (rep instanceof DefaultRepresentation) {
@@ -185,7 +195,10 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			        .property("packagingUomName", new StringProperty())
 			        .property("packagingUomFactor", new DecimalProperty())
 			        .property("operationSourcePartyName", new StringProperty())
-			        .property("operationDestinationPartyName", new StringProperty());
+			        .property("operationDestinationPartyName", new StringProperty())
+					.property("patientId", new IntegerProperty())
+					.property("patientUuid", new StringProperty())
+					;
 		}
 		if (rep instanceof DefaultRepresentation) {}
 		
