@@ -8,6 +8,7 @@
         for a list of supported elements and attributes
     -->
   <changeSet author="dev" id="stockmanagement-1758855877841-1">
+    <validCheckSum>9:e4f64dd52a6bf8ee3c17ccb406f110fc</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_batch" />
@@ -35,7 +36,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="date_voided" type="DATETIME" />
@@ -47,6 +48,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-2">
+    <validCheckSum>9:b45527348f8a34ce1c48be90c271b242</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_item" />
@@ -61,7 +63,7 @@
       </column>
       <column name="drug_id" type="INT" />
       <column name="concept_id" type="INT" />
-      <column defaultValueBoolean="false" name="has_expiration" type="BIT">
+      <column defaultValueBoolean="false" name="has_expiration" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="preferred_vendor_id" type="INT" />
@@ -72,7 +74,7 @@
       <column name="default_stock_operations_uom_id" type="INT" />
       <column name="common_name" type="VARCHAR(255)" />
       <column name="acronym" type="VARCHAR(255)" />
-      <column name="is_drug" type="BIT">
+      <column name="is_drug" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="reorder_level" type="DECIMAL(10,2)" />
@@ -85,7 +87,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="date_voided" type="DATETIME" />
@@ -97,6 +99,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-3">
+    <validCheckSum>9:8ebb34ec2c0838b227147f35768701bf</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_item_packaging_uom" />
@@ -122,7 +125,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="date_voided" type="DATETIME" />
@@ -176,6 +179,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-5">
+    <validCheckSum>9:7093211e94e82917ae2c815d98e3c053</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_reservation_transaction" />
@@ -213,7 +217,7 @@
       <column name="uuid" type="CHAR(38)">
         <constraints nullable="false" unique="true" />
       </column>
-      <column name="is_available" type="BIT" />
+      <column name="is_available" type="BOOLEAN" />
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-6">
@@ -244,6 +248,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-7">
+    <validCheckSum>9:07733f68cf4e5d56f0f4b1cc6bd7c384</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_operation" />
@@ -276,7 +281,7 @@
       <column name="source_id" type="INT" />
       <column name="destination_id" type="INT" />
       <column name="operation_order" type="INT" />
-      <column defaultValueBoolean="false" name="locked" type="BIT">
+      <column defaultValueBoolean="false" name="locked" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="completed_by" type="INT" />
@@ -286,7 +291,7 @@
       <column name="cancel_reason" type="VARCHAR(500)" />
       <column name="return_reason" type="VARCHAR(500)" />
       <column name="reject_reason" type="VARCHAR(500)" />
-      <column name="approval_required" type="BIT" />
+      <column name="approval_required" type="BOOLEAN" />
       <column name="responsible_person" type="INT" />
       <column name="responsible_person_other" type="VARCHAR(150)" />
       <column name="submitted_by" type="INT" />
@@ -305,7 +310,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -317,6 +322,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-8">
+    <validCheckSum>9:e1d55b6b4184f973b2d0fb5d13d08a3e</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_operation_link" />
@@ -343,7 +349,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -355,6 +361,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-9">
+    <validCheckSum>9:c18a9bcfabfcf0d6c3f8a1c4986f51f5</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_operation_item" />
@@ -390,7 +397,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="date_voided" type="DATETIME" />
@@ -402,6 +409,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-10">
+    <validCheckSum>9:5cf3021c21257356c27ec95852fac2ac</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_operation_type" />
@@ -421,12 +429,12 @@
       <column name="operation_type" type="VARCHAR(255)">
         <constraints nullable="false" />
       </column>
-      <column name="has_source" type="BIT" />
+      <column name="has_source" type="BOOLEAN" />
       <column name="source_type" type="VARCHAR(50)" />
-      <column name="has_destination" type="BIT" />
+      <column name="has_destination" type="BOOLEAN" />
       <column name="destination_type" type="VARCHAR(50)" />
       <column name="acronym" type="VARCHAR(10)" />
-      <column name="available_when_reserved" type="BIT" />
+      <column name="available_when_reserved" type="BOOLEAN" />
       <column defaultValueNumeric="0" name="creator" type="INT">
         <constraints nullable="false" />
       </column>
@@ -435,7 +443,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -447,6 +455,7 @@
     </createTable>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-11" author="dev">
+    <validCheckSum>9:866a9243a72d0d5e5eecccbf188af042</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_rule" />
@@ -469,7 +478,7 @@
       </column>
       <column name="quantity" type="DECIMAL(10,2)" />
       <column name="stock_item_packaging_uom_id" type="INT" />
-      <column name="enabled" type="BIT">
+      <column name="enabled" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="evaluation_frequency" type="BIGINT">
@@ -490,7 +499,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -502,6 +511,7 @@
     </createTable>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-12" author="dev">
+    <validCheckSum>9:6276b7676607a393d800bbe052de3151</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_user_role_scope" />
@@ -518,12 +528,12 @@
       <column name="role" type="VARCHAR(50)">
         <constraints nullable="false" />
       </column>
-      <column name="is_permanent" type="BIT">
+      <column name="is_permanent" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="active_from" type="DATETIME" />
       <column name="active_to" type="DATETIME" />
-      <column name="enabled" type="BIT">
+      <column name="enabled" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column defaultValueNumeric="0" name="creator" type="INT">
@@ -534,7 +544,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -546,6 +556,7 @@
     </createTable>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-13" author="dev">
+    <validCheckSum>9:f9cf8fb867f43e13bd43a56ab2ceef55</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_user_role_scope_location" />
@@ -562,7 +573,7 @@
       <column name="location_id" type="INT">
         <constraints nullable="false" />
       </column>
-      <column name="enable_descendants" type="BIT">
+      <column name="enable_descendants" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column defaultValueNumeric="0" name="creator" type="INT">
@@ -573,7 +584,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -585,6 +596,7 @@
     </createTable>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-14" author="dev">
+    <validCheckSum>9:aad03570220ad5fa3b2aeb6e96677513</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_user_role_scope_operation_type" />
@@ -609,7 +621,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -621,6 +633,7 @@
     </createTable>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-15" author="dev">
+    <validCheckSum>9:7eff4cad8ff7e82d7e33b6f7a624b424</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_party" />
@@ -641,7 +654,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -653,6 +666,7 @@
     </createTable>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-16" author="dev">
+    <validCheckSum>9:1d6704c64c752daf5c0f269067179168</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_operation_type_location_scope" />
@@ -669,10 +683,10 @@
       <column name="location_tag" type="VARCHAR(50)">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="is_source" type="BIT">
+      <column defaultValueBoolean="false" name="is_source" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="is_destination" type="BIT">
+      <column defaultValueBoolean="false" name="is_destination" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column defaultValueNumeric="0" name="creator" type="INT">
@@ -683,7 +697,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -695,6 +709,7 @@
     </createTable>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-17">
+    <validCheckSum>9:2272f7d648f02d8fa94277ef07dc132e</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_stock_source" />
@@ -724,7 +739,7 @@
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="voided_by" type="INT" />
@@ -2650,13 +2665,14 @@ $$
         </rollback>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-226" author="dev">
+    <validCheckSum>9:296a77f0141c52a9db4440239df7aa28</validCheckSum>
     <preConditions onFail="CONTINUE">
       <dbms type="postgresql" />
     </preConditions>
     <comment>
             Creating trigger stockmgmt_location_after_insert on location table
         </comment>
-    <sql><![CDATA[
+    <sql splitStatements="false"><![CDATA[
 DROP TRIGGER IF EXISTS stockmgmt_location_after_insert ON location;
 
 DROP FUNCTION IF EXISTS stockmgmt_location_after_insert();
@@ -2720,6 +2736,7 @@ $$
         </rollback>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-228" author="dev">
+    <validCheckSum>9:ab0ab7c6f1b967a0805309d0b929b468</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <and>
         <dbms type="postgresql" />
@@ -2728,7 +2745,7 @@ $$
     <comment>
             Creating trigger stockmgmt_location_before_update on location table
         </comment>
-    <sql><![CDATA[
+    <sql splitStatements="false"><![CDATA[
 DROP TRIGGER IF EXISTS stockmgmt_location_before_update ON location;
 
 DROP FUNCTION IF EXISTS stockmgmt_location_before_update();
@@ -2833,7 +2850,7 @@ $$
     <comment>
             Creating trigger stockmgmt_location_after_update on location table
         </comment>
-    <sql><![CDATA[
+    <sql splitStatements="false"><![CDATA[
 DROP TRIGGER IF EXISTS stockmgmt_location_after_update ON location;
 
 DROP FUNCTION IF EXISTS stockmgmt_location_after_update();
@@ -2937,7 +2954,7 @@ $$
     <comment>
             Creating trigger stockmgmt_location_after_delete on location table
         </comment>
-    <sql><![CDATA[
+    <sql splitStatements="false"><![CDATA[
 DROP TRIGGER IF EXISTS stockmgmt_location_after_delete ON location;
 
 DROP FUNCTION IF EXISTS stockmgmt_location_after_delete();
@@ -3091,6 +3108,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-241" author="dev">
+    <validCheckSum>9:f6e2e923c452ebc888fde5855e916b32</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3102,12 +3120,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting adjustment stock from the Main Store</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',1, 0,1,now(), '019f2d4b-2a56-11ed-9cab-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '019f2d4b-2a56-11ed-9cab-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='11111111-1111-1111-1111-111111111111'
+      WHERE uuid='11111111-1111-1111-1111-11111111111'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-242" author="dev">
+    <validCheckSum>9:06cceebe184c6807ab532c25305b885b</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3119,12 +3138,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting adjustment stock from the Main Pharmacy</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',1, 0,1,now(), 'f958ad0a-2a55-11ed-9cab-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), 'f958ad0a-2a55-11ed-9cab-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='11111111-1111-1111-1111-111111111111'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-243" author="dev">
+    <validCheckSum>9:25396675e8678e9494ee1ef91d89f8b4</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3136,7 +3156,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting adjustment stock from the Dispensary</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',1, 0,1,now(), '7228d114-2abc-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '7228d114-2abc-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='11111111-1111-1111-1111-111111111111'
     </sql>
@@ -3167,6 +3187,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-245" author="dev">
+    <validCheckSum>9:44cbca52d0cab33ddd2a4a88a026b699</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3178,12 +3199,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting disposing stock from the main store only</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',1, 0,1,now(), '12de41c9-28a1-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '12de41c9-28a1-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='22222222-2222-2222-2222-222222222222'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-246" author="dev">
+    <validCheckSum>9:352f95d37a5fa6384d3112e924ce1391</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
       SELECT COUNT(*)
@@ -3195,12 +3217,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting adjustment stock from the Main Pharmacy</comment>
     <sql>
     INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-    SELECT sot.stock_operation_type_id,'Main Pharmacy',1, 0,1,now(), '8bee3005-2ae6-11ed-ba4a-507b9dea1806'
+    SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '8bee3005-2ae6-11ed-ba4a-507b9dea1806'
     FROM stockmgmt_stock_operation_type sot
     WHERE uuid='22222222-2222-2222-2222-222222222222'
   </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-247" author="dev">
+    <validCheckSum>9:e6add2863ac3cee76972b5e26ab1eff5</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3212,7 +3235,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting adjustment stock from the Dispensary</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',1, 0,1,now(), '83fbf8ca-2ae6-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '83fbf8ca-2ae6-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='22222222-2222-2222-2222-222222222222'
     </sql>
@@ -3243,6 +3266,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-249" author="dev">
+    <validCheckSum>9:24ca985c75caa29f24c58e2ea788f062</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3254,7 +3278,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting transfering to outside destination from main store only</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',1, 0,1,now(), '5b341a26-28a2-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '5b341a26-28a2-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='33333333-3333-3333-3333-333333333333'
     </sql>
@@ -3285,6 +3309,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-251" author="dev">
+    <validCheckSum>9:0dc1a53f668d4fe3ca650f1c1367c2bf</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3296,7 +3321,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting receipt of stock main store only</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',0, 1,1,now(), '01c9285a-28a3-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',false, true,1,now(), '01c9285a-28a3-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='44444444-4444-4444-4444-444444444444'
     </sql>
@@ -3327,52 +3352,55 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-253" author="dev">
+    <validCheckSum>9:ae212714efc2fe915010a7f425f633af</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='55555555-5555-5555-5555-555555555555') AND
-        location_tag='Main Pharmacy'  AND is_source=1
+        location_tag='Main Pharmacy'  AND is_source=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting initiating of return of stock from Main Pharmacy</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',1, 0,1,now(), '2c5772e7-28a4-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '2c5772e7-28a4-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='55555555-5555-5555-5555-555555555555'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-254" author="dev">
+    <validCheckSum>9:b7c01babdeb1ea3b902174642ca08e3b</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='55555555-5555-5555-5555-555555555555') AND
-        location_tag='Dispensary'  AND is_source=1
+        location_tag='Dispensary'  AND is_source=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting initiating of return of stock from dispensary</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',1, 0,1,now(), '6e26757a-2abe-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '6e26757a-2abe-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='55555555-5555-5555-5555-555555555555'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-255" author="dev">
+    <validCheckSum>9:e25bca107681adfeecc5fdc60cd35de3</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='55555555-5555-5555-5555-555555555555') AND
-        location_tag='Main Store' AND is_destination=1
+        location_tag='Main Store' AND is_destination=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting the destination of returned stock to main store only</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',0, 1,1,now(), '27ff4a05-28a4-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',false, true,1,now(), '27ff4a05-28a4-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='55555555-5555-5555-5555-555555555555'
     </sql>
@@ -3403,52 +3431,55 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-257" author="dev">
+    <validCheckSum>9:179c8fd6dc51023e6769e22941a19801</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='66666666-6666-6666-6666-666666666666') AND
-        location_tag='Main Pharmacy'  AND is_destination=1
+        location_tag='Main Pharmacy'  AND is_destination=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting the destination of issued stock to Main Pharmacy</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',0, 1,1,now(), '20fac1fa-28a4-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Pharmacy',false, true,1,now(), '20fac1fa-28a4-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='66666666-6666-6666-6666-666666666666'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-258" author="dev">
+    <validCheckSum>9:b36a588ff669ba84f4b9f093684511e2</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='66666666-6666-6666-6666-666666666666') AND
-        location_tag='Dispensary'  AND is_destination=1
+        location_tag='Dispensary'  AND is_destination=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting the destination of issued stock to Dispensary</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',0, 1,1,now(), '11ebab13-2abf-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Dispensary',false, true,1,now(), '11ebab13-2abf-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='66666666-6666-6666-6666-666666666666'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-259" author="dev">
+    <validCheckSum>9:a5676579e1621c9bc66a4a2c40810cf6</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='66666666-6666-6666-6666-666666666666') AND
-        location_tag='Main Store' AND is_source=1
+        location_tag='Main Store' AND is_source=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting the issuing of stock from main store only</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',1, 0,1,now(), '1c984ba0-28a4-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '1c984ba0-28a4-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='66666666-6666-6666-6666-666666666666'
     </sql>
@@ -3479,52 +3510,55 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-261" author="dev">
+    <validCheckSum>9:08b9399d797889227cf3c53164acbddc</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='77777777-7777-7777-7777-777777777777') AND
-        location_tag='Main Pharmacy'  AND is_source=1
+        location_tag='Main Pharmacy'  AND is_source=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting initiating of requisition of stock from Main Pharmacy</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',1, 0,1,now(), '161ccea9-28a4-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '161ccea9-28a4-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='77777777-7777-7777-7777-777777777777'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-262" author="dev">
+    <validCheckSum>9:3e4a188fcaadfe5c510c5a907ef8dbf7</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='77777777-7777-7777-7777-777777777777') AND
-        location_tag='Dispensary'  AND is_source=1
+        location_tag='Dispensary'  AND is_source=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting initiating of requisition of stock from Dispensary</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',1, 0,1,now(), 'dfba06ad-2abe-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), 'dfba06ad-2abe-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='77777777-7777-7777-7777-777777777777'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-263" author="dev">
+    <validCheckSum>9:5507ea3f0be800b24961932ff7bc1f34</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
         FROM stockmgmt_operation_type_location_scope sotls
         WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='77777777-7777-7777-7777-777777777777') AND
-        location_tag='Main Store' AND is_destination=1
+        location_tag='Main Store' AND is_destination=true
       </sqlCheck>
     </preConditions>
     <comment>Limiting the destination of requisition of stock to main store only</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',0, 1,1,now(), '11ba3575-28a4-11ed-bdcb-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',false, true,1,now(), '11ba3575-28a4-11ed-bdcb-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='77777777-7777-7777-7777-777777777777'
     </sql>
@@ -3554,6 +3588,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-265" author="dev">
+    <validCheckSum>9:2db356ff9940edcbbbf8c139e6b29b7e</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3565,12 +3600,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting stocktake stock from the Main Store</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',1, 0,1,now(), '90b9f544-2abf-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '90b9f544-2abf-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='88888888-8888-8888-8888-888888888888'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-266" author="dev">
+    <validCheckSum>9:b0539ca6d55b7de8120afc82b1cc1eaa</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3582,12 +3618,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting stock take stock from the Main Pharmacy</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',1, 0,1,now(), '8ab5bb1d-2abf-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '8ab5bb1d-2abf-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='88888888-8888-8888-8888-888888888888'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-267" author="dev">
+    <validCheckSum>9:2aa39c0de823b4644fbf00dcb9eb9619</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3599,7 +3636,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting stock take stock from the Dispensary</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',1, 0,1,now(), '86fad5b3-2abf-11ed-ba4a-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '86fad5b3-2abf-11ed-ba4a-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='88888888-8888-8888-8888-888888888888'
     </sql>
@@ -3629,6 +3666,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-269" author="dev">
+    <validCheckSum>9:9e4d41e05672613c801b53636a2760b7</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3640,12 +3678,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting initial stock from the Main Store</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',1, 0,1,now(), '886b6f2d-2e90-11ed-a5a0-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '886b6f2d-2e90-11ed-a5a0-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='99999999-9999-9999-9999-999999999999'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-270" author="dev">
+    <validCheckSum>9:5a82368945da4354372f2b6e2438c1d6</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3657,12 +3696,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting initial stock from the Main Pharmacy</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',1, 0,1,now(), '99e64f69-2e90-11ed-a5a0-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '99e64f69-2e90-11ed-a5a0-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='99999999-9999-9999-9999-999999999999'
     </sql>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-271" author="dev">
+    <validCheckSum>9:647e980ac308e68db0f6cd44b89f7055</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
         SELECT COUNT(*)
@@ -3674,12 +3714,13 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <comment>Limiting initial stock from the Dispensary</comment>
     <sql>
       INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',1, 0,1,now(), 'a24c5c90-2e90-11ed-a5a0-507b9dea1806'
+      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), 'a24c5c90-2e90-11ed-a5a0-507b9dea1806'
       FROM stockmgmt_stock_operation_type sot
       WHERE uuid='99999999-9999-9999-9999-999999999999'
     </sql>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-272">
+    <validCheckSum>9:6e70adff17ac717976ab76946d71c4c2</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_order_item" />
@@ -3715,7 +3756,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="date_voided" type="DATETIME" />
@@ -3988,6 +4029,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </addColumn>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-301">
+    <validCheckSum>9:89afc2d4af8b5d826c91b137c5ebf439</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="stockmgmt_stock_rule"/>
       <not>
@@ -3995,7 +4037,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </not>
     </preConditions>
     <addColumn tableName="stockmgmt_stock_rule">
-      <column defaultValueBoolean="false" name="enable_descendants" type="BIT">
+      <column defaultValueBoolean="false" name="enable_descendants" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
     </addColumn>
@@ -4208,6 +4250,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-311">
+    <validCheckSum>9:f0f081c00e44bd0dec8ae1b5b105ba2e</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="stockmgmt_stock_operation_type"/>
       <not>
@@ -4215,25 +4258,25 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </not>
     </preConditions>
     <addColumn tableName="stockmgmt_stock_operation_type">
-      <column defaultValueBoolean="false" name="notify_submitted" type="BIT">
+      <column defaultValueBoolean="false" name="notify_submitted" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="notify_approved" type="BIT">
+      <column defaultValueBoolean="false" name="notify_approved" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="notify_completed" type="BIT">
+      <column defaultValueBoolean="false" name="notify_completed" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="notify_cancelled" type="BIT">
+      <column defaultValueBoolean="false" name="notify_cancelled" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="notify_rejected" type="BIT">
+      <column defaultValueBoolean="false" name="notify_rejected" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="notify_returned" type="BIT">
+      <column defaultValueBoolean="false" name="notify_returned" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
-      <column defaultValueBoolean="false" name="notify_dispatched" type="BIT">
+      <column defaultValueBoolean="false" name="notify_dispatched" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
     </addColumn>
@@ -4277,6 +4320,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-313" author="dev">
+    <validCheckSum>9:1ec0c3f5439985e29b859d2b514b0e4e</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <not>
         <tableExists tableName="stockmgmt_batch_job" />
@@ -4314,7 +4358,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <column name="completed_date" type="DATETIME" />
       <column name="output_artifact_size" type="BIGINT" />
       <column name="output_artifact_file_ext" type="VARCHAR(10)" />
-      <column name="output_artifact_viewable" type="BIT" />
+      <column name="output_artifact_viewable" type="BOOLEAN" />
       <column defaultValueNumeric="0" name="creator" type="INT">
         <constraints nullable="false" />
       </column>
@@ -4323,7 +4367,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
       <column name="changed_by" type="INT" />
       <column name="date_changed" type="DATETIME" />
-      <column defaultValueBoolean="false" name="voided" type="BIT">
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
       <column name="date_voided" type="DATETIME" />
@@ -4531,6 +4575,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </insert>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-332">
+    <validCheckSum>9:4bb3d291b287b86b92dedbb3e17dee5e</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="stockmgmt_stock_operation_type"/>
       <not>
@@ -4538,7 +4583,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </not>
     </preConditions>
     <addColumn tableName="stockmgmt_stock_operation_type">
-      <column defaultValueBoolean="false" name="allow_expired_batch_numbers" type="BIT">
+      <column defaultValueBoolean="false" name="allow_expired_batch_numbers" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
     </addColumn>
@@ -4548,6 +4593,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </update>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-333">
+    <validCheckSum>9:5b2ecb289ac19ec22216e3485a4e30ee</validCheckSum>
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="stockmgmt_stock_operation_type"/>
       <not>
@@ -4555,7 +4601,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </not>
     </preConditions>
     <addColumn tableName="stockmgmt_stock_operation_type">
-      <column defaultValueBoolean="false" name="allow_batch_info_update" type="BIT">
+      <column defaultValueBoolean="false" name="allow_batch_info_update" type="BOOLEAN">
         <constraints nullable="false" />
       </column>
     </addColumn>
