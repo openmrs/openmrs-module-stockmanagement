@@ -2,7 +2,6 @@
 
 <module configVersion="1.2">
 
-    <!-- Base Module Properties -->
     <id>${project.parent.artifactId}</id>
     <name>${project.parent.name}</name>
     <version>${project.parent.version}</version>
@@ -13,9 +12,6 @@
     </description>
 
     <activator>org.openmrs.module.stockmanagement.StockManagementActivator</activator>
-
-    <!-- <updateURL>https://modules.openmrs.org/modules/download/@MODULE_ID@/update.rdf</updateURL> -->
-    <!-- /Base Module Properties -->
 
     <require_version>${openmrsPlatformVersion}</require_version>
 
@@ -29,64 +25,75 @@
         <aware_of_module>org.openmrs.module.legacyui</aware_of_module>
     </aware_of_modules>
 
-
-    <!-- AOP
-    <advice>
-        <point>org.openmrs.api.FormService</point>
-        <class>@MODULE_PACKAGE@.advice.DuplicateFormAdvisor</class>
-    </advice>
-     /AOP -->
-
-
-    <!-- Required Privileges
     <privilege>
-        <name>Form Entry</name>
-        <description>Allows user to access Form Entry pages/functions</description>
+        <name>App: stockmanagement.dashboard</name>
+        <description>Able to view stock management application dashboard</description>
     </privilege>
-     /Required Privileges -->
+    <privilege>
+        <name>App: stockmanagement.stockItems</name>
+        <description>Able to view stock items</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.stockItems.mutate</name>
+        <description>Able to create and update stock items</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.stockItems.dispense.qty</name>
+        <description>Able to view stock item quantities at dispensing locations</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.stockItems.dispense</name>
+        <description>Able to dispense stock items</description>
+    </privilege>
+    <privilege>
+        <name>App: stockmanagement.userRoleScopes</name>
+        <description>Able to view stock management user role scope</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.userRoleScopes.mutate</name>
+        <description>Able to create and update user role scopes</description>
+    </privilege>
+    <privilege>
+        <name>App: stockmanagement.stockoperations</name>
+        <description>Able to view stock operations</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.stockoperations.mutate</name>
+        <description>Able to create and update stock operations</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.stockoperations.approve</name>
+        <description>Able to approve stock operations</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.stockoperations.receiveitems</name>
+        <description>Able to receive dispatched stock items</description>
+    </privilege>
+    <privilege>
+        <name>App: stockmanagement.stockSources</name>
+        <description>Able to view stock sources</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.stockSources.mutate</name>
+        <description>Able to create and update stock sources</description>
+    </privilege>
+    <privilege>
+        <name>App: stockmanagement.stockOperationType</name>
+        <description>Able to view stock operation types</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.party.read</name>
+        <description>Able to read party information</description>
+    </privilege>
+    <privilege>
+        <name>App: stockmanagement.reports</name>
+        <description>Able to view stock reports</description>
+    </privilege>
+    <privilege>
+        <name>Task: stockmanagement.reports.mutate</name>
+        <description>Able to create stock reports</description>
+    </privilege>
 
-
-    <!-- Required Global Properties
-    <globalProperty>
-        <property>@MODULE_ID@.someProperty</property>
-        <defaultValue></defaultValue>
-        <description>
-            A description of the global property goes here.  The description
-            should explain enough for administrators to understand the purpose
-            and possible values for the global property.
-        </description>
-    </globalProperty>
-    /Required Global Properties -->
-
-    <!--
-    <dwr>
-        <allow>
-            <create creator="new" javascript="DWRFormEntryService">
-                <param name="class" value="org.openmrs.module.@MODULE_ID@.web.DWRFormEntryService"/>
-                <include method="enterForm"/>
-            </create>
-        </allow>
-
-        <signatures>
-            <![CDATA[
-            import @MODULE_PACKAGE@.web.DWRFormEntryService;
-            DWRFormEntryService.enterForm(Integer patientId, Integer formId, boolean useEncounter, List<String> fields);
-            ]]>
-        </signatures>
-    </dwr>
-    -->
-
-    <!-- Servlets -->
-    <!-- Accessed through the url /pageContext()/moduleServlet/<moduleId>/<servlet-name>
-    <servlet>
-        <servlet-name>formDownload</servlet-name>
-        <servlet-class>@MODULE_PACKAGE@.web.FormDownloadServlet</servlet-class>
-    </servlet>
-    -->
-    <!-- /Servlets -->
-
-    <!-- Internationalization -->
-    <!-- All message codes should start with @MODULE_ID@.* -->
     <messages>
         <lang>en</lang>
         <file>messages.properties</file>
@@ -99,9 +106,6 @@
         <lang>es</lang>
         <file>messages_es.properties</file>
     </messages>
-    <!-- /Internationalization -->
-
-    <!-- Global Properties -->
 
     <globalProperty>
         <property>stockmanagement.environment</property>
