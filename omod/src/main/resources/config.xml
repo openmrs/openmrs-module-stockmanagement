@@ -23,10 +23,12 @@
         <require_module version="${webservicesRestVersion}">
             org.openmrs.module.webservices.rest
         </require_module>
+        <require_module version="2.2.0">org.openmrs.module.fhir2</require_module>
     </require_modules>
 
     <aware_of_modules>
         <aware_of_module>org.openmrs.module.legacyui</aware_of_module>
+        <aware_of_module>org.openmrs.fhir.fhir-structures-backport-r4</aware_of_module>
     </aware_of_modules>
 
 
@@ -70,7 +72,8 @@
         <signatures>
             <![CDATA[
             import @MODULE_PACKAGE@.web.DWRFormEntryService;
-            DWRFormEntryService.enterForm(Integer patientId, Integer formId, boolean useEncounter, List<String> fields);
+            DWRFormEntryService.enterForm(Integer patientId, Integer formId, boolean useEncounter, List<String>
+    fields);
             ]]>
         </signatures>
     </dwr>
@@ -107,7 +110,8 @@
         <property>stockmanagement.environment</property>
         <defaultValue>prod</defaultValue>
         <description>
-            Allows one to set the environment mode to development so that the SpaHomeController does not cache the
+            Allows one to set the environment mode to development so that the SpaHomeController does
+            not cache the
             index.html
         </description>
     </globalProperty>
@@ -116,7 +120,8 @@
         <property>stockmanagement.stockItemSearchMaxIntermediateResult</property>
         <defaultValue>50</defaultValue>
         <description>
-            Maximum intermediate results to fetch when searching for stock items that are drugs or concepts.
+            Maximum intermediate results to fetch when searching for stock items that are drugs or
+            concepts.
         </description>
     </globalProperty>
 
@@ -172,7 +177,8 @@
         <property>stockmanagement.excessReceivedItemThreshold</property>
         <defaultValue>10</defaultValue>
         <description>
-            Percentage limit on the excess items acknowledged as received compared to the issued or returned items.
+            Percentage limit on the excess items acknowledged as received compared to the issued or
+            returned items.
         </description>
     </globalProperty>
 
@@ -244,7 +250,8 @@
         <property>stockmanagement.stockBatchDefaultExpiryNotificationNoticePeriod</property>
         <defaultValue>120</defaultValue>
         <description>
-            The default notice period for stock batch numbers that are expiring. The stock item notice period takes priority.
+            The default notice period for stock batch numbers that are expiring. The stock item
+            notice period takes priority.
         </description>
     </globalProperty>
 
@@ -268,7 +275,8 @@
         <property>stockmanagement.stockOperationNotificationEmail</property>
         <defaultValue></defaultValue>
         <description>
-            Email address to send notifications when a stock operation is submitted, approved, rejected etc.
+            Email address to send notifications when a stock operation is submitted, approved,
+            rejected etc.
         </description>
     </globalProperty>
 
@@ -276,7 +284,8 @@
         <property>stockmanagement.stockOperationNotificationRole</property>
         <defaultValue>Inventory Manager</defaultValue>
         <description>
-           Role whose users will be sent alerts and email notifications when a stock operation is submitted, approved, rejected etc.
+            Role whose users will be sent alerts and email notifications when a stock operation is
+            submitted, approved, rejected etc.
         </description>
     </globalProperty>
 
@@ -300,7 +309,8 @@
         <property>stockmanagement.applicationRootUrl</property>
         <defaultValue></defaultValue>
         <description>
-            The application root url including its context path e.g. https://hospital.gov.co.ug/openmrs
+            The application root url including its context path e.g.
+            https://hospital.gov.co.ug/openmrs
         </description>
     </globalProperty>
 
@@ -340,10 +350,10 @@
         <property>stockmanagement.packagingUnitPackSizePriorityIsBigToSmall</property>
         <defaultValue>true</defaultValue>
         <description>
-            Packaging unit priority when default stock operation unit is not set is big to small pack size
+            Packaging unit priority when default stock operation unit is not set is big to small
+            pack size
         </description>
     </globalProperty>
 
     <!-- /Global Properties -->
 </module>
-
