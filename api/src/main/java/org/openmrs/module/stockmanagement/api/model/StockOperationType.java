@@ -106,7 +106,7 @@ public class StockOperationType extends BaseChangeableOpenmrsData implements Ser
 	public static final String REQUISITION = "requisition";
 	
 	public static final String EXTERNAL_REQUISITION = "erequisition";
-
+	
 	public StockOperationType() {
 	}
 	
