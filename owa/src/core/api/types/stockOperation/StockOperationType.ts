@@ -25,6 +25,7 @@ export interface StockOperationTypeLocationScope {
 
 export const STOCK_ISSUE_OPERATION_TYPE = "stockissue";
 export const REQUISITION_OPERATION_TYPE = "requisition";
+export const EXTERNAL_REQUISITION_OPERATION_TYPE = "erequisition";
 export const RECEIPT_OPERATION_TYPE = "receipt";
 
 export const StockOperationTypeRequiresStockAdjustmentReason = (operationType: string) => {
@@ -37,7 +38,7 @@ export const StockOperationTypeIsNegativeQtyAllowed = (operationType: string) =>
 }
 
 export const StockOperationTypeRequiresBatchUuid = (operationType: string) => {
-    return !StockOperationTypeRequiresActualBatchInformation(operationType) && operationType !== REQUISITION_OPERATION_TYPE;
+    return !StockOperationTypeRequiresActualBatchInformation(operationType) && operationType !== REQUISITION_OPERATION_TYPE && operationType !== EXTERNAL_REQUISITION_OPERATION_TYPE;
 }
 
 export const StockOperationTypeRequiresActualBatchInformation = (operationType: string) => {
