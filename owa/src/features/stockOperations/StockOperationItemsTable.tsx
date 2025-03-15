@@ -648,7 +648,7 @@ const StockOperationItemsTable: React.FC<StockOperationItemTableProps> = ({
                                                     onToggleClick={(e => handleStockItemPackagingUoMsSearch(row, ""))}
                                                     shouldFilterItem={(data) => true}
                                                     onInputChange={(q) => handleStockItemPackagingUoMsSearch(row, q)}
-                                                    itemToString={item => `${item?.packagingUomName ? `${item.packagingUomName} ${item?.factor ?` - ${item?.factor}`: ""}` : ""}`}
+                                                    itemToString={item => `${item?.display ?? ''}${item?.packagingUomName ? ` ${item.packagingUomName}${item?.factor ? ` - ${item?.factor}` : ''}` : ''}`}
 
                                                     placeholder={'Filter...'}
                                                     invalid={(row.uuid in errors) && ("stockItemPackagingUOMUuid" in errors[row.uuid]) && !errors[row.uuid]["stockItemPackagingUOMUuid"]}
