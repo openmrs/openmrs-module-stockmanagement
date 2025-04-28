@@ -24,6 +24,7 @@
                         <property name="sessionFactory">
                             <ref bean="dbSessionFactory" />
                         </property>
+                        <property name="searchSessionFactory" ref="searchSessionFactory"/>
                     </bean>
                 </property>
             </bean>
