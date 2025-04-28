@@ -22,6 +22,7 @@ import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.transform.ResultTransformer;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
+import org.openmrs.api.db.hibernate.search.session.SearchSessionFactory;
 import org.openmrs.module.stockmanagement.api.IPagingInfo;
 
 import java.lang.reflect.Method;
@@ -33,11 +34,17 @@ import java.util.Map;
 public class DaoBase {
 	
 	protected DbSessionFactory sessionFactory;
+
+	protected SearchSessionFactory searchSessionFactory;
 	
 	public void setSessionFactory(DbSessionFactory sessionFactory) {
 		this.sessionFactory = sessionFactory;
 	}
-	
+
+	public void setSearchSessionFactory(SearchSessionFactory searchSessionFactory) {
+		this.searchSessionFactory = searchSessionFactory;
+	}
+
 	public DbSession getSession() {
 		return sessionFactory.getCurrentSession();
 	}
