@@ -82,7 +82,5 @@ public class Result<T> extends PagingInfoBase implements IPagingInfo {
 		return "Result [data=" + data + ", page=" + page + ", pageSize=" + pageSize + ", totalRecordCount="
 				+ totalRecordCount + ", loadRecordCount=" + loadRecordCount + "]";
 	}
-
-	
 	
 }

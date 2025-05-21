@@ -104,8 +104,6 @@ public class StockManagementRestController {
 		try {
 			StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 			results = stockManagementService.getOutOfStockItemsMetrics();
-
-			System.err.println("Stock Management Module: Got out of stock total as: " + results);
 		} catch(Exception ex) {
 			System.err.println("Stock Management Module: Error getting out of stock total: " + ex.getMessage());
 			ex.printStackTrace();

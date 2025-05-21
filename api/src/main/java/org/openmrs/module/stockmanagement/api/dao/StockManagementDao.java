@@ -972,18 +972,6 @@ public class StockManagementDao extends DaoBase {
             result.setPageSize(filter.getLimit());
         }
 
-        System.err.println("Stock Management Module Party: Got Filter as: " + filter.toString());
-        parameterList.forEach((key, value) -> {
-            System.err.println("Stock Management Module Party: param :Key: " + key + ", Value: " + value);
-        });
-        parameterWithList.forEach((key, collection) -> {
-            System.out.println("Stock Management Module Party: Key: " + key);
-            collection.forEach(value -> {
-                System.out.println(" Stock Management Module Party:  Value: " + value);
-            });
-        });
-        System.err.println("Stock Management Module: Party Got DB query as: " + hqlQuery.toString());
-
         result.setData(executeQuery(PartyDTO.class, hqlQuery, result, " order by name asc", parameterList, parameterWithList));
         return result;
     }
@@ -2736,19 +2724,6 @@ public class StockManagementDao extends DaoBase {
         if (hqlQuery == null) {
             return new StockInventoryResult(new ArrayList<>(), 0);
         }
-
-        System.err.println("Stock Management Module: Got Filter as: " + filter.toString());
-        System.err.println("Stock Management Module: Got record privilege filter as: " + recordPrivilegeFilters.toString());
-        parameterList.forEach((key, value) -> {
-            System.err.println("Stock Management Module: param :Key: " + key + ", Value: " + value);
-        });
-        parameterWithList.forEach((key, collection) -> {
-            System.out.println("Stock Management Module: Key: " + key);
-            collection.forEach(value -> {
-                System.out.println(" Stock Management Module:  Value: " + value);
-            });
-        });
-        System.err.println("Stock Management Module: Got DB query as: " + hqlQuery.toString());
 
         StockInventoryResult result = new StockInventoryResult();
         if (filter.getLimit() != null) {
@@ -5382,7 +5357,6 @@ public class StockManagementDao extends DaoBase {
         List<SimpleObject> results = new ArrayList<>();
 
         String sql = generateOutOfStockQuery(recordPrivilegeFilters);
-        System.err.println("Stock Management Module: Out of stock query: " + sql);
 
         try {
 			Context.addProxyPrivilege(PrivilegeConstants.SQL_LEVEL_ACCESS);
@@ -5391,7 +5365,6 @@ public class StockManagementDao extends DaoBase {
                 Long partyId = (Long) row.get(0);
                 Long outOfStockItemCount = (Long) row.get(1);
             
-                System.out.println("Stock Management Module: partyId: " + partyId + ", outOfStockItemCount: " + outOfStockItemCount);
                 SimpleObject result = new SimpleObject();
                 PartySearchFilter partySearchFilter = new PartySearchFilter();
                 partySearchFilter.setIncludeVoided(true);

@@ -1860,7 +1860,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 }
             } else if (action.equals(StockOperationAction.Action.DISPATCH)) {
                 if (!((stockOperation.isUpdateable() || stockOperation.getStatus().equals(StockOperationStatus.SUBMITTED)) && stockOperation.getStockOperationType().requiresDispatchAcknowledgement())) {
-                    System.err.println("Stock Management Module: Error: Not Dispatchable");
                     throw new StockManagementException(messageSourceService.getMessage("stockmanagement.stockoperation.notdispatcheable"));
                 }
             } else if (action.equals(StockOperationAction.Action.RETURN)) {

@@ -48,17 +48,13 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 	public StockOperationAction save(StockOperationAction delegate) {
 		StockOperationDTO stockOperation = null;
 		try {
-			System.err.println("Stock Management Module: Delegate: " + delegate);
 			StockOperationSearchFilter filter = new StockOperationSearchFilter();
 			filter.setStockOperationUuid(delegate.getUuid());
 			Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
-			System.err.println("Stock Management Module: Data: " + result);
 			if (result.getData().isEmpty()) {
-				System.err.println("Stock Management Module: Error: No data in the payload: " + delegate);
 				throw new RestClientException("Stock operation " + delegate.getUuid() + " not found");
 			}
 			stockOperation = result.getData().get(0);
-			System.err.println("Stock Management Module: Operation: " + stockOperation);
 			
 			switch (delegate.getName()) {
 				case COMPLETE:
@@ -87,7 +83,6 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 				//					getStockManagementService().stockOperationItemsReceived(stockOperation, delegate.getLineItems());
 				//					break;
 				default:
-					System.err.println("Stock Management Module: Error: The operation is not supported: " + delegate);
 					throw new ResourceDoesNotSupportOperationException();
 			}
 		}
