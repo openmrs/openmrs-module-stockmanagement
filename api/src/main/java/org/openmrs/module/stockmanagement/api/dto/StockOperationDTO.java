@@ -644,4 +644,37 @@ public class StockOperationDTO {
 	public void setDispatchedBy(Integer dispatchedBy) {
 		this.dispatchedBy = dispatchedBy;
 	}
+
+	@Override
+	public String toString() {
+		return "StockOperationDTO [id=" + id + ", uuid=" + uuid + ", cancelReason=" + cancelReason + ", cancelledBy="
+				+ cancelledBy + ", cancelledByGivenName=" + cancelledByGivenName + ", cancelledByFamilyName="
+				+ cancelledByFamilyName + ", cancelledDate=" + cancelledDate + ", completedBy=" + completedBy
+				+ ", completedByGivenName=" + completedByGivenName + ", completedByFamilyName=" + completedByFamilyName
+				+ ", completedDate=" + completedDate + ", destinationUuid=" + destinationUuid + ", destinationName="
+				+ destinationName + ", externalReference=" + externalReference + ", reasonId=" + reasonId
+				+ ", reasonUuid=" + reasonUuid + ", reasonName=" + reasonName + ", atLocationUuid=" + atLocationUuid
+				+ ", atLocationName=" + atLocationName + ", operationDate=" + operationDate + ", locked=" + locked
+				+ ", operationNumber=" + operationNumber + ", operationOrder=" + operationOrder + ", remarks=" + remarks
+				+ ", sourceUuid=" + sourceUuid + ", sourceName=" + sourceName + ", status=" + status + ", returnReason="
+				+ returnReason + ", rejectionReason=" + rejectionReason + ", operationTypeUuid=" + operationTypeUuid
+				+ ", operationType=" + operationType + ", operationTypeName=" + operationTypeName
+				+ ", responsiblePerson=" + responsiblePerson + ", responsiblePersonGivenName="
+				+ responsiblePersonGivenName + ", responsiblePersonUuid=" + responsiblePersonUuid
+				+ ", requisitionStockOperationUuid=" + requisitionStockOperationUuid + ", responsiblePersonFamilyName="
+				+ responsiblePersonFamilyName + ", responsiblePersonOther=" + responsiblePersonOther + ", creator="
+				+ creator + ", dateCreated=" + dateCreated + ", creatorGivenName=" + creatorGivenName
+				+ ", creatorFamilyName=" + creatorFamilyName + ", voided=" + voided + ", approvalRequired="
+				+ approvalRequired + ", submittedBy=" + submittedBy + ", submittedByGivenName=" + submittedByGivenName
+				+ ", submittedByFamilyName=" + submittedByFamilyName + ", submittedDate=" + submittedDate
+				+ ", dispatchedBy=" + dispatchedBy + ", dispatchedByGivenName=" + dispatchedByGivenName
+				+ ", dispatchedByFamilyName=" + dispatchedByFamilyName + ", dispatchedDate=" + dispatchedDate
+				+ ", returnedBy=" + returnedBy + ", returnedByGivenName=" + returnedByGivenName
+				+ ", returnedByFamilyName=" + returnedByFamilyName + ", returnedDate=" + returnedDate
+				+ ", rejectedByGivenName=" + rejectedByGivenName + ", rejectedByFamilyName=" + rejectedByFamilyName
+				+ ", rejectedBy=" + rejectedBy + ", rejectedDate=" + rejectedDate + ", stockOperationItems="
+				+ stockOperationItems + "]";
+	}
+
+	
 }

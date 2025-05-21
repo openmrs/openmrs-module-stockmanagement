@@ -43,4 +43,11 @@ public class RecordPrivilegeFilter {
 		result = 31 * result + (operationTypeId != null ? operationTypeId.hashCode() : 0);
 		return result;
 	}
+
+	@Override
+	public String toString() {
+		return "RecordPrivilegeFilter [locationId=" + locationId + ", operationTypeId=" + operationTypeId + "]";
+	}
+
+	
 }

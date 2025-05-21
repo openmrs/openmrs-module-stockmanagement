@@ -87,4 +87,13 @@ public class PartySearchFilter {
 	public void setPartyUuids(List<String> partyUuids) {
 		this.partyUuids = partyUuids;
 	}
+
+	@Override
+	public String toString() {
+		return "PartySearchFilter [searchText=" + searchText + ", includeVoided=" + includeVoided + ", locationUuids="
+				+ locationUuids + ", locationIds=" + locationIds + ", partyIds=" + partyIds + ", partyUuids="
+				+ partyUuids + ", startIndex=" + startIndex + ", limit=" + limit + "]";
+	}
+
+	
 }
