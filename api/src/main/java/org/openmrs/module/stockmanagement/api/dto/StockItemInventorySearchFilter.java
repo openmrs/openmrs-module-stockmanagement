@@ -261,7 +261,26 @@ public class StockItemInventorySearchFilter {
 	public void setStartDate(Date startDate) {
 		this.startDate = startDate;
 	}
+
 	
+	
+	@Override
+	public String toString() {
+		return "StockItemInventorySearchFilter [itemGroupFilters=" + itemGroupFilters + ", startIndex=" + startIndex
+				+ ", isDispensing=" + isDispensing + ", includeStrength=" + includeStrength + ", includeConceptRefIds="
+				+ includeConceptRefIds + ", limit=" + limit + ", doSetPartyNameField=" + doSetPartyNameField
+				+ ", doSetBatchFields=" + doSetBatchFields + ", doSetQuantityUoM=" + doSetQuantityUoM
+				+ ", inventoryGroupBy=" + inventoryGroupBy + ", totalBy=" + totalBy + ", includeStockItemName="
+				+ includeStockItemName + ", date=" + date + ", allowEmptyBatchInfo=" + allowEmptyBatchInfo
+				+ ", emptyBatchPartyId=" + emptyBatchPartyId + ", requireNonExpiredStockBatches="
+				+ requireNonExpiredStockBatches + ", unRestrictedPartyIds=" + unRestrictedPartyIds
+				+ ", requireItemGroupFilters=" + requireItemGroupFilters + ", stockItemCategoryConceptId="
+				+ stockItemCategoryConceptId + ", inventoryMode=" + inventoryMode + ", endDate=" + endDate
+				+ ", startDate=" + startDate + "]";
+	}
+
+
+
 	public static class ItemGroupFilter {
 		
 		private List<Integer> partyIds;
@@ -344,6 +363,14 @@ public class StockItemInventorySearchFilter {
 		public void setStockBatchIds(List<Integer> stockBatchIds) {
 			this.stockBatchIds = stockBatchIds;
 		}
+
+		@Override
+		public String toString() {
+			return "ItemGroupFilter [partyIds=" + partyIds + ", partyUuids=" + partyUuids + ", stockItemUuid="
+					+ stockItemUuid + ", stockItemId=" + stockItemId + ", stockBatchIds=" + stockBatchIds + "]";
+		}
+
+		
 		
 	}
 	
@@ -412,6 +439,14 @@ public class StockItemInventorySearchFilter {
 			result = 31 * result + (stockBatchId != null ? stockBatchId.hashCode() : 0);
 			return result;
 		}
+
+		@Override
+		public String toString() {
+			return "PartyStockItemBatch [partyId=" + partyId + ", stockItemId=" + stockItemId + ", stockBatchId="
+					+ stockBatchId + "]";
+		}
+
+		
 		
 	}
 }

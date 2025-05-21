@@ -72,4 +72,11 @@ public class StockOperationAction {
 		}
 		return "UNKNOWN";
 	}
+
+	@Override
+	public String toString() {
+		return "StockOperationAction [reason=" + reason + ", name=" + name + ", uuid=" + uuid + ", lineItems="
+				+ lineItems + "]";
+	}
+
 }

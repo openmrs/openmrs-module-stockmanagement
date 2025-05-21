@@ -28,6 +28,8 @@ import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
+import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.util.PrivilegeConstants;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -969,6 +971,19 @@ public class StockManagementDao extends DaoBase {
             result.setPageIndex(filter.getStartIndex());
             result.setPageSize(filter.getLimit());
         }
+
+        System.err.println("Stock Management Module Party: Got Filter as: " + filter.toString());
+        parameterList.forEach((key, value) -> {
+            System.err.println("Stock Management Module Party: param :Key: " + key + ", Value: " + value);
+        });
+        parameterWithList.forEach((key, collection) -> {
+            System.out.println("Stock Management Module Party: Key: " + key);
+            collection.forEach(value -> {
+                System.out.println(" Stock Management Module Party:  Value: " + value);
+            });
+        });
+        System.err.println("Stock Management Module: Party Got DB query as: " + hqlQuery.toString());
+
         result.setData(executeQuery(PartyDTO.class, hqlQuery, result, " order by name asc", parameterList, parameterWithList));
         return result;
     }
@@ -2721,6 +2736,19 @@ public class StockManagementDao extends DaoBase {
         if (hqlQuery == null) {
             return new StockInventoryResult(new ArrayList<>(), 0);
         }
+
+        System.err.println("Stock Management Module: Got Filter as: " + filter.toString());
+        System.err.println("Stock Management Module: Got record privilege filter as: " + recordPrivilegeFilters.toString());
+        parameterList.forEach((key, value) -> {
+            System.err.println("Stock Management Module: param :Key: " + key + ", Value: " + value);
+        });
+        parameterWithList.forEach((key, collection) -> {
+            System.out.println("Stock Management Module: Key: " + key);
+            collection.forEach(value -> {
+                System.out.println(" Stock Management Module:  Value: " + value);
+            });
+        });
+        System.err.println("Stock Management Module: Got DB query as: " + hqlQuery.toString());
 
         StockInventoryResult result = new StockInventoryResult();
         if (filter.getLimit() != null) {
@@ -5348,5 +5376,111 @@ public class StockManagementDao extends DaoBase {
 		criteria.add(Restrictions.eq("stockItem", stockItem));
 		criteria.add(Restrictions.eq("voided", false));
 		return criteria.list();
+	}
+
+    public List<SimpleObject> getOutOfStockItemsMetrics(HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
+        List<SimpleObject> results = new ArrayList<>();
+
+        String sql = generateOutOfStockQuery(recordPrivilegeFilters);
+        System.err.println("Stock Management Module: Out of stock query: " + sql);
+
+        try {
+			Context.addProxyPrivilege(PrivilegeConstants.SQL_LEVEL_ACCESS);
+			List<List<Object>> totals = Context.getAdministrationService().executeSQL(sql, true);
+            for (List<Object> row : totals) {
+                Long partyId = (Long) row.get(0);
+                Long outOfStockItemCount = (Long) row.get(1);
+            
+                System.out.println("Stock Management Module: partyId: " + partyId + ", outOfStockItemCount: " + outOfStockItemCount);
+                SimpleObject result = new SimpleObject();
+                PartySearchFilter partySearchFilter = new PartySearchFilter();
+                partySearchFilter.setIncludeVoided(true);
+                partySearchFilter.setPartyIds(Collections.singletonList(partyId.intValue()));
+                List<PartyDTO> partyDTOs = findParty(partySearchFilter).getData().stream().collect(Collectors.toList());
+                if(partyDTOs != null && partyDTOs.size() > 0) {
+                    PartyDTO partyDTO = partyDTOs.get(0);
+                    result.add("partyUuid", partyDTO.getUuid());
+                    result.add("locationUuid", partyDTO.getLocationUuid());
+                    result.add("partyId", partyId);
+                    result.add("partyName", partyDTO.getName());
+                    result.add("outOfStock", outOfStockItemCount);
+                    results.add(result);
+                }
+            }
+		} catch(Exception ex) {
+            System.err.println("Stock Management Module: Error: Out of stock query: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+		finally {
+			Context.removeProxyPrivilege(PrivilegeConstants.SQL_LEVEL_ACCESS);
+		}
+
+        return results;
+    }
+
+    /**
+	 * Generates the out of stock SQL query
+	 * @return
+	 */
+	private String generateOutOfStockQuery(HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
+		String ret = "";
+
+		PartySearchFilter partySearchFilter = new PartySearchFilter();
+        partySearchFilter.setIncludeVoided(true);
+        partySearchFilter.setLocationIds(recordPrivilegeFilters.stream().map(p -> p.getLocationId()).collect(Collectors.toList()));
+        List<PartyDTO> partyDTOs = findParty(partySearchFilter).getData().stream().collect(Collectors.toList());
+
+        if(partyDTOs.size() > 0) {
+            // Start Sql
+            ret = "WITH parties AS ( ";
+
+            // Add party Ids
+            int count = 0;
+            for (PartyDTO party : partyDTOs) {
+                if(count == 0) {
+                    ret = ret + "SELECT " + party.getId() + " AS partyId ";
+                } else {
+                    ret = ret + "UNION ALL SELECT " + party.getId() + " ";
+                }
+                count++;
+            }
+
+            // complete the query
+            ret = ret + " ),\n" + //
+            "\n" + //
+            "-- Step 2: Get distinct out-of-stock stock items per party\n" + //
+            "out_of_stock AS (\n" + //
+            "  SELECT\n" + //
+            "    sit.party_id AS partyId,\n" + //
+            "    sit.stock_item_id AS stockItemId\n" + //
+            "  FROM\n" + //
+            "    stockmgmt_stock_item_transaction sit\n" + //
+            "  JOIN stockmgmt_stock_item_packaging_uom sipu\n" + //
+            "    ON sit.stock_item_packaging_uom_id = sipu.stock_item_packaging_uom_id\n" + //
+            "  JOIN stockmgmt_stock_batch sb\n" + //
+            "    ON sit.stock_batch_id = sb.stock_batch_id\n" + //
+            "  WHERE\n" + //
+            "    (sb.expiration IS NULL OR sb.expiration > CURDATE())\n" + //
+            "  GROUP BY\n" + //
+            "    sit.party_id, sit.stock_item_id\n" + //
+            "  HAVING\n" + //
+            "    SUM(sit.quantity * sipu.factor) = 0\n" + //
+            ")\n" + //
+            "\n" + //
+            "-- Step 3: Left join and count\n" + //
+            "SELECT\n" + //
+            "  p.partyId,\n" + //
+            "  COUNT(DISTINCT oos.stockItemId) AS outOfStockItemCount\n" + //
+            "FROM\n" + //
+            "  parties p\n" + //
+            "LEFT JOIN out_of_stock oos\n" + //
+            "  ON p.partyId = oos.partyId\n" + //
+            "GROUP BY\n" + //
+            "  p.partyId;";
+        } else {
+            System.err.println("Stock Management Module: Error: No valid parties found. Unable to generate out of stock SQL");
+        }
+
+		return ret;
 	}
 }

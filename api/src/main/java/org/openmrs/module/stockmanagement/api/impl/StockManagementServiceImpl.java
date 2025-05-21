@@ -40,6 +40,7 @@ import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
 import org.openmrs.util.OpenmrsConstants;
 import org.springframework.util.Assert;
+import org.openmrs.module.webservices.rest.SimpleObject;
 
 import javax.mail.Session;
 import java.math.BigDecimal;
@@ -1858,11 +1859,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                             messageSourceService.getMessage("stockmanagement.stockoperation.notupdateable"));
                 }
             } else if (action.equals(StockOperationAction.Action.DISPATCH)) {
-                if (!((stockOperation.isUpdateable()
-                        || stockOperation.getStatus().equals(StockOperationStatus.SUBMITTED)) && stockOperation
-                        .getStockOperationType().requiresDispatchAcknowledgement())) {
-                    throw new StockManagementException(
-                            messageSourceService.getMessage("stockmanagement.stockoperation.notdispatcheable"));
+                if (!((stockOperation.isUpdateable() || stockOperation.getStatus().equals(StockOperationStatus.SUBMITTED)) && stockOperation.getStockOperationType().requiresDispatchAcknowledgement())) {
+                    System.err.println("Stock Management Module: Error: Not Dispatchable");
+                    throw new StockManagementException(messageSourceService.getMessage("stockmanagement.stockoperation.notdispatcheable"));
                 }
             } else if (action.equals(StockOperationAction.Action.RETURN)) {
                 boolean canReturn = false;
@@ -2425,6 +2424,16 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         }
         StockInventoryResult result = dao.getStockItemInventory(filter, recordPrivilegeFilters);
         return postProcessInventoryResult(filter, result);
+    }
+
+    @Override
+    public List<SimpleObject> getOutOfStockItemsMetrics() {
+        List<SimpleObject> results = new ArrayList<>();
+
+        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(Context.getAuthenticatedUser(), null, null, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
+        results = dao.getOutOfStockItemsMetrics(recordPrivilegeFilters);
+
+        return results;
     }
 
     public StockInventoryResult postProcessInventoryResult(StockItemInventorySearchFilter filter, StockInventoryResult result) {
