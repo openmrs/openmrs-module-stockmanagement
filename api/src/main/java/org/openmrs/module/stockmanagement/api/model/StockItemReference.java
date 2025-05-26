@@ -1,8 +1,8 @@
 package org.openmrs.module.stockmanagement.api.model;
 
-import org.hibernate.search.annotations.DocumentId;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.DocumentId;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.openmrs.Concept;
 import org.openmrs.Drug;
 
@@ -33,7 +33,7 @@ public class StockItemReference extends org.openmrs.BaseChangeableOpenmrsData im
 	@ManyToOne(fetch = FetchType.EAGER)
 	private StockItem stockItem;
 	
-	@Field
+	@GenericField
 	@Column(name = "stock_reference_code", length = 255)
 	private String stockReferenceCode;
 	
