@@ -3,7 +3,7 @@
     <parent>
         <groupId>org.openmrs.module</groupId>
         <artifactId>stockmanagement</artifactId>
-        <version>2.0.3-core-2.8-SNAPSHOT</version>
+        <version>2.0.4-core-2.8-SNAPSHOT</version>
     </parent>
 
     <artifactId>stockmanagement-omod</artifactId>
