@@ -4,6 +4,9 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.StringProperty;
+import liquibase.pro.packaged.b;
+import liquibase.pro.packaged.ba;
+
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -79,6 +82,8 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 			simpleObject.add("uuid", batchNumber.getUuid());
 			simpleObject.add("batchNo", batchNumber.getBatchNo());
 			simpleObject.add("expiration", batchNumber.getExpiration());
+			simpleObject.add("brandName", batchNumber.getBrandName());
+			simpleObject.add("manufacturerName", batchNumber.getManufacturerName());
 			result.add(simpleObject);
 		}
 		return result;
@@ -107,6 +112,12 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 			}
 			if (item.containsKey("expiration") && item.get("expiration") != null) {
 				itemDTO.setExpiration((Date) ConversionUtil.convert(item.get("expiration"), Date.class));
+			}
+			if (item.containsKey("brandName") && item.get("brandName") != null) {
+				itemDTO.setBrandName(item.get("brandName").toString());
+			}
+			if (item.containsKey("manufacturerName") && item.get("manufacturerName") != null) {
+				itemDTO.setManufacturerName(item.get("manufacturerName").toString());
 			}
 			instance.getBatchNumbers().add(itemDTO);
 		}
@@ -176,6 +187,7 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 				batchNumber.setUuid(stockOperationItemDTO.getUuid());
 				batchNumber.setBatchNo(stockOperationItemDTO.getBatchNo());
 				batchNumber.setExpiration(stockOperationItemDTO.getExpiration());
+				batchNumber.setBrandName(stockOperationItemDTO.getBrandName());
 				batchNumbersDTO.getBatchNumbers().add(batchNumber);
 			}
 		}

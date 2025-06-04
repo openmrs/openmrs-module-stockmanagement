@@ -98,6 +98,8 @@ public class StockBatchResource extends ResourceBase<StockBatch> {
 			description.addProperty("stockItemUuid");
 			description.addProperty("voided");
 			description.addProperty("expiryNotificationDate");
+			description.addProperty("brandName");
+			description.addProperty("manufacturerName");
 		}
 		
 		if (rep instanceof DefaultRepresentation) {
@@ -124,6 +126,8 @@ public class StockBatchResource extends ResourceBase<StockBatch> {
 			modelImpl.property("uuid", new StringProperty()).property("batchNo", new StringProperty())
 			        .property("expiration", new DateTimeProperty())
 			        .property("expiryNotificationDate", new DateTimeProperty())
+					.property("brandName", new StringProperty())
+					.property("manufacturerName", new StringProperty())
 			        .property("stockItemUuid", new StringProperty()).property("voided", new BooleanProperty());
 		}
 		if (rep instanceof DefaultRepresentation) {}

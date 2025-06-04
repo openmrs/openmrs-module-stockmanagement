@@ -86,6 +86,8 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 		description.addProperty("purchasePrice");
 		description.addProperty("quantityRequested");
 		description.addProperty("quantityRequestedPackagingUOMUuid");
+		description.addProperty("brandName");
+		description.addProperty("manufacturerName");
 		return description;
 	}
 	
@@ -100,6 +102,8 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 		description.addProperty("expiration");
 		description.addProperty("quantity");
 		description.addProperty("purchasePrice");
+		description.addProperty("brandName");
+		description.addProperty("manufacturerName");
 		return description;
 	}
 	
@@ -169,6 +173,8 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 			description.addProperty("commonName");
 			description.addProperty("acronym");
 			description.addProperty("permission");
+			description.addProperty("brandName");
+			description.addProperty("manufacturerName");
 		}
 		
 		if (rep instanceof DefaultRepresentation) {}
@@ -204,7 +210,9 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 			        .property("quantityRequestedPackagingUOMFactor", new DecimalProperty())
 			        .property("commonName", new StringProperty()).property("acronym", new StringProperty())
 			        .property("purchasePrice", new DecimalProperty()).property("hasExpiration", new BooleanProperty())
-			        .property("packagingUnits", new ArrayProperty());
+			        .property("packagingUnits", new ArrayProperty())
+					.property("brandName", new StringProperty())
+					.property("manufacturerName", new StringProperty());
 		}
 		if (rep instanceof DefaultRepresentation) {}
 		

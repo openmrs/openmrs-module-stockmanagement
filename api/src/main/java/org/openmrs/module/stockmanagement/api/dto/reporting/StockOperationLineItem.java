@@ -97,6 +97,8 @@ public class StockOperationLineItem {
 	private Date dateCreated;
 	
 	private String requisitionOperationNumber;
+	private String brandName;
+	private String manufacturerName;
 	
 	public Integer getStockOperationItemId() {
 		return stockOperationItemId;
@@ -448,5 +450,17 @@ public class StockOperationLineItem {
 	
 	public void setStockOperationStatus(StockOperationStatus stockOperationStatus) {
 		this.stockOperationStatus = stockOperationStatus;
+	}
+	public String getBrandName() {
+		return brandName;
+	}
+	public void setBrandName(String brandName) {
+		this.brandName = brandName;
+	}
+	public String getManufacturerName() {
+		return manufacturerName;
+	}
+	public void setManufacturerName(String manufacturerName) {
+		this.manufacturerName = manufacturerName;
 	}
 }
