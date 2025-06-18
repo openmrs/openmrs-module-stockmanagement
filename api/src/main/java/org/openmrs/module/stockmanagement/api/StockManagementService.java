@@ -19,6 +19,7 @@ import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.reporting.Report;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.util.PrivilegeConstants;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -549,4 +550,8 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
 	List<StockItemReference> getStockItemReferenceByStockItem(String uuid);
+
+	@Transactional
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	List<SimpleObject> getOutOfStockItemsMetrics();
 }
