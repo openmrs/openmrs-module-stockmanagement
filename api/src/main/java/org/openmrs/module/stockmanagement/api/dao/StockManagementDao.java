@@ -28,7 +28,7 @@ import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.stockmanagement.api.utils.SimpleObject;
 import org.openmrs.util.PrivilegeConstants;
 
 import java.math.BigDecimal;
@@ -5372,16 +5372,15 @@ public class StockManagementDao extends DaoBase {
                 List<PartyDTO> partyDTOs = findParty(partySearchFilter).getData().stream().collect(Collectors.toList());
                 if(partyDTOs != null && partyDTOs.size() > 0) {
                     PartyDTO partyDTO = partyDTOs.get(0);
-                    result.add("partyUuid", partyDTO.getUuid());
-                    result.add("locationUuid", partyDTO.getLocationUuid());
-                    result.add("partyId", partyId);
-                    result.add("partyName", partyDTO.getName());
-                    result.add("outOfStock", outOfStockItemCount);
+                    result.put("partyUuid", partyDTO.getUuid());
+                    result.put("locationUuid", partyDTO.getLocationUuid());
+                    result.put("partyId", partyId);
+                    result.put("partyName", partyDTO.getName());
+                    result.put("outOfStock", outOfStockItemCount);
                     results.add(result);
                 }
             }
 		} catch(Exception ex) {
-            System.err.println("Stock Management Module: Error: Out of stock query: " + ex.getMessage());
             ex.printStackTrace();
         }
 		finally {
@@ -5450,8 +5449,6 @@ public class StockManagementDao extends DaoBase {
             "  ON p.partyId = oos.partyId\n" + //
             "GROUP BY\n" + //
             "  p.partyId;";
-        } else {
-            System.err.println("Stock Management Module: Error: No valid parties found. Unable to generate out of stock SQL");
         }
 
 		return ret;

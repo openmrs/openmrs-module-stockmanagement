@@ -25,7 +25,7 @@
     <properties>
         <openmrsPlatformVersion>2.4.3</openmrsPlatformVersion>
         <javaCompilerVersion>1.8</javaCompilerVersion>
-        <webservicesRestVersion>2.32.0</webservicesRestVersion>
+        <webservicesRestVersion>2.49.0</webservicesRestVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -71,20 +71,6 @@
             </dependency>
 
             <!-- End OpenMRS core -->
-
-            <!-- Importing versions from refapp distro -->
-            <dependency>
-                <groupId>org.openmrs.module</groupId>
-                <artifactId>webservices.rest-omod</artifactId>
-                <version>${webservicesRestVersion}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.openmrs.module</groupId>
-                <artifactId>webservices.rest-omod-common</artifactId>
-                <version>${webservicesRestVersion}</version>
-                <scope>provided</scope>
-            </dependency>
         </dependencies>
     </dependencyManagement>
 

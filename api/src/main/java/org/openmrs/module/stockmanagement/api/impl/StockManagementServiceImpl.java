@@ -40,7 +40,7 @@ import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
 import org.openmrs.util.OpenmrsConstants;
 import org.springframework.util.Assert;
-import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.stockmanagement.api.utils.SimpleObject;
 
 import javax.mail.Session;
 import java.math.BigDecimal;

@@ -87,12 +87,10 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 			}
 		}
 		catch (StockManagementException exception) {
-			System.err.println("Stock Management Module: Error: " + exception.getMessage());
 			exception.printStackTrace();
 			throw new RestClientException(exception.getMessage());
 		}
 		catch (Exception ex) {
-			System.err.println("Stock Management Module: Error: " + ex.getMessage());
 			ex.printStackTrace();
 			throw new RestClientException(ex.getMessage());
 		}

@@ -74,7 +74,7 @@ import org.openmrs.module.stockmanagement.api.dto.RecordPrivilegeFilter;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
-import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.stockmanagement.api.utils.SimpleObject;
 
 import org.springframework.web.bind.annotation.CrossOrigin;
 
@@ -105,11 +105,10 @@ public class StockManagementRestController {
 			StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 			results = stockManagementService.getOutOfStockItemsMetrics();
 		} catch(Exception ex) {
-			System.err.println("Stock Management Module: Error getting out of stock total: " + ex.getMessage());
 			ex.printStackTrace();
 		}       
 		
-		ret.add("results", results);
+		ret.put("results", results);
         return  ret;
     }
 

@@ -76,11 +76,5 @@ public class Result<T> extends PagingInfoBase implements IPagingInfo {
 		pagingInfo.setPageIndex(getPageIndex());
 		pagingInfo.setTotalRecordCount(getTotalRecordCount());
 	}
-
-	@Override
-	public String toString() {
-		return "Result [data=" + data + ", page=" + page + ", pageSize=" + pageSize + ", totalRecordCount="
-				+ totalRecordCount + ", loadRecordCount=" + loadRecordCount + "]";
-	}
 	
 }

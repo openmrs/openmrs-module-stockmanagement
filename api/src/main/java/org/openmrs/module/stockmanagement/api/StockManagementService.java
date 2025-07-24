@@ -19,7 +19,7 @@ import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.reporting.Report;
-import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.stockmanagement.api.utils.SimpleObject;
 import org.openmrs.util.PrivilegeConstants;
 import org.springframework.transaction.annotation.Transactional;
 
