@@ -61,7 +61,6 @@ Release to Maven:
   key: RTM
   tasks:
   - checkout:
-      repository: Git
       force-clean-build: 'false'
       description: Checkout Default Repository
   - checkout:
