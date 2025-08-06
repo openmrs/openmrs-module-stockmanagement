@@ -261,7 +261,10 @@ public class StockItemInventorySearchFilter {
 	public void setStartDate(Date startDate) {
 		this.startDate = startDate;
 	}
-	
+
+
+
+
 	public static class ItemGroupFilter {
 		
 		private List<Integer> partyIds;

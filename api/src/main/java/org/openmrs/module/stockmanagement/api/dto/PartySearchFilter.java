@@ -87,4 +87,5 @@ public class PartySearchFilter {
 	public void setPartyUuids(List<String> partyUuids) {
 		this.partyUuids = partyUuids;
 	}
+
 }

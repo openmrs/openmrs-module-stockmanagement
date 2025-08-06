@@ -644,4 +644,5 @@ public class StockOperationDTO {
 	public void setDispatchedBy(Integer dispatchedBy) {
 		this.dispatchedBy = dispatchedBy;
 	}
+	
 }

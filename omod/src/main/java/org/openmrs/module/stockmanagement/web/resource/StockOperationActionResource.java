@@ -87,7 +87,12 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 			}
 		}
 		catch (StockManagementException exception) {
+			exception.printStackTrace();
 			throw new RestClientException(exception.getMessage());
+		}
+		catch (Exception ex) {
+			ex.printStackTrace();
+			throw new RestClientException(ex.getMessage());
 		}
 		return delegate;
 	}
