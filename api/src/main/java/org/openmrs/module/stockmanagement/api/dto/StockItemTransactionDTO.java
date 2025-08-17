@@ -61,6 +61,8 @@ public class StockItemTransactionDTO {
 	private Integer operationDestinationPartyId;
 	
 	private String operationDestinationPartyName;
+	private String brandName;
+	private String manufacturerName;
 	
 	public Integer getPartyId() {
 		return partyId;
@@ -277,4 +279,19 @@ public class StockItemTransactionDTO {
 	public void setPatientUuid(String patientUuid) {
 		this.patientUuid = patientUuid;
 	}
+	public String getBrandName() {
+		return brandName;
+	}
+	public void setBrandName(String brandName) {
+		this.brandName = brandName;
+	}
+
+	public String getManufacturerName() {
+		return manufacturerName;
+	}
+
+	public void setManufacturerName(String manufacturerName) {
+		this.manufacturerName = manufacturerName;	
+	}
+
 }

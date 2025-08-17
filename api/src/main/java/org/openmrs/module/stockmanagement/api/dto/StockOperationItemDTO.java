@@ -75,6 +75,9 @@ public class StockOperationItemDTO {
 	private List<StockItemPackagingUOMDTO> packagingUnits;
 	
 	private Boolean canUpdateBatchInformation;
+
+	private String brandName;
+	private String manufacturerName;
 	
 	public Integer getStockItemId() {
 		return stockItemId;
@@ -354,5 +357,17 @@ public class StockOperationItemDTO {
 	
 	public void setCanUpdateBatchInformation(Boolean canUpdateBatchInformation) {
 		this.canUpdateBatchInformation = canUpdateBatchInformation;
+	}
+	public String getBrandName() {
+		return brandName;
+	}
+	public void setBrandName(String brandName) {
+		this.brandName = brandName;
+	}
+	public String getManufacturerName() {
+		return manufacturerName;
+	}
+	public void setManufacturerName(String manufacturerName) {
+		this.manufacturerName = manufacturerName;
 	}
 }
