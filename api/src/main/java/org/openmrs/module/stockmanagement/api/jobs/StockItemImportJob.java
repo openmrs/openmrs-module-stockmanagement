@@ -1,6 +1,6 @@
 package org.openmrs.module.stockmanagement.api.jobs;
 
-import liquibase.util.csv.opencsv.CSVReader;
+import liquibase.util.csv.CSVReader;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Drug;
@@ -816,7 +816,7 @@ public class StockItemImportJob {
             try(Writer writer = Files.newBufferedWriter( new File(file.toString() + "_errors").toPath())) {
                 boolean resetErrors = false;
                 try (Reader reader = Files.newBufferedReader(file)) {
-                    csvReader = new CSVReader(reader, ',', '\"', hasHeader ? 1 : 0);
+                    csvReader = new CSVReader(reader);
                     String[] csvLine = null;
                     boolean processedPending = false;
                     Map<Integer, Object[]> list = new HashMap<>();
