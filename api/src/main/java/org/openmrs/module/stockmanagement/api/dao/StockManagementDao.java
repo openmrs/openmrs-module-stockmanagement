@@ -16,13 +16,15 @@ import org.apache.commons.lang.time.DateUtils;
 import org.hibernate.*;
 import org.hibernate.criterion.*;
 import org.hibernate.criterion.Order;
+import org.hibernate.search.engine.search.predicate.dsl.BooleanPredicateClausesStep;
+import org.hibernate.search.mapper.orm.Search;
+import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.type.IntegerType;
 import org.openmrs.*;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
-import org.openmrs.api.db.hibernate.search.LuceneQuery;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
@@ -396,50 +398,58 @@ public class StockManagementDao extends DaoBase {
 		return query;
 	}
 	
-	protected LuceneQuery<StockItem> newStockItemQuery(String itemName, Boolean isDrugSearch, boolean includeAll) {
-		if (StringUtils.isBlank(itemName)) {
-			return null;
-		}
-		StringBuilder query = new StringBuilder();
-		String drugsQuery = LuceneQuery.escapeQuery(itemName);
-		List tokenizedName = Arrays.asList(drugsQuery.trim().split("\\+"));
-		query.append("((");
-		query.append(this.newStockCommonNameQuery(tokenizedName, drugsQuery, true));
-		query.append(")^0.3 OR acronym:(\"").append(drugsQuery).append("\")^0.6)");
-		if (isDrugSearch != null) {
-			query.append(" AND isDrug:");
-			if (isDrugSearch) {
-				query.append("true");
-			} else {
-				query.append("false");
-			}
-		}
-		
-		Class stockItemClass = StockItem.class;
-		Session session = getCurrentHibernateSession();
-		LuceneQuery<StockItem> itemsQuery = LuceneQuery.newQuery(stockItemClass, session, query.toString());
-		if (!includeAll) {
-			itemsQuery.include("voided", Boolean.valueOf(false));
-		}
-		return itemsQuery;
-	}
-	
-	public List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems) {
-        LuceneQuery commonNameAcronyQuery = this.newStockItemQuery(text, isDrugSearch, includeAll);
-        if (commonNameAcronyQuery == null) return new ArrayList<>();
-        List stockItemIds = commonNameAcronyQuery.listProjection("id");
-        if (!stockItemIds.isEmpty()) {
-            CollectionUtils.transform(stockItemIds, new Transformer() {
-                public Object transform(Object input) {
-                    return ((Object[]) input)[0];
-                }
-            });
-            int maxSize = stockItemIds.size() < maxItems ? stockItemIds.size() : maxItems;
-            stockItemIds = stockItemIds.subList(0, maxSize);
-            return stockItemIds;
-        }
-        return new ArrayList<>();
+	protected List<StockItem> newStockItemQuery(String itemName, Boolean isDrugSearch, boolean includeAll, int maxResults) {
+    if (StringUtils.isBlank(itemName)) {
+        return Collections.emptyList();
     }
+
+    Session session = getCurrentHibernateSession();
+    SearchSession searchSession = Search.session(session);
+
+   return searchSession.search(StockItem.class)
+            .where(f -> {
+                // Build a boolean predicate step-by-step
+                BooleanPredicateClausesStep<?> bool = f.bool();
+
+                // Match commonName with lower boost
+                bool.should(
+                        f.match()
+                                .field("commonName")
+                                .matching(itemName)
+                                .boost(0.3f)
+                );
+
+                // Match acronym with higher boost
+                bool.should(
+                        f.match()
+                                .field("acronym")
+                                .matching(itemName)
+                                .boost(0.6f)
+                );
+
+                // Filter by isDrug if provided
+                if (isDrugSearch != null) {
+                    bool.must(f.match().field("isDrug").matching(isDrugSearch));
+                }
+
+                // Filter out voided items if includeAll is false
+                if (!includeAll) {
+                    bool.must(f.match().field("voided").matching(false));
+                }
+
+                return bool;
+            })
+            .fetchHits(maxResults);    
+   } 
+   
+public List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems) {
+    // call the above method and map to IDs
+    List<StockItem> hits = newStockItemQuery(text, isDrugSearch, includeAll, maxItems);
+    return hits.stream()
+            .limit(maxItems)
+            .map(StockItem::getId) // assuming getId() returns Integer
+            .collect(Collectors.toList());
+}
 	
 	public Result<StockItemDTO> findStockItems(StockItemSearchFilter filter) {
         HashMap<String, Object> parameterList = new HashMap<>();

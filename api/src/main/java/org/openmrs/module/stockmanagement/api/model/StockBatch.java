@@ -1,12 +1,9 @@
 package org.openmrs.module.stockmanagement.api.model;
 
 import org.openmrs.BaseChangeableOpenmrsData;
-import org.openmrs.BaseOpenmrsData;
-
 import java.io.Serializable;
 import javax.persistence.*;
 import java.util.Date;
-import java.util.Set;
 
 /**
  * The persistent class for the stockmgmt_stock_batch database table.
