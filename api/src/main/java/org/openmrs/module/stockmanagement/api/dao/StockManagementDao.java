@@ -36,8 +36,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.hibernate.query.*;
-
 @SuppressWarnings({ "unchecked" })
 public class StockManagementDao extends DaoBase {
 	
