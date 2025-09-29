@@ -5,10 +5,8 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
-import org.openmrs.module.stockmanagement.api.model.LocationTree;
 import org.openmrs.module.stockmanagement.api.model.Party;
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 

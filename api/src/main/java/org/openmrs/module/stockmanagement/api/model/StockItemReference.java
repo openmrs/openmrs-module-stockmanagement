@@ -1,15 +1,11 @@
 package org.openmrs.module.stockmanagement.api.model;
 
-import org.hibernate.search.annotations.DocumentId;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Indexed;
-import org.openmrs.Concept;
-import org.openmrs.Drug;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.DocumentId;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.util.Set;
 
 /**
  * The persistent class for the stockmgmt_stock_item database table.
@@ -33,7 +29,7 @@ public class StockItemReference extends org.openmrs.BaseChangeableOpenmrsData im
 	@ManyToOne(fetch = FetchType.EAGER)
 	private StockItem stockItem;
 	
-	@Field
+	@FullTextField
 	@Column(name = "stock_reference_code", length = 255)
 	private String stockReferenceCode;
 	

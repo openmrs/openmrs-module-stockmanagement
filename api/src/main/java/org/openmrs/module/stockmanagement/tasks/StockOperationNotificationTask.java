@@ -2,10 +2,7 @@ package org.openmrs.module.stockmanagement.tasks;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.User;
 import org.openmrs.api.context.Context;
-import org.openmrs.api.context.Daemon;
-import org.openmrs.api.context.UserContext;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
 import org.openmrs.util.PrivilegeConstants;

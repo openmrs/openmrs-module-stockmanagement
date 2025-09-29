@@ -9,21 +9,21 @@
  */
 package org.openmrs.module.stockmanagement.api.dao;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.collections.Transformer;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.hibernate.*;
+import org.hibernate.Query;
 import org.hibernate.criterion.*;
 import org.hibernate.criterion.Order;
+import org.hibernate.search.engine.search.predicate.dsl.BooleanPredicateClausesStep;
+import org.hibernate.search.mapper.orm.Search;
+import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.type.IntegerType;
 import org.openmrs.*;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
-import org.openmrs.api.db.hibernate.search.LuceneQuery;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -333,113 +333,106 @@ public class StockManagementDao extends DaoBase {
 		return getSession().createCriteria(StockOperationTypeLocationScope.class).list();
 	}
 	
-	public void voidUserRoleScopes(List<String> userRoleScopeIds, String reason, int voidedBy) {
-		DbSession session = getSession();
-		Query query = session
-		        .createQuery("UPDATE stockmanagement.UserRoleScope SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid in (:uuidList)");
-		query.setParameterList("uuidList", userRoleScopeIds);
-		query.setDate("dateVoided", new Date());
-		query.setInteger("voidedBy", voidedBy);
-		query.setString("reason", reason);
-		query.executeUpdate();
-	}
+public void voidUserRoleScopes(List<String> userRoleScopeIds, String reason, int voidedBy) {
+    if (userRoleScopeIds == null || userRoleScopeIds.isEmpty()) return;
+
+    DbSession session = getSession();
+    Query query = session.createQuery(
+            "UPDATE stockmanagement.UserRoleScope " +
+            "SET voided = 1, dateVoided = :dateVoided, voidedBy = :voidedBy, voidReason = :reason " +
+            "WHERE uuid in (:uuidList)"
+    );
+
+    query.setParameter("uuidList", userRoleScopeIds);
+    query.setParameter("dateVoided", new Date());
+    query.setParameter("voidedBy", voidedBy);
+    query.setParameter("reason", reason);
+
+    query.executeUpdate();
+}
+
+public void voidUserRoleScopeLocations(List<String> userRoleScopeLocationIds, String reason, int voidedBy) {
+    if (userRoleScopeLocationIds == null || userRoleScopeLocationIds.isEmpty()) return;
+
+    DbSession session = getSession();
+    Query<?> query = session.createQuery(
+            "UPDATE stockmanagement.UserRoleScopeLocation " +
+            "SET voided = 1, dateVoided = :dateVoided, voidedBy = :voidedBy, voidReason = :reason " +
+            "WHERE uuid in (:uuidList)"
+    );
+
+    query.setParameter("uuidList", userRoleScopeLocationIds);
+    query.setParameter("dateVoided", new Date());
+    query.setParameter("voidedBy", voidedBy);
+    query.setParameter("reason", reason);
+
+    query.executeUpdate();
+}
+
+public void voidUserRoleScopeOperationTypes(List<String> userRoleScopeOperationTypeIds, String reason, int voidedBy) {
+    if (userRoleScopeOperationTypeIds == null || userRoleScopeOperationTypeIds.isEmpty()) return;
+
+    DbSession session = getSession();
+    Query query = session.createQuery(
+            "UPDATE stockmanagement.UserRoleScopeOperationType " +
+            "SET voided = 1, dateVoided = :dateVoided, voidedBy = :voidedBy, voidReason = :reason " +
+            "WHERE uuid in (:uuidList)"
+    );
+
+    query.setParameter("uuidList", userRoleScopeOperationTypeIds);
+    query.setParameter("dateVoided", new Date());
+    query.setParameter("voidedBy", voidedBy);
+    query.setParameter("reason", reason);
+
+    query.executeUpdate();
+}
 	
-	public void voidUserRoleScopeLocations(List<String> userRoleScopeLocationIds, String reason, int voidedBy) {
-		DbSession session = getSession();
-		Query query = session
-		        .createQuery("UPDATE stockmanagement.UserRoleScopeLocation SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid in (:uuidList)");
-		query.setParameterList("uuidList", userRoleScopeLocationIds);
-		query.setDate("dateVoided", new Date());
-		query.setInteger("voidedBy", voidedBy);
-		query.setString("reason", reason);
-		query.executeUpdate();
-	}
-	
-	public void voidUserRoleScopeOperationTypes(List<String> userRoleScopeOperationTypeIds, String reason, int voidedBy) {
-		DbSession session = getSession();
-		Query query = session
-		        .createQuery("UPDATE stockmanagement.UserRoleScopeOperationType SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid in (:uuidList)");
-		query.setParameterList("uuidList", userRoleScopeOperationTypeIds);
-		query.setDate("dateVoided", new Date());
-		query.setInteger("voidedBy", voidedBy);
-		query.setString("reason", reason);
-		query.executeUpdate();
-	}
-	
-	private StringBuilder newStockCommonNameQuery(List<String> tokenizedName, String escapedName, boolean searchKeywords) {
-		StringBuilder query = new StringBuilder();
-		query.append("(");
-		if (searchKeywords) {
-			query.append(" commonName:(\"" + escapedName + "\")^0.7");
-			if (!tokenizedName.isEmpty()) {
-				query.append(" OR (");
-				Iterator var5 = tokenizedName.iterator();
-				
-				while (var5.hasNext()) {
-					String token = (String) var5.next();
-					query.append(" (commonName:(");
-					query.append(token);
-					query.append(")^0.6 OR commonName:(");
-					query.append(token);
-					query.append("*)^0.3 OR commonName:(");
-					query.append(token);
-					query.append("~0.8)^0.1)");
-				}
-				
-				query.append(")^0.3");
-			}
-		} else {
-			query.append(" commonName:\"" + escapedName + "\"");
-		}
-		
-		query.append(")");
-		return query;
-	}
-	
-	protected LuceneQuery<StockItem> newStockItemQuery(String itemName, Boolean isDrugSearch, boolean includeAll) {
-		if (StringUtils.isBlank(itemName)) {
-			return null;
-		}
-		StringBuilder query = new StringBuilder();
-		String drugsQuery = LuceneQuery.escapeQuery(itemName);
-		List tokenizedName = Arrays.asList(drugsQuery.trim().split("\\+"));
-		query.append("((");
-		query.append(this.newStockCommonNameQuery(tokenizedName, drugsQuery, true));
-		query.append(")^0.3 OR acronym:(\"").append(drugsQuery).append("\")^0.6)");
-		if (isDrugSearch != null) {
-			query.append(" AND isDrug:");
-			if (isDrugSearch) {
-				query.append("true");
-			} else {
-				query.append("false");
-			}
-		}
-		
-		Class stockItemClass = StockItem.class;
-		Session session = getCurrentHibernateSession();
-		LuceneQuery<StockItem> itemsQuery = LuceneQuery.newQuery(stockItemClass, session, query.toString());
-		if (!includeAll) {
-			itemsQuery.include("voided", Boolean.valueOf(false));
-		}
-		return itemsQuery;
-	}
-	
-	public List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems) {
-        LuceneQuery commonNameAcronyQuery = this.newStockItemQuery(text, isDrugSearch, includeAll);
-        if (commonNameAcronyQuery == null) return new ArrayList<>();
-        List stockItemIds = commonNameAcronyQuery.listProjection("id");
-        if (!stockItemIds.isEmpty()) {
-            CollectionUtils.transform(stockItemIds, new Transformer() {
-                public Object transform(Object input) {
-                    return ((Object[]) input)[0];
-                }
-            });
-            int maxSize = stockItemIds.size() < maxItems ? stockItemIds.size() : maxItems;
-            stockItemIds = stockItemIds.subList(0, maxSize);
-            return stockItemIds;
-        }
-        return new ArrayList<>();
+	protected List<StockItem> newStockItemQuery(String itemName, Boolean isDrugSearch, boolean includeAll, int maxResults) {
+    if (StringUtils.isBlank(itemName)) {
+        return Collections.emptyList();
     }
+
+    Session session = getCurrentHibernateSession();
+    SearchSession searchSession = Search.session(session);
+
+   return searchSession.search(StockItem.class)
+            .where(f -> {
+                BooleanPredicateClausesStep<?> bool = f.bool();
+
+                bool.should(
+                        f.match()
+                                .field("commonName")
+                                .matching(itemName)
+                                .boost(0.3f)
+                );
+
+                bool.should(
+                        f.match()
+                                .field("acronym")
+                                .matching(itemName)
+                                .boost(0.6f)
+                );
+
+                if (isDrugSearch != null) {
+                    bool.must(f.match().field("isDrug").matching(isDrugSearch));
+                }
+
+                if (!includeAll) {
+                    bool.must(f.match().field("voided").matching(false));
+                }
+                return bool;
+            })
+            .fetchHits(maxResults);    
+   } 
+   
+public List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems) {
+   
+    List<StockItem> hits = newStockItemQuery(text, isDrugSearch, includeAll, maxItems);
+    return hits.stream()
+            .limit(maxItems)
+            .map(StockItem::getId)
+            .collect(Collectors.toList());
+}
 	
 	public Result<StockItemDTO> findStockItems(StockItemSearchFilter filter) {
         HashMap<String, Object> parameterList = new HashMap<>();
