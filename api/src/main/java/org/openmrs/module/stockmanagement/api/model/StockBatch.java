@@ -25,6 +25,12 @@ public class StockBatch extends BaseChangeableOpenmrsData implements Serializabl
 	
 	@Column(name = "expiration")
 	private Date expiration;
+
+	@Column(name = "brand_name", length = 255)
+	private String brandName;
+
+	@Column(name = "manufacturer_name", length = 255)
+	private String manufacturerName;
 	
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "stock_item_id")
@@ -74,5 +80,18 @@ public class StockBatch extends BaseChangeableOpenmrsData implements Serializabl
 	
 	public void setExpiryNotificationDate(Date expiryNotificationDate) {
 		this.expiryNotificationDate = expiryNotificationDate;
+	}
+	public String getBrandName() {
+		return brandName;
+	}
+	public void setBrandName(String brandName) {
+		this.brandName = brandName;
+	}
+
+	public String getManufacturerName() {
+		return manufacturerName;
+	}
+	public void setManufacturerName(String manufacturerName) {
+		this.manufacturerName = manufacturerName;
 	}
 }

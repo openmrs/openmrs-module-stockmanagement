@@ -40,6 +40,8 @@ public class StockBatchLineItem {
 	private BigDecimal reorderLevelFactor;
 	
 	private Integer reorderLevelUoMId;
+	private String brandName;
+	private String manufacturerName;
 	
 	public Integer getStockItemId() {
 		return stockItemId;
@@ -183,5 +185,17 @@ public class StockBatchLineItem {
 	
 	public void setReorderLevelUoMId(Integer reorderLevelUoMId) {
 		this.reorderLevelUoMId = reorderLevelUoMId;
+	}
+	public String getBrandName() {
+		return brandName;
+	}
+	public void setBrandName(String brandName) {
+		this.brandName = brandName;
+	}
+	public String getManufacturerName() {
+		return manufacturerName;
+	}
+	public void setManufacturerName(String manufacturerName) {
+		this.manufacturerName = manufacturerName;
 	}
 }
