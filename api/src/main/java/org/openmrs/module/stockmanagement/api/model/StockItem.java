@@ -1,8 +1,9 @@
 package org.openmrs.module.stockmanagement.api.model;
 
-import org.hibernate.search.annotations.DocumentId;
-import org.hibernate.search.annotations.Field;
-import org.hibernate.search.annotations.Indexed;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.DocumentId;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.openmrs.Concept;
 import org.openmrs.Drug;
 
@@ -68,15 +69,15 @@ public class StockItem extends org.openmrs.BaseChangeableOpenmrsData implements 
 	@OneToMany(mappedBy = "stockItem", cascade = CascadeType.ALL, orphanRemoval = true)
 	private Set<StockItemReference> references;
 	
-	@Field
+	@GenericField
 	@Column(name = "is_drug", nullable = false)
 	private Boolean isDrug;
 	
-	@Field
+	@FullTextField
 	@Column(name = "common_name", length = 255, nullable = true)
 	private String commonName;
 	
-	@Field
+	@FullTextField
 	@Column(name = "acronym", length = 255, nullable = true)
 	private String acronym;
 	
