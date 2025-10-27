@@ -23,7 +23,8 @@
     </modules>
 
     <properties>
-        <openmrsPlatformVersion>2.8.0-SNAPSHOT</openmrsPlatformVersion>
+
+        <openmrsPlatformVersion>2.8.0</openmrsPlatformVersion>
         <javaCompilerVersion>1.8</javaCompilerVersion>
         <webservicesRestVersion>3.0.0-SNAPSHOT</webservicesRestVersion>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

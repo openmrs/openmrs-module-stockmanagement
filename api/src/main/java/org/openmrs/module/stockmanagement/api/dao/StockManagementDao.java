@@ -390,6 +390,65 @@ public void voidUserRoleScopeOperationTypes(List<String> userRoleScopeOperationT
 	protected List<StockItem> newStockItemQuery(String itemName, Boolean isDrugSearch, boolean includeAll, int maxResults) {
     if (StringUtils.isBlank(itemName)) {
         return Collections.emptyList();
+	public void voidUserRoleScopes(List<String> userRoleScopeIds, String reason, int voidedBy) {
+		DbSession session = getSession();
+		Query query = session
+		        .createQuery("UPDATE stockmanagement.UserRoleScope SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid in (:uuidList)");
+		query.setParameterList("uuidList", userRoleScopeIds);
+		query.setDate("dateVoided", new Date());
+		query.setInteger("voidedBy", voidedBy);
+		query.setString("reason", reason);
+		query.executeUpdate();
+	}
+	
+	public void voidUserRoleScopeLocations(List<String> userRoleScopeLocationIds, String reason, int voidedBy) {
+		DbSession session = getSession();
+		Query query = session
+		        .createQuery("UPDATE stockmanagement.UserRoleScopeLocation SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid in (:uuidList)");
+		query.setParameterList("uuidList", userRoleScopeLocationIds);
+		query.setDate("dateVoided", new Date());
+		query.setInteger("voidedBy", voidedBy);
+		query.setString("reason", reason);
+		query.executeUpdate();
+	}
+	
+	public void voidUserRoleScopeOperationTypes(List<String> userRoleScopeOperationTypeIds, String reason, int voidedBy) {
+		DbSession session = getSession();
+		Query query = session
+		        .createQuery("UPDATE stockmanagement.UserRoleScopeOperationType SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid in (:uuidList)");
+		query.setParameterList("uuidList", userRoleScopeOperationTypeIds);
+		query.setDate("dateVoided", new Date());
+		query.setInteger("voidedBy", voidedBy);
+		query.setString("reason", reason);
+		query.executeUpdate();
+	}
+	
+	public List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems) {
+		List<String> tokenizedName = Arrays.asList(text.trim().split("\\+"));
+		return searchSessionFactory.getSearchSession().search(StockItem.class)
+				.select(f -> f.id(Integer.class)).where(f -> {
+					return f.bool().with(b -> {
+						b.minimumShouldMatchNumber(1);
+						b.should(f.bool().with(bb -> {
+							bb.minimumShouldMatchNumber(1);
+							bb.should(f.phrase().field("commonName").matching(text).boost(1.7f));
+							bb.should(f.match().field("commonName").matching(text).boost(1.6f));
+							bb.should(f.bool().with(bbb -> {
+								for (String token : tokenizedName) {
+									bbb.must(f.wildcard().field("commonName").matching(token + "*"));
+								}
+							}).boost(1.3f));
+							bb.should(f.match().field("commonName").matching(text).fuzzy(1, 2).boost(1.1f));
+						}));
+						b.should(f.phrase().field("acronym").matching(text).boost(1.6f));
+						if (isDrugSearch != null) {
+							b.filter(f.match().field("isDrug").matching(isDrugSearch));
+						}
+						if (!includeAll) {
+							b.filter(f.match().field("voided").matching(false));
+						}
+					});
+				}).fetchHits(maxItems);
     }
 
     Session session = getCurrentHibernateSession();

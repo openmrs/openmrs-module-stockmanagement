@@ -1,6 +1,7 @@
 package org.openmrs.module.stockmanagement.api.model;
 
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.DocumentId;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.openmrs.Concept;
@@ -76,7 +77,11 @@ public class StockItem extends org.openmrs.BaseChangeableOpenmrsData implements 
 	@Column(name = "common_name", length = 255, nullable = true)
 	private String commonName;
 	
-	@GenericField
+	@FullTextField
+	@Column(name = "common_name", length = 255, nullable = true)
+	private String commonName;
+	
+	@FullTextField
 	@Column(name = "acronym", length = 255, nullable = true)
 	private String acronym;
 	
