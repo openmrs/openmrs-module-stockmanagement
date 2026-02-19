@@ -3,7 +3,7 @@
 
     <groupId>org.openmrs.module</groupId>
     <artifactId>stockmanagement</artifactId>
-    <version>3.0.0</version>
+    <version>3.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Stock Management</name>
     <description>This module supports stock management of medical supplies at health facilities.</description>
@@ -14,7 +14,7 @@
         <connection>scm:git:git@github.com:openmrs/openmrs-module-stockmanagement.git</connection>
         <developerConnection>scm:git:git@github.com:openmrs/openmrs-module-stockmanagement.git</developerConnection>
         <url>scm:git:https://github.com/openmrs/openmrs-module-stockmanagement.git</url>
-        <tag>stockmanagement-3.0.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <modules>
