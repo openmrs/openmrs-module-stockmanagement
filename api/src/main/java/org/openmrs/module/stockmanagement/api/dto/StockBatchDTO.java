@@ -17,6 +17,8 @@ public class StockBatchDTO {
 	private boolean voided;
 	
 	private Date expiryNotificationDate;
+	private String brandName;
+	private String manufacturerName;
 	
 	public Integer getId() {
 		return id;
@@ -72,5 +74,18 @@ public class StockBatchDTO {
 	
 	public void setExpiryNotificationDate(Date expiryNotificationDate) {
 		this.expiryNotificationDate = expiryNotificationDate;
+	}
+	public String getBrandName() {
+		return brandName;
+	}
+	public void setBrandName(String brandName) {
+		this.brandName = brandName;
+	}
+
+	public String getManufacturerName() {
+		return manufacturerName;
+	}
+	public void setManufacturerName(String manufacturerName) {
+		this.manufacturerName = manufacturerName;	
 	}
 }

@@ -3,6 +3,7 @@ package org.openmrs.module.stockmanagement.api.dto;
 import java.util.Date;
 import java.util.List;
 
+
 public class StockOperationBatchNumbersDTO {
 	
 	private Integer id;
@@ -54,6 +55,8 @@ public class StockOperationBatchNumbersDTO {
 		private String batchNo;
 		
 		private Date expiration;
+		private String brandName;
+		private String manufacturerName;
 		
 		public Integer getId() {
 			return id;
@@ -85,6 +88,19 @@ public class StockOperationBatchNumbersDTO {
 		
 		public void setExpiration(Date expiration) {
 			this.expiration = expiration;
+		}
+
+		public String getBrandName() {
+			return brandName;
+		}
+		public void setBrandName(String brandName) {
+			this.brandName = brandName;
+		}
+		public String getManufacturerName() {
+			return manufacturerName;
+		}
+		public void setManufacturerName(String manufacturerName) {
+			this.manufacturerName = manufacturerName;
 		}
 	}
 }

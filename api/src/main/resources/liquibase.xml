@@ -4717,4 +4717,27 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
     </addColumn>
   </changeSet>
+
+  <changeSet author="makombe" id="stockmanagement-2024-05-22-1130">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_stock_batch" />
+      <not>
+        <columnExists columnName="brand_name" tableName="stockmgmt_stock_batch"/>
+        <columnExists columnName="manufacturer_name" tableName="stockmgmt_stock_batch"/>
+      </not>
+    </preConditions>
+    <comment>
+      adding column brand_name,manufacturer_name on table stockmgmt_stock_batch
+    </comment>
+    <addColumn tableName="stockmgmt_stock_batch">
+      <column  name="brand_name" type="varchar(255)">
+        <constraints nullable="true" />
+      </column>
+    </addColumn>
+     <addColumn tableName="stockmgmt_stock_batch">
+      <column  name="manufacturer_name" type="varchar(255)">
+        <constraints nullable="true" />
+      </column>
+    </addColumn>
+  </changeSet>
 </databaseChangeLog>
