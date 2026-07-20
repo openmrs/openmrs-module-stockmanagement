@@ -2586,6 +2586,11 @@
   <sql>
     ALTER TABLE stockmgmt_user_role_scope MODIFY role VARCHAR(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL;
   </sql>
+   <rollback>
+    <!-- Intentionally a no-op: reverting to the original latin1 collation would
+         reintroduce the MySQL FK incompatibility bug this changeset fixes (O3-5811).
+         The utf8mb3 collation is the correct, permanent state regardless of rollback. -->
+  </rollback>
 </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-218" failOnError="false">
     <preConditions onFail="MARK_RAN">
