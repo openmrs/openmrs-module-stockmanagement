@@ -2578,6 +2578,20 @@
     </preConditions>
     <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="stockmgmt_user_role_scope" constraintName="stockmgmt_user_role_scope_user_fk" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="user_id" referencedTableName="users" />
   </changeSet>
+  <changeSet id="O3-5811-fix-stockmgmt-user-role-scope-role-collation" author="dev">
+  <preConditions onFail="MARK_RAN">
+    <dbms type="mysql"/>
+  </preConditions>
+  <comment>Ensure stockmgmt_user_role_scope.role uses the same character set and collation as role.role before the foreign key is created, to prevent MySQL FK incompatibility errors (see O3-5811).</comment>
+  <sql>
+    ALTER TABLE stockmgmt_user_role_scope MODIFY role VARCHAR(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL;
+  </sql>
+   <rollback>
+    <!-- Intentionally a no-op: reverting to the original latin1 collation would
+         reintroduce the MySQL FK incompatibility bug this changeset fixes (O3-5811).
+         The utf8mb3 collation is the correct, permanent state regardless of rollback. -->
+  </rollback>
+</changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-218" failOnError="false">
     <preConditions onFail="MARK_RAN">
       <not>
