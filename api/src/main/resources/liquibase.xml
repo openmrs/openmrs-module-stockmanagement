@@ -2580,11 +2580,16 @@
   </changeSet>
   <changeSet id="O3-5811-fix-stockmgmt-user-role-scope-role-collation" author="dev">
   <preConditions onFail="MARK_RAN">
-    <dbms type="mysql"/>
+    <dbms type="mysql,mariadb"/>
   </preConditions>
   <comment>Ensure stockmgmt_user_role_scope.role uses the same character set and collation as role.role before the foreign key is created, to prevent MySQL FK incompatibility errors (see O3-5811).</comment>
   <sql>
-    ALTER TABLE stockmgmt_user_role_scope MODIFY role VARCHAR(50) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL;
+       SET @cs := (SELECT CHARACTER_SET_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'role' AND COLUMN_NAME = 'role');
+       SET @co := (SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'role' AND COLUMN_NAME = 'role');
+       SET @ddl := CONCAT('ALTER TABLE stockmgmt_user_role_scope MODIFY role VARCHAR(50) CHARACTER SET ', @cs, ' COLLATE ', @co, ' NOT NULL');
+       PREPARE stmt FROM @ddl;
+       EXECUTE stmt;
+       DEALLOCATE PREPARE stmt;
   </sql>
    <rollback>
     <!-- Intentionally a no-op: reverting to the original latin1 collation would
