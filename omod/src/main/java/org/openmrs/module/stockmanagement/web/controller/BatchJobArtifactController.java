@@ -4,7 +4,6 @@ import org.apache.commons.io.IOUtils;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
-import org.openmrs.module.stockmanagement.api.ReportAuthorization;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.model.BatchJob;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
@@ -92,9 +91,6 @@ public class BatchJobArtifactController {
 	}
 
 	static boolean canAccessArtifact(User user, BatchJob batchJob, StockManagementService stockManagementService) {
-		if (!ReportAuthorization.hasInventoryReportingRole(user)) {
-			return false;
-		}
 		if (user.isSuperUser() || batchJob.getPrivilegeScope() == null) {
 			return true;
 		}

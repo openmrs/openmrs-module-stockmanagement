@@ -33,19 +33,61 @@ public class AsyncTasksBatchJobTest {
 	}
 
 	@Test
-	public void ensureTaskDefinition_shouldRepairTaskFoundByUuid() {
+	public void ensureTaskDefinition_shouldRepairWrongTaskClassWithoutChangingSchedulerConfiguration() {
 		SchedulerService schedulerService = mock(SchedulerService.class);
 		TaskDefinition existingTask = new TaskDefinition();
 		existingTask.setUuid(TASK_UUID);
 		existingTask.setName("Renamed task");
+		existingTask.setTaskClass("org.openmrs.scheduler.tasks.TestTask");
+		existingTask.setRepeatInterval(3600L);
+		existingTask.setStartOnStartup(false);
 		when(schedulerService.getTaskByName(AsyncTasksBatchJob.TASK_NAME)).thenReturn(null);
 		when(schedulerService.getTaskByUuid(TASK_UUID)).thenReturn(existingTask);
 
 		TaskDefinition result = AsyncTasksBatchJob.ensureTaskDefinition(schedulerService);
 
 		assertSame(existingTask, result);
-		assertEquals(AsyncTasksBatchJob.TASK_NAME, result.getName());
+		assertEquals("Renamed task", result.getName());
 		assertEquals(AsyncTasksBatchJob.class.getName(), result.getTaskClass());
+		assertEquals(Long.valueOf(3600L), result.getRepeatInterval());
+		assertEquals(Boolean.FALSE, result.getStartOnStartup());
 		verify(schedulerService).saveTaskDefinition(existingTask);
+	}
+
+	@Test
+	public void ensureTaskDefinition_shouldNotSaveValidExistingTaskDefinition() {
+		SchedulerService schedulerService = mock(SchedulerService.class);
+		TaskDefinition existingTask = new TaskDefinition();
+		existingTask.setUuid(TASK_UUID);
+		existingTask.setName(AsyncTasksBatchJob.TASK_NAME);
+		existingTask.setTaskClass(AsyncTasksBatchJob.class.getName());
+		existingTask.setRepeatInterval(3600L);
+		existingTask.setStartOnStartup(false);
+		when(schedulerService.getTaskByName(AsyncTasksBatchJob.TASK_NAME)).thenReturn(existingTask);
+
+		TaskDefinition result = AsyncTasksBatchJob.ensureTaskDefinition(schedulerService);
+
+		assertSame(existingTask, result);
+		assertEquals(Long.valueOf(3600L), result.getRepeatInterval());
+		assertEquals(Boolean.FALSE, result.getStartOnStartup());
+		verify(schedulerService, never()).saveTaskDefinition(any(TaskDefinition.class));
+		verify(schedulerService, never()).getTaskByUuid(anyString());
+	}
+
+	@Test
+	public void ensureTaskDefinition_shouldPropagateLookupFailureWithoutWriting() {
+		SchedulerService schedulerService = mock(SchedulerService.class);
+		RuntimeException lookupFailure = new RuntimeException("Database unavailable");
+		when(schedulerService.getTaskByName(AsyncTasksBatchJob.TASK_NAME)).thenThrow(lookupFailure);
+
+		try {
+			AsyncTasksBatchJob.ensureTaskDefinition(schedulerService);
+			fail("Expected scheduler lookup failure to propagate");
+		} catch (RuntimeException exception) {
+			assertSame(lookupFailure, exception);
+		}
+
+		verify(schedulerService, never()).getTaskByUuid(anyString());
+		verify(schedulerService, never()).saveTaskDefinition(any(TaskDefinition.class));
 	}
 }

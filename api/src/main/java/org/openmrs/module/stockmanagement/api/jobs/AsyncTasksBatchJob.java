@@ -244,49 +244,28 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	}
 
 	static synchronized TaskDefinition ensureTaskDefinition(SchedulerService schedulerService) {
-		TaskDefinition taskDefinition = getTaskByName(schedulerService);
+		TaskDefinition taskDefinition = schedulerService.getTaskByName(TASK_NAME);
 		if (taskDefinition == null) {
-			taskDefinition = getTaskByUuid(schedulerService);
+			taskDefinition = schedulerService.getTaskByUuid(TASK_UUID);
 		}
 
 		if (taskDefinition == null) {
 			taskDefinition = new TaskDefinition();
 			taskDefinition.setUuid(TASK_UUID);
 			taskDefinition.setStarted(false);
-			taskLog.warn("Recreating missing asynchronous report and batch-job scheduler task");
-		}
-
-		taskDefinition.setName(TASK_NAME);
-		taskDefinition.setDescription(TASK_DESCRIPTION);
-		taskDefinition.setTaskClass(AsyncTasksBatchJob.class.getName());
-		taskDefinition.setRepeatInterval(TASK_REPEAT_INTERVAL_SECONDS);
-		taskDefinition.setStartOnStartup(true);
-		if (taskDefinition.getStartTime() == null) {
+			taskDefinition.setName(TASK_NAME);
+			taskDefinition.setDescription(TASK_DESCRIPTION);
+			taskDefinition.setTaskClass(AsyncTasksBatchJob.class.getName());
+			taskDefinition.setRepeatInterval(TASK_REPEAT_INTERVAL_SECONDS);
+			taskDefinition.setStartOnStartup(true);
 			taskDefinition.setStartTime(new Date());
+			taskLog.warn("Recreating missing asynchronous report and batch-job scheduler task");
+			schedulerService.saveTaskDefinition(taskDefinition);
+		} else if (!AsyncTasksBatchJob.class.getName().equals(taskDefinition.getTaskClass())) {
+			taskDefinition.setTaskClass(AsyncTasksBatchJob.class.getName());
+			schedulerService.saveTaskDefinition(taskDefinition);
 		}
-
-		schedulerService.saveTaskDefinition(taskDefinition);
 		return taskDefinition;
-	}
-
-	private static TaskDefinition getTaskByName(SchedulerService schedulerService) {
-		try {
-			return schedulerService.getTaskByName(TASK_NAME);
-		}
-		catch (RuntimeException exception) {
-			taskLog.debug("Asynchronous scheduler task was not found by name", exception);
-			return null;
-		}
-	}
-
-	private static TaskDefinition getTaskByUuid(SchedulerService schedulerService) {
-		try {
-			return schedulerService.getTaskByUuid(TASK_UUID);
-		}
-		catch (RuntimeException exception) {
-			taskLog.debug("Asynchronous scheduler task was not found by UUID", exception);
-			return null;
-		}
 	}
 
 	private void silentDelete(File file) {
