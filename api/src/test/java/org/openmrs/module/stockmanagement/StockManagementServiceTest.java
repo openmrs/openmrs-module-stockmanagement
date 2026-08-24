@@ -18,12 +18,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.openmrs.*;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.ReportAuthorization;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
@@ -1470,4 +1472,42 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         result = stockManagementService.findBatchJobs(filter, null);
         assertTrue(result.getData().isEmpty());
     }
+
+	@Test
+	public void findBatchJobs_shouldRejectSuperUserWithoutInventoryReportingRole() {
+		stockManagementService.setDao(dao());
+		assertTrue(Context.getAuthenticatedUser().isSuperUser());
+		assertFalse(ReportAuthorization.hasInventoryReportingRole(Context.getAuthenticatedUser()));
+
+		try {
+			stockManagementService.findBatchJobs(new BatchJobSearchFilter());
+			fail("Expected Inventory Reporting role to be required");
+		} catch (APIAuthenticationException expected) {
+			assertTrue(expected.getMessage().contains(ReportAuthorization.INVENTORY_REPORTING_ROLE));
+		}
+	}
+
+	@Test
+	public void findBatchJobs_shouldNotApplyLocationScopesToSuperUser() {
+		stockManagementService.setDao(dao());
+		assertTrue(Context.getAuthenticatedUser().isSuperUser());
+		Role inventoryReportingRole = new Role(ReportAuthorization.INVENTORY_REPORTING_ROLE);
+		Context.getAuthenticatedUser().addRole(inventoryReportingRole);
+
+		try {
+			BatchJob batchJob = eu().newBatchJob(dao());
+			batchJob.setBatchJobType(BatchJobType.Report);
+			batchJob.setVoided(false);
+			dao().saveBatchJob(batchJob);
+
+			BatchJobSearchFilter filter = new BatchJobSearchFilter();
+			filter.setBatchJobUuids(Arrays.asList(batchJob.getUuid()));
+
+			Result<BatchJobDTO> result = stockManagementService.findBatchJobs(filter);
+
+			assertTrue(result.getData().stream().anyMatch(job -> job.getUuid().equals(batchJob.getUuid())));
+		} finally {
+			Context.getAuthenticatedUser().removeRole(inventoryReportingRole);
+		}
+	}
 }

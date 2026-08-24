@@ -19,6 +19,7 @@ import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.ReportAuthorization;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
@@ -3053,6 +3054,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     public BatchJobDTO saveBatchJob(BatchJobDTO batchJobDTO){
+        ReportAuthorization.requireInventoryReportingRole(Context.getAuthenticatedUser());
+
         Location locationScope = null;
         if(!StringUtils.isBlank(batchJobDTO.getLocationScopeUuid())) {
             locationScope = Context.getLocationService().getLocationByUuid(batchJobDTO.getLocationScopeUuid());
@@ -3114,6 +3117,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     public Result<BatchJobDTO> findBatchJobs(BatchJobSearchFilter filter){
+        ReportAuthorization.requireInventoryReportingRole(Context.getAuthenticatedUser());
+
+        if (Context.getAuthenticatedUser().isSuperUser()) {
+            return findBatchJobs(filter, null);
+        }
+
         HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(
                 Context.getAuthenticatedUser(), null, null, Privileges.APP_STOCKMANAGEMENT_REPORTS);
         if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
@@ -3144,6 +3153,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 
 
     public void cancelBatchJob(String batchJobUuid, String reason){
+        ReportAuthorization.requireInventoryReportingRole(Context.getAuthenticatedUser());
+
         BatchJob batchJob = dao.getBatchJobByUuid(batchJobUuid);
         if(batchJob == null) return;
 

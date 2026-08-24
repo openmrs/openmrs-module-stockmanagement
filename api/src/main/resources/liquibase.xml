@@ -4717,4 +4717,29 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
     </addColumn>
   </changeSet>
+  <changeSet author="openmrs" id="stockmanagement-2026-08-24-repair-async-batch-job-task">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="scheduler_task_config" />
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*) FROM scheduler_task_config
+        WHERE uuid = '73eb1d31-6e5e-11ed-9a5b-00155db5005a'
+           OR name = 'Asynchronous Report Generation And Batch Jobs'
+           OR schedulable_class = 'org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob'
+      </sqlCheck>
+    </preConditions>
+    <comment>Recreate the asynchronous report and batch-job scheduler task if it was removed after the original migration</comment>
+    <insert tableName="scheduler_task_config">
+      <column name="name" value="Asynchronous Report Generation And Batch Jobs" />
+      <column name="description" value="Runs report generation and batch jobs asynchronously" />
+      <column name="schedulable_class" value="org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob" />
+      <column name="start_time_pattern" value="MM/dd/yyyy HH:mm:ss" />
+      <column name="start_time" valueDate="2022-10-01T00:59:59" />
+      <column name="repeat_interval" valueNumeric="60" />
+      <column name="date_created" valueDate="CURRENT_TIMESTAMP" />
+      <column name="created_by" valueNumeric="1" />
+      <column name="start_on_startup" valueBoolean="true" />
+      <column name="started" valueBoolean="true" />
+      <column name="uuid" value="73eb1d31-6e5e-11ed-9a5b-00155db5005a" />
+    </insert>
+  </changeSet>
 </databaseChangeLog>
