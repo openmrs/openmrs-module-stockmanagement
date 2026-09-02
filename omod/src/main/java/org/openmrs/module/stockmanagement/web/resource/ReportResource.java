@@ -5,9 +5,7 @@ import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.ArrayProperty;
 import io.swagger.models.properties.IntegerProperty;
 import io.swagger.models.properties.StringProperty;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
-import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.reporting.Report;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -30,8 +28,8 @@ public class ReportResource extends ResourceBase<Report> {
 	
 	@Override
     public Report getByUniqueId(String uniqueId) {
-        Context.requirePrivilege(Privileges.APP_STOCKMANAGEMENT_REPORTS);
-        Optional<Report> report = Report.getAllReports().stream().filter(p-> p.getUuid().equals(uniqueId)).findAny();
+        Optional<Report> report = getStockManagementService().getReports().stream()
+                .filter(p -> p.getUuid().equals(uniqueId)).findAny();
         return report.isPresent() ? report.get() : null;
     }
 	
