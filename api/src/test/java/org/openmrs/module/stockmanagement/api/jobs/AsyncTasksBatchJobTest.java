@@ -5,6 +5,7 @@
 package org.openmrs.module.stockmanagement.api.jobs;
 
 import org.junit.Test;
+import org.openmrs.scheduler.SchedulerException;
 import org.openmrs.scheduler.SchedulerService;
 import org.openmrs.scheduler.TaskDefinition;
 
@@ -89,5 +90,19 @@ public class AsyncTasksBatchJobTest {
 
 		verify(schedulerService, never()).getTaskByUuid(anyString());
 		verify(schedulerService, never()).saveTaskDefinition(any(TaskDefinition.class));
+	}
+
+	@Test
+	public void stopThisJob_shouldShutdownTaskFoundByUuidAfterRename() throws SchedulerException {
+		SchedulerService schedulerService = mock(SchedulerService.class);
+		TaskDefinition renamedTask = new TaskDefinition();
+		renamedTask.setUuid(TASK_UUID);
+		renamedTask.setName("Renamed task");
+		when(schedulerService.getTaskByName(AsyncTasksBatchJob.TASK_NAME)).thenReturn(null);
+		when(schedulerService.getTaskByUuid(TASK_UUID)).thenReturn(renamedTask);
+
+		new AsyncTasksBatchJob().stopThisJob(schedulerService);
+
+		verify(schedulerService).shutdownTask(renamedTask);
 	}
 }

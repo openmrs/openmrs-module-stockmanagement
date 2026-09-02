@@ -213,8 +213,14 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	}
 	
 	protected void stopThisJob() {
-		SchedulerService schedulerService = Context.getSchedulerService();
+		stopThisJob(Context.getSchedulerService());
+	}
+
+	void stopThisJob(SchedulerService schedulerService) {
 		TaskDefinition taskDefinition = schedulerService.getTaskByName(TASK_NAME);
+		if (taskDefinition == null) {
+			taskDefinition = schedulerService.getTaskByUuid(TASK_UUID);
+		}
 		if (taskDefinition != null) {
 			try {
 				schedulerService.shutdownTask(taskDefinition);

@@ -1358,9 +1358,9 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         parameters.append("param.ChildLocations.value: true");
         parameters.append(newLine);
         batchJobDTO.setParameters(parameters.toString());
-        batchJobDTO.setLocationScopeUuid("8d6c993e-c2cc-11de-8d13-0010c6dffd0f");
-        batchJobDTO.setPrivilegeScope(Privileges.APP_STOCKMANAGEMENT_REPORTS);
         BatchJobDTO batchJob = stockManagementService.saveBatchJob(batchJobDTO);
+        assertEquals(Privileges.APP_STOCKMANAGEMENT_REPORTS, batchJob.getPrivilegeScope());
+        assertEquals("8d6c993e-c2cc-11de-8d13-0010c6dffd0f", batchJob.getLocationScopeUuid());
 
         Location location = Context.getLocationService().getLocationByUuid("8d6c993e-c2cc-11de-8d13-0010c6dffd0f");
 

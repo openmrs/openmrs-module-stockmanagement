@@ -6,6 +6,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.model.BatchJob;
+import org.openmrs.module.stockmanagement.api.model.BatchJobType;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.api.utils.FileUtil;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -91,11 +92,14 @@ public class BatchJobArtifactController {
 	}
 
 	static boolean canAccessArtifact(User user, BatchJob batchJob, StockManagementService stockManagementService) {
-		if (user.isSuperUser() || batchJob.getPrivilegeScope() == null) {
+		if (user.isSuperUser()) {
 			return true;
 		}
+		if (batchJob.getPrivilegeScope() == null) {
+			return batchJob.getBatchJobType() != BatchJobType.Report;
+		}
 		if (batchJob.getLocationScope() == null) {
-			return user.hasPrivilege(batchJob.getPrivilegeScope());
+			return Context.hasPrivilege(batchJob.getPrivilegeScope());
 		}
 		return stockManagementService.userHasStockManagementPrivilege(user, batchJob.getLocationScope(), null,
 		    batchJob.getPrivilegeScope());

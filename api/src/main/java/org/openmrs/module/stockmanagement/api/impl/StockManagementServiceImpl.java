@@ -39,6 +39,7 @@ import org.openmrs.module.stockmanagement.tasks.StockOperationNotificationTask;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
 import org.openmrs.util.OpenmrsConstants;
+import org.openmrs.validator.ValidateUtil;
 import org.springframework.util.Assert;
 
 import javax.mail.Session;
@@ -3058,6 +3059,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     public BatchJobDTO saveBatchJob(BatchJobDTO batchJobDTO){
+        ValidateUtil.validate(batchJobDTO);
+
         Location locationScope = null;
         if(!StringUtils.isBlank(batchJobDTO.getLocationScopeUuid())) {
             locationScope = Context.getLocationService().getLocationByUuid(batchJobDTO.getLocationScopeUuid());
