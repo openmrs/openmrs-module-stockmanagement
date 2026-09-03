@@ -39,6 +39,7 @@ import org.openmrs.module.stockmanagement.tasks.StockOperationNotificationTask;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
 import org.openmrs.util.OpenmrsConstants;
+import org.openmrs.validator.ValidateUtil;
 import org.springframework.util.Assert;
 
 import javax.mail.Session;
@@ -566,7 +567,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public Result<StockOperationDTO> findStockOperations(StockOperationSearchFilter filter) {
         HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(
                 Context.getAuthenticatedUser(), null, null, Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS);
-        if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
+        if (recordPrivilegeFilters != null && recordPrivilegeFilters.isEmpty())
             return new Result<>(new ArrayList<>(), 0);
 
         return findStockOperations(filter, recordPrivilegeFilters);
@@ -747,6 +748,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 
     public HashSet<RecordPrivilegeFilter> getRecordPrivilegeFilters(User user, Location location,
                                                                     StockOperationType stockOperationType, String stockManagementPrivilege) {
+        // A null filter means unrestricted access to DAO finders; an empty filter means no scoped access.
+        if (user != null && user.isSuperUser()) {
+            return null;
+        }
+
         HashSet<RecordPrivilegeFilter> target = new HashSet<>();
         List<Location> allLocations = Context.getLocationService().getAllLocations(true);
         HashMap<String, Integer> operationTypes = new HashMap<>();
@@ -2413,7 +2419,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         if (!filter.dispensing()) {
             recordPrivilegeFilters = getRecordPrivilegeFilters(Context.getAuthenticatedUser(), null, null,
                     Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
-            if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
+            if (recordPrivilegeFilters != null && recordPrivilegeFilters.isEmpty())
                 return new StockInventoryResult(new ArrayList<>(), 0);
         }
         return getStockInventory(filter, recordPrivilegeFilters);
@@ -2556,7 +2562,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public Result<StockItemTransactionDTO> findStockItemTransactions(StockItemTransactionSearchFilter filter) {
         HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(
                 Context.getAuthenticatedUser(), null, null, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
-        if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
+        if (recordPrivilegeFilters != null && recordPrivilegeFilters.isEmpty())
             return new Result<>(new ArrayList<>(), 0);
         Result<StockItemTransactionDTO> result = dao.findStockItemTransactions(filter, recordPrivilegeFilters);
         return result;
@@ -2648,7 +2654,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public Result<OrderItemDTO> findOrderItems(OrderItemSearchFilter filter) {
         HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(
                 Context.getAuthenticatedUser(), null, null, Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE_QTY);
-        if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
+        if (recordPrivilegeFilters != null && recordPrivilegeFilters.isEmpty())
             return new Result<>(new ArrayList<>(), 0);
         return dao.findOrderItems(filter, recordPrivilegeFilters);
     }
@@ -2735,7 +2741,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public Result<StockRuleDTO> findStockRules(StockRuleSearchFilter filter) {
         HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(
                 Context.getAuthenticatedUser(), null, null, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
-        if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
+        if (recordPrivilegeFilters != null && recordPrivilegeFilters.isEmpty())
             return new Result<>(new ArrayList<>(), 0);
         return findStockRules(filter, recordPrivilegeFilters);
     }
@@ -3053,6 +3059,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     public BatchJobDTO saveBatchJob(BatchJobDTO batchJobDTO){
+        ValidateUtil.validate(batchJobDTO);
+
         Location locationScope = null;
         if(!StringUtils.isBlank(batchJobDTO.getLocationScopeUuid())) {
             locationScope = Context.getLocationService().getLocationByUuid(batchJobDTO.getLocationScopeUuid());
@@ -3116,7 +3124,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     public Result<BatchJobDTO> findBatchJobs(BatchJobSearchFilter filter){
         HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(
                 Context.getAuthenticatedUser(), null, null, Privileges.APP_STOCKMANAGEMENT_REPORTS);
-        if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
+        if (recordPrivilegeFilters != null && recordPrivilegeFilters.isEmpty())
             return new Result<>(new ArrayList<>(), 0);
         return findBatchJobs(filter, recordPrivilegeFilters);
     }

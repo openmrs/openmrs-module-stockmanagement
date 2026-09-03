@@ -28,7 +28,8 @@ public class ReportResource extends ResourceBase<Report> {
 	
 	@Override
     public Report getByUniqueId(String uniqueId) {
-         Optional<Report> report = Report.getAllReports().stream().filter(p-> p.getUuid().equals(uniqueId)).findAny();
+        Optional<Report> report = getStockManagementService().getReports().stream()
+                .filter(p -> p.getUuid().equals(uniqueId)).findAny();
         return report.isPresent() ? report.get() : null;
     }
 	
