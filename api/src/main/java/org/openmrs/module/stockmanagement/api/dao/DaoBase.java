@@ -174,7 +174,7 @@ public class DaoBase {
 	}
 	
 	protected void appendFilter(StringBuilder stringBuilder, String filter) {
-		if (stringBuilder.length() > 0)
+		if (!stringBuilder.isEmpty())
 			stringBuilder.append(" AND ");
 		stringBuilder.append("(");
 		stringBuilder.append(filter);
@@ -182,7 +182,7 @@ public class DaoBase {
 	}
 	
 	protected void appendORFilter(StringBuilder stringBuilder, String filter) {
-		if (stringBuilder.length() > 0)
+		if (!stringBuilder.isEmpty())
 			stringBuilder.append(" OR ");
 		stringBuilder.append("(");
 		stringBuilder.append(filter);

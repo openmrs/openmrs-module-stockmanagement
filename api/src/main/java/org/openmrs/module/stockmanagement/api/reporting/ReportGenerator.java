@@ -283,7 +283,7 @@ public abstract class ReportGenerator {
 	public void setParameter(Properties properties, String parameterName, String parameterDescription, String value,
 	        String valueDescription) {
 		properties.setProperty(String.format("param.%s.description", parameterName), parameterDescription);
-		properties.setProperty(String.format("param.%s.value", parameterName), value);
+		properties.setProperty("param." + parameterName + ".value", value);
 		properties.setProperty(String.format("param.%s.value.desc", parameterName), valueDescription);
 	}
 	

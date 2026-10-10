@@ -329,8 +329,9 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 	@SuppressWarnings({ "unchecked" })
 	protected void writeRow(CSVWriter csvWriter, StockItemInventory row, boolean includeBatchInfo,
 	        boolean includeLocationInfo) {
+		boolean includeConsumptionInfo = includeConsumptionInfo();
 		String[] line = new String[13 + (includeBatchInfo ? 2 : 0) + (includeLocationInfo ? 1 : 0)
-		        + (includeConsumptionInfo() ? 4 : 0)];
+		        + (includeConsumptionInfo ? 4 : 0)];
 		int columnIndex = 0;
 		line[columnIndex++] = row.getDrugName() == null ? row.getConceptName() : row.getDrugName();
 		line[columnIndex++] = row.getDrugName() == null ? "" : row.getConceptName();
@@ -345,7 +346,7 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 			line[columnIndex++] = row.getExpiration() != null ? DATE_FORMATTER.format(row.getExpiration()) : "";
 		}
 		line[columnIndex++] = row.getQuantity().toPlainString();
-		if (includeConsumptionInfo()) {
+		if (includeConsumptionInfo) {
 			line[columnIndex++] = toString(getQuantityReceived((T) row));
 			line[columnIndex++] = toString(getQuantityConsumed((T) row));
 			line[columnIndex++] = toString(getClosingQuantity((T) row));
