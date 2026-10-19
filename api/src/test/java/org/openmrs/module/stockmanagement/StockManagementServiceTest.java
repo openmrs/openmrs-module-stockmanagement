@@ -25,6 +25,7 @@ import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItemFilter;
@@ -1469,5 +1470,117 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         filter.setBatchJobIds(Arrays.asList(Integer.MAX_VALUE));
         result = stockManagementService.findBatchJobs(filter, null);
         assertTrue(result.getData().isEmpty());
+    }
+
+    @Test
+    public void saveStockOperation_shouldDeriveAtLocationFromDestinationWhenNotSupplied() {
+        stockManagementService.setDao(dao());
+        // Test Receipt: source_type Other, destination_type Location
+        StockOperationDTO dto = new StockOperationDTO();
+        dto.setOperationTypeUuid("fce0b4fc-9402-424a-aacb-f99599e51a9f");
+        dto.setOperationDate(new Date());
+        dto.setRemarks("atLocation derivation test");
+        dto.setDestinationUuid(eu().getParty(dao()).getUuid());
+
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), true);
+        packagingUom.setVoided(false);
+        packagingUom.getStockItem().setVoided(false);
+        dao().saveStockItem(packagingUom.getStockItem());
+        dao().saveStockItemPackagingUOM(packagingUom);
+        StockOperationItemDTO item = new StockOperationItemDTO();
+        item.setStockItemUuid(packagingUom.getStockItem().getUuid());
+        item.setStockItemPackagingUOMUuid(packagingUom.getUuid());
+        item.setBatchNo("BATCH-" + System.currentTimeMillis());
+        item.setExpiration(DateUtils.addDays(new Date(), 365));
+        item.setQuantity(BigDecimal.TEN);
+        dto.setStockOperationItems(new ArrayList<>(Arrays.asList(item)));
+
+        StockOperation saved = stockManagementService.saveStockOperation(dto);
+        assertNotNull(saved.getAtLocation());
+        assertEquals(saved.getDestination().getLocation().getId(), saved.getAtLocation().getId());
+    }
+
+    @Test
+    public void saveStockOperation_shouldDeriveAtLocationFromSourceWhenNotSupplied() {
+        stockManagementService.setDao(dao());
+        // Test Adjustment: source_type Location, has_destination false
+        StockOperationDTO dto = new StockOperationDTO();
+        dto.setOperationTypeUuid("288fd7fe-1374-4f7a-89e6-d5f1ac97d4a5");
+        dto.setOperationDate(new Date());
+        dto.setRemarks("atLocation derivation test");
+        dto.setSourceUuid(eu().getParty(dao()).getUuid());
+
+        // Test Adjustment requires an existing stock batch uuid on every item
+        StockBatch batch = eu().newStockBatch(dao());
+        batch.setVoided(false);
+        batch.getStockItem().setVoided(false);
+        dao().saveStockItem(batch.getStockItem());
+        dao().saveStockBatch(batch);
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, batch.getStockItem());
+        packagingUom.setVoided(false);
+        dao().saveStockItemPackagingUOM(packagingUom);
+        StockOperationItemDTO item = new StockOperationItemDTO();
+        item.setStockItemUuid(batch.getStockItem().getUuid());
+        item.setStockItemPackagingUOMUuid(packagingUom.getUuid());
+        item.setStockBatchUuid(batch.getUuid());
+        item.setQuantity(BigDecimal.TEN);
+        dto.setStockOperationItems(new ArrayList<>(Arrays.asList(item)));
+
+        StockOperation saved = stockManagementService.saveStockOperation(dto);
+        assertNotNull(saved.getAtLocation());
+        assertEquals(saved.getSource().getLocation().getId(), saved.getAtLocation().getId());
+    }
+
+    @Test
+    public void saveStockOperation_shouldFailWithNonNullMessage_whenNoPartyYieldsALocation() {
+        stockManagementService.setDao(dao());
+        StockSource stockSource = eu().newStockSource(dao());
+        stockSource.setVoided(false);
+        dao().saveStockSource(stockSource);
+        // a receipt destination that is a stock source rather than a location cannot yield an
+        // atLocation; the operation must fail with a descriptive message, not a DB constraint error
+        Party party = new Party();
+        party.setStockSource(stockSource);
+        party.setCreator(eu().getUser());
+        party.setDateCreated(new Date());
+        dao().saveParty(party);
+
+        StockOperationDTO dto = new StockOperationDTO();
+        dto.setOperationTypeUuid("fce0b4fc-9402-424a-aacb-f99599e51a9f");
+        dto.setOperationDate(new Date());
+        dto.setDestinationUuid(party.getUuid());
+
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), true);
+        packagingUom.setVoided(false);
+        packagingUom.getStockItem().setVoided(false);
+        dao().saveStockItem(packagingUom.getStockItem());
+        dao().saveStockItemPackagingUOM(packagingUom);
+        StockOperationItemDTO item = new StockOperationItemDTO();
+        item.setStockItemUuid(packagingUom.getStockItem().getUuid());
+        item.setStockItemPackagingUOMUuid(packagingUom.getUuid());
+        item.setBatchNo("BATCH-" + System.currentTimeMillis());
+        item.setExpiration(DateUtils.addDays(new Date(), 365));
+        item.setQuantity(BigDecimal.TEN);
+        dto.setStockOperationItems(new ArrayList<>(Arrays.asList(item)));
+
+        try {
+            stockManagementService.saveStockOperation(dto);
+            fail("Expected a StockManagementException when no party location can be derived");
+        } catch (StockManagementException exception) {
+            assertNotNull("Business exceptions must never carry a null message", exception.getMessage());
+            assertFalse(exception.getMessage().trim().isEmpty());
+        }
+    }
+
+    @Test
+    public void saveUserRoleScope_shouldDefaultNullLocationAndOperationTypeLists() {
+        stockManagementService.setDao(dao());
+        UserRoleScopeDTO dto = new UserRoleScopeDTO();
+        dto.setUserUuid(Context.getUserService().getUser(501).getUuid());
+        dto.setRole("Provider");
+        // locations and operation types deliberately left null: saving must not NPE
+        UserRoleScope saved = stockManagementService.saveUserRoleScope(dto);
+        assertNotNull(saved.getId());
+        assertNotNull(saved.getRole());
     }
 }

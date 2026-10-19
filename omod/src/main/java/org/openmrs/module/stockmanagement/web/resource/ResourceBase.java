@@ -7,35 +7,60 @@ import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingCrudResource;
-import org.springframework.web.client.RestClientException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
-	
+
 	private StockManagementService stockManagementService;
-	
+
 	protected StockManagementService getStockManagementService() {
 		if (stockManagementService == null) {
 			stockManagementService = Context.getService(StockManagementService.class);
 		}
 		return stockManagementService;
 	}
-	
+
+	/**
+	 * Exposes the service for tests; production code resolves it lazily from the context.
+	 */
+	protected void setStockManagementService(StockManagementService stockManagementService) {
+		this.stockManagementService = stockManagementService;
+	}
+
 	protected void forbidden() {
-		throw new RestClientException("403: Forbidden");
+		// webservices.rest 3.0.0 (this module's compile dependency) has no ForbiddenException;
+		// IllegalRequestException at least renders a clear message instead of a 500 with a raw
+		// "403: Forbidden" string like the previous RestClientException did
+		throw new IllegalRequestException("You are not allowed to perform this operation");
 	}
-	
+
 	protected void notFound() {
-		throw new RestClientException("404: Forbidden");
+		throw new ObjectNotFoundException("The requested resource was not found");
 	}
-	
+
 	protected void invalidRequest(String messageKey, Object... args) {
 		if (args != null && args.length > 0)
-			throw new RestClientException(String.format(Context.getMessageSourceService().getMessage(messageKey), args));
+			throw new IllegalRequestException(
+			        String.format(Context.getMessageSourceService().getMessage(messageKey), args));
 		else
-			throw new RestClientException(Context.getMessageSourceService().getMessage(messageKey));
+			throw new IllegalRequestException(Context.getMessageSourceService().getMessage(messageKey));
+	}
+
+	/**
+	 * Returns the exception's message, falling back to the given default when it is null or blank
+	 * so that REST error responses never carry a null message.
+	 */
+	protected String safeMessage(Throwable exception, String defaultMessage) {
+		if (exception == null)
+			return defaultMessage;
+		String message = exception.getMessage();
+		if (message == null || message.trim().isEmpty())
+			return defaultMessage;
+		return message;
 	}
 	
 	protected void requirePriviledge(String priviledge) {
