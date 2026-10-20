@@ -1358,9 +1358,9 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         parameters.append("param.ChildLocations.value: true");
         parameters.append(newLine);
         batchJobDTO.setParameters(parameters.toString());
-        batchJobDTO.setLocationScopeUuid("8d6c993e-c2cc-11de-8d13-0010c6dffd0f");
-        batchJobDTO.setPrivilegeScope(Privileges.APP_STOCKMANAGEMENT_REPORTS);
         BatchJobDTO batchJob = stockManagementService.saveBatchJob(batchJobDTO);
+        assertEquals(Privileges.APP_STOCKMANAGEMENT_REPORTS, batchJob.getPrivilegeScope());
+        assertEquals("8d6c993e-c2cc-11de-8d13-0010c6dffd0f", batchJob.getLocationScopeUuid());
 
         Location location = Context.getLocationService().getLocationByUuid("8d6c993e-c2cc-11de-8d13-0010c6dffd0f");
 
@@ -1470,4 +1470,61 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         result = stockManagementService.findBatchJobs(filter, null);
         assertTrue(result.getData().isEmpty());
     }
+
+	@Test
+	public void getRecordPrivilegeFilters_shouldNotApplyScopesToSuperUser() {
+		stockManagementService.setDao(dao());
+		assertTrue(Context.getAuthenticatedUser().isSuperUser());
+
+		HashSet<RecordPrivilegeFilter> result = stockManagementService.getRecordPrivilegeFilters(
+		    Context.getAuthenticatedUser(), null, null, Privileges.APP_STOCKMANAGEMENT_REPORTS);
+
+		assertNull(result);
+	}
+
+	@Test
+	public void getRecordPrivilegeFilters_shouldRequireScopeForNonSuperUserWithPrivilege() {
+		stockManagementService.setDao(dao());
+		User user = Context.getUserService().getUser(501);
+		Role role = Context.getUserService().getRole("Provider");
+		Privilege reportPrivilege = Context.getUserService().getPrivilege(Privileges.APP_STOCKMANAGEMENT_REPORTS);
+		if (reportPrivilege == null) {
+			reportPrivilege = Context.getUserService().savePrivilege(
+			    new Privilege(Privileges.APP_STOCKMANAGEMENT_REPORTS, "View stock management reports"));
+		}
+		role.addPrivilege(reportPrivilege);
+		user.addRole(role);
+		Context.getUserService().saveRole(role);
+		Context.getUserService().saveUser(user);
+		Context.flushSession();
+		Context.clearSession();
+		user = Context.getUserService().getUser(501);
+
+		assertFalse(user.isSuperUser());
+		assertTrue(user.hasPrivilege(Privileges.APP_STOCKMANAGEMENT_REPORTS));
+
+		HashSet<RecordPrivilegeFilter> result = stockManagementService.getRecordPrivilegeFilters(user, null, null,
+		    Privileges.APP_STOCKMANAGEMENT_REPORTS);
+
+		assertNotNull(result);
+		assertTrue(result.isEmpty());
+	}
+
+	@Test
+	public void findBatchJobs_shouldNotApplyScopesToSuperUser() {
+		stockManagementService.setDao(dao());
+		assertTrue(Context.getAuthenticatedUser().isSuperUser());
+
+		BatchJob batchJob = eu().newBatchJob(dao());
+		batchJob.setBatchJobType(BatchJobType.Report);
+		batchJob.setVoided(false);
+		dao().saveBatchJob(batchJob);
+
+		BatchJobSearchFilter filter = new BatchJobSearchFilter();
+		filter.setBatchJobUuids(Arrays.asList(batchJob.getUuid()));
+
+		Result<BatchJobDTO> result = stockManagementService.findBatchJobs(filter);
+
+		assertTrue(result.getData().stream().anyMatch(job -> job.getUuid().equals(batchJob.getUuid())));
+	}
 }

@@ -23,8 +23,16 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AsyncTasksBatchJob extends AbstractTask {
-	
-	private static final String TaskName = "Asynchronous Report Generation And Batch Jobs";
+
+	public static final String TASK_NAME = "Asynchronous Report Generation And Batch Jobs";
+
+	private static final String TASK_DESCRIPTION = "Runs report generation and batch jobs asynchronously";
+
+	private static final String TASK_UUID = "73eb1d31-6e5e-11ed-9a5b-00155db5005a";
+
+	private static final long TASK_REPEAT_INTERVAL_SECONDS = 60L;
+
+	private static final Log taskLog = LogFactory.getLog(AsyncTasksBatchJob.class);
 	
 	private static AtomicBoolean isAlreadyRunning = new AtomicBoolean(false);
 	
@@ -205,8 +213,14 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	}
 	
 	protected void stopThisJob() {
-		SchedulerService schedulerService = Context.getSchedulerService();
-		TaskDefinition taskDefinition = schedulerService.getTaskByName(TaskName);
+		stopThisJob(Context.getSchedulerService());
+	}
+
+	void stopThisJob(SchedulerService schedulerService) {
+		TaskDefinition taskDefinition = schedulerService.getTaskByName(TASK_NAME);
+		if (taskDefinition == null) {
+			taskDefinition = schedulerService.getTaskByUuid(TASK_UUID);
+		}
 		if (taskDefinition != null) {
 			try {
 				schedulerService.shutdownTask(taskDefinition);
@@ -216,15 +230,50 @@ public class AsyncTasksBatchJob extends AbstractTask {
 			}
 		}
 	}
-	
+
 	public static void queueBatchJob(BatchJob batchJob) {
-		SchedulerService schedulerService = Context.getSchedulerService();
-		TaskDefinition taskDefinition = schedulerService.getTaskByName(TaskName);
-		if (taskDefinition != null) {
-			schedulerService.scheduleIfNotRunning(taskDefinition);
-		}
+		ensureTaskScheduled();
 	}
-	
+
+	/**
+	 * Ensures the asynchronous batch-job task exists before scheduling it. Scheduler definitions can be removed
+	 * independently of the module's Liquibase history, so relying only on the original insert change set can leave all
+	 * reports pending indefinitely.
+	 *
+	 * @return the persisted scheduler task definition
+	 */
+	public static TaskDefinition ensureTaskScheduled() {
+		SchedulerService schedulerService = Context.getSchedulerService();
+		TaskDefinition taskDefinition = ensureTaskDefinition(schedulerService);
+		schedulerService.scheduleIfNotRunning(taskDefinition);
+		return taskDefinition;
+	}
+
+	static synchronized TaskDefinition ensureTaskDefinition(SchedulerService schedulerService) {
+		TaskDefinition taskDefinition = schedulerService.getTaskByName(TASK_NAME);
+		if (taskDefinition == null) {
+			taskDefinition = schedulerService.getTaskByUuid(TASK_UUID);
+		}
+
+		if (taskDefinition == null) {
+			taskDefinition = new TaskDefinition();
+			taskDefinition.setUuid(TASK_UUID);
+			taskDefinition.setStarted(false);
+			taskDefinition.setName(TASK_NAME);
+			taskDefinition.setDescription(TASK_DESCRIPTION);
+			taskDefinition.setTaskClass(AsyncTasksBatchJob.class.getName());
+			taskDefinition.setRepeatInterval(TASK_REPEAT_INTERVAL_SECONDS);
+			taskDefinition.setStartOnStartup(true);
+			taskDefinition.setStartTime(new Date());
+			taskLog.warn("Recreating missing asynchronous report and batch-job scheduler task");
+			schedulerService.saveTaskDefinition(taskDefinition);
+		} else if (!AsyncTasksBatchJob.class.getName().equals(taskDefinition.getTaskClass())) {
+			taskDefinition.setTaskClass(AsyncTasksBatchJob.class.getName());
+			schedulerService.saveTaskDefinition(taskDefinition);
+		}
+		return taskDefinition;
+	}
+
 	private void silentDelete(File file) {
 		try {
 			if (file.exists()) {
