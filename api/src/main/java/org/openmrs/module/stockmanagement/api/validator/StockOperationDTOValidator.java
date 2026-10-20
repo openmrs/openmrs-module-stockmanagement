@@ -70,6 +70,12 @@ public class StockOperationDTOValidator implements Validator {
         Location permissionLocation = null;
 
         StockOperationType stockOperationType = stockOperation != null ? stockOperation.getStockOperationType() : service.getStockOperationTypeByUuid(object.getOperationTypeUuid());
+        if (stockOperationType == null) {
+            // an unknown type must be a clean rejection, not a NullPointerException downstream
+            errors.rejectValue("operationTypeUuid",
+                messageSourceService.getMessage("stockmanagement.stockoperation.typenotfound"));
+            return;
+        }
         if (stockOperationType.getHasSource() != null && stockOperationType.getHasSource()) {
             if (object.getSourceUuid() == null) {
                 errors.rejectValue("sourceUuid", messageSourceService.getMessage("stockmanagement.stockoperation.sourcerequired"));

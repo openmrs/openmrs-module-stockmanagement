@@ -1583,4 +1583,63 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         assertNotNull(saved.getId());
         assertNotNull(saved.getRole());
     }
+
+    @Test
+    public void saveStockOperation_shouldDeriveAtLocationFromSource_whenBothPartiesAreLocations() {
+        stockManagementService.setDao(dao());
+        // stock issue: both source and destination are Location-typed; the derivation must match
+        // StockOperationDTOValidator and resolve to the source location
+        Context.getAdministrationService().saveGlobalProperty(
+            new GlobalProperty("stockmanagement.allowStockIssueWithoutRequisition", "true"));
+
+        Party source = eu().getParty(dao());
+        Party destination = new Party();
+        destination.setLocation(Context.getLocationService().getLocation(2));
+        destination.setCreator(eu().getUser());
+        destination.setDateCreated(new Date());
+        dao().saveParty(destination);
+
+        // stock issue items must reference an existing stock batch
+        StockBatch batch = eu().newStockBatch(dao());
+        batch.setVoided(false);
+        batch.getStockItem().setVoided(false);
+        dao().saveStockItem(batch.getStockItem());
+        dao().saveStockBatch(batch);
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, batch.getStockItem());
+        packagingUom.setVoided(false);
+        dao().saveStockItemPackagingUOM(packagingUom);
+        StockOperationItemDTO item = new StockOperationItemDTO();
+        item.setStockItemUuid(batch.getStockItem().getUuid());
+        item.setStockItemPackagingUOMUuid(packagingUom.getUuid());
+        item.setStockBatchUuid(batch.getUuid());
+        item.setQuantity(BigDecimal.TEN);
+
+        StockOperationDTO dto = new StockOperationDTO();
+        dto.setOperationTypeUuid("db40707f-9175-4199-8df2-a5702f41ec7d");
+        dto.setOperationDate(new Date());
+        dto.setSourceUuid(source.getUuid());
+        dto.setDestinationUuid(destination.getUuid());
+        dto.setStockOperationItems(new ArrayList<>(Arrays.asList(item)));
+
+        StockOperation saved = stockManagementService.saveStockOperation(dto);
+        assertNotNull(saved.getAtLocation());
+        assertEquals(saved.getSource().getLocation().getId(), saved.getAtLocation().getId());
+    }
+
+    @Test
+    public void saveUserRoleScope_shouldNotThrow_whenLocationEnableDescendantsIsNull() {
+        stockManagementService.setDao(dao());
+        UserRoleScopeDTO dto = new UserRoleScopeDTO();
+        dto.setUserUuid(Context.getUserService().getUser(501).getUuid());
+        dto.setRole("Provider");
+        UserRoleScopeLocationDTO locationDto = new UserRoleScopeLocationDTO();
+        locationDto.setLocationUuid(Context.getLocationService().getLocation(1).getUuid());
+        // enableDescendants deliberately left null: adding this location must not NPE
+        dto.setLocations(new ArrayList<>(Arrays.asList(locationDto)));
+
+        UserRoleScope saved = stockManagementService.saveUserRoleScope(dto);
+        // the point of this test is that saving with a null enableDescendants does not throw; the
+        // location rows are persisted separately from the in-memory scope collection
+        assertNotNull(saved.getId());
+    }
 }

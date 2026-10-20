@@ -134,6 +134,15 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 	}
 
 	@Test
+	public void validate_shouldRejectUnknownOperationTypeWithNonNullMessage() {
+		StockOperationDTO dto = newReceiptDto();
+		dto.setOperationTypeUuid("00000000-0000-0000-0000-000000000000");
+		Errors errors = validate(dto);
+		assertTrue(errors.hasErrors());
+		assertNotNull(messageOf(errors.getAllErrors().get(0)));
+	}
+
+	@Test
 	public void validate_shouldRejectMissingOperationTypeUuidWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
 		dto.setOperationTypeUuid(null);

@@ -1,5 +1,13 @@
 package org.openmrs.module.stockmanagement.web.resource;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
@@ -7,13 +15,6 @@ import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the error translation in {@link StockOperationResource#save(StockOperationDTO)}:
@@ -43,17 +44,15 @@ public class StockOperationResourceTest {
 
 	@Test
 	public void save_shouldReturnFallbackMessage_whenBusinessExceptionHasNullMessage() {
-		when(service.saveStockOperation(any(StockOperationDTO.class)))
-		        .thenThrow(new StockManagementException((String) null));
+		StockManagementException original = new StockManagementException((String) null);
+		when(service.saveStockOperation(any(StockOperationDTO.class))).thenThrow(original);
 
-		try {
-			resource.save(new StockOperationDTO());
-		} catch (IllegalRequestException exception) {
-			assertNotNull("REST errors must never carry a null message", exception.getMessage());
-			assertEquals("Unable to save stock operation", exception.getMessage());
-			assertNotNull("The original exception must be preserved as the cause", exception.getCause());
-			assertSame(StockManagementException.class, exception.getCause().getClass());
-		}
+		IllegalRequestException exception = assertThrows(IllegalRequestException.class,
+		    () -> resource.save(new StockOperationDTO()));
+		assertNotNull("REST errors must never carry a null message", exception.getMessage());
+		assertEquals("Unable to save stock operation", exception.getMessage());
+		assertNotNull("The original exception must be preserved as the cause", exception.getCause());
+		assertSame(original, exception.getCause());
 	}
 
 	@Test
@@ -61,12 +60,10 @@ public class StockOperationResourceTest {
 		when(service.saveStockOperation(any(StockOperationDTO.class)))
 		        .thenThrow(new StockManagementException("Stock operation requires a destination"));
 
-		try {
-			resource.save(new StockOperationDTO());
-		} catch (IllegalRequestException exception) {
-			assertEquals("Stock operation requires a destination", exception.getMessage());
-			assertNotNull(exception.getCause());
-		}
+		IllegalRequestException exception = assertThrows(IllegalRequestException.class,
+		    () -> resource.save(new StockOperationDTO()));
+		assertEquals("Stock operation requires a destination", exception.getMessage());
+		assertNotNull(exception.getCause());
 	}
 
 	@Test
@@ -74,13 +71,11 @@ public class StockOperationResourceTest {
 		NullPointerException original = new NullPointerException();
 		when(service.saveStockOperation(any(StockOperationDTO.class))).thenThrow(original);
 
-		try {
-			resource.save(new StockOperationDTO());
-		} catch (GenericRestException exception) {
-			// unexpected failures must expose a safe generic message only
-			assertEquals("Unable to save stock operation", exception.getMessage());
-			assertNotNull(exception.getCause());
-			assertSame(original, exception.getCause());
-		}
+		GenericRestException exception = assertThrows(GenericRestException.class,
+		    () -> resource.save(new StockOperationDTO()));
+		// unexpected failures must expose a safe generic message only
+		assertEquals("Unable to save stock operation", exception.getMessage());
+		assertNotNull(exception.getCause());
+		assertSame(original, exception.getCause());
 	}
 }
