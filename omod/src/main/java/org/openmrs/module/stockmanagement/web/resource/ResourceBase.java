@@ -31,10 +31,12 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 		this.stockManagementService = stockManagementService;
 	}
 
+	/**
+	 * The webservices.rest 3.0.0 API this module compiles against does not ship a dedicated
+	 * forbidden-response exception, so permission rejections use IllegalRequestException (400)
+	 * with a clear message rather than the previous raw string wrapped in a RestClientException.
+	 */
 	protected void forbidden() {
-		// webservices.rest 3.0.0 (this module's compile dependency) has no ForbiddenException;
-		// IllegalRequestException at least renders a clear message instead of a 500 with a raw
-		// "403: Forbidden" string like the previous RestClientException did
 		throw new IllegalRequestException("You are not allowed to perform this operation");
 	}
 
