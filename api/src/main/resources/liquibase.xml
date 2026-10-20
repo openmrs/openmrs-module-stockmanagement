@@ -2578,6 +2578,25 @@
     </preConditions>
     <addForeignKeyConstraint baseColumnNames="user_id" baseTableName="stockmgmt_user_role_scope" constraintName="stockmgmt_user_role_scope_user_fk" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="user_id" referencedTableName="users" />
   </changeSet>
+  <changeSet id="O3-5811-fix-stockmgmt-user-role-scope-role-collation" author="dev">
+    <preConditions onFail="MARK_RAN">
+      <dbms type="mysql,mariadb"/>
+    </preConditions>
+    <comment>Ensure stockmgmt_user_role_scope.role uses the same character set and collation as role.role before the foreign key is created, to prevent MySQL FK incompatibility errors (see O3-5811).</comment>
+    <sql>
+      SET @cs := (SELECT CHARACTER_SET_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'role' AND COLUMN_NAME = 'role');
+      SET @co := (SELECT COLLATION_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'role' AND COLUMN_NAME = 'role');
+      SET @ddl := CONCAT('ALTER TABLE stockmgmt_user_role_scope MODIFY role VARCHAR(50) CHARACTER SET ', @cs, ' COLLATE ', @co, ' NOT NULL');
+      PREPARE stmt FROM @ddl;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+    </sql>
+    <rollback>
+      <!-- Intentionally a no-op: this changeset only aligns the column's character set and
+           collation with role.role, and putting the old mismatched values back would
+           reintroduce the foreign key incompatibility it fixes (O3-5811). -->
+    </rollback>
+  </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-218" failOnError="false">
     <preConditions onFail="MARK_RAN">
       <not>
