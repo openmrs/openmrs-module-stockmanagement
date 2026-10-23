@@ -18,12 +18,28 @@
             <version>${project.parent.version}</version>
         </dependency>
 
+        <!-- EntityUtil and the test datasets shared with the api module's context-sensitive tests -->
+        <dependency>
+            <groupId>${project.parent.groupId}</groupId>
+            <artifactId>${project.parent.artifactId}-api</artifactId>
+            <version>${project.parent.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Begin OpenMRS core -->
 
         <dependency>
             <groupId>org.openmrs.api</groupId>
             <artifactId>openmrs-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openmrs.api</groupId>
+            <artifactId>openmrs-api</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
 
         <dependency>
@@ -45,6 +61,22 @@
             <groupId>org.openmrs.module</groupId>
             <artifactId>webservices.rest-omod</artifactId>
             <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.openmrs.test</groupId>
+            <artifactId>openmrs-test</artifactId>
+            <type>pom</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- BaseModuleWebContextSensitiveTest boots a MockServletContext, which needs the
+        servlet API at test runtime; openmrs-web only brings it as a non-transitive provided dep -->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>javax.servlet-api</artifactId>
+            <version>4.0.1</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

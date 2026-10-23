@@ -9,6 +9,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.validator.UserRoleScopeDTOValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -103,6 +104,11 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 	
 	@Override
 	public UserRoleScopeDTO save(UserRoleScopeDTO delegate) {
+		// webservices.rest 3.x removed the ValidateUtil.validate call from
+		// DelegatingCrudResource.create, so the @Handler validator no longer runs on REST saves;
+		// run it explicitly so a scope without locations or operation types is a 400 instead of
+		// a 201 that grants nothing
+		validateDelegate(new UserRoleScopeDTOValidator(), delegate, "userRoleScopeDTO");
 		UserRoleScope userRoleScope = getStockManagementService().saveUserRoleScope(delegate);
 		return getByUniqueId(userRoleScope.getUuid());
 	}

@@ -876,6 +876,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             userRoleScope = getUserRoleScopeByUuid(delegate.getUuid());
             if (userRoleScope == null)
                 throw new APIException("User role scope " + delegate.getUuid() + " not found");
+            if (userRoleScope.getUser() == null) {
+                // A scope row without a user is malformed configuration; reject it clearly instead
+                // of throwing a bare NullPointerException here or later during authorization checks
+                invalidRequest("stockmanagement.userrolescopes.user.notfound");
+            }
             if (userRoleScope.getUser().getUuid().equalsIgnoreCase(Context.getAuthenticatedUser().getUuid())) {
                 invalidRequest("stockmanagement.userrolescopes.userUuid.selfupdate");
             }
@@ -898,14 +903,19 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         userRoleScope.setCreator(Context.getAuthenticatedUser());
         userRoleScope.setDateCreated(new Date());
         userRoleScope.setRole(role);
-        userRoleScope.setPermanent(delegate.getPermanent());
+        // UserRoleScope.setPermanent/setEnabled unbox to primitives and NPE on null; a scope saved
+        // through the REST API may omit them, so default safely (fail closed on enabled)
+        userRoleScope.setPermanent(Boolean.TRUE.equals(delegate.getPermanent()));
         userRoleScope.setActiveFrom(delegate.getActiveFrom());
         userRoleScope.setActiveTo(delegate.getActiveTo());
-        userRoleScope.setEnabled(delegate.getEnabled());
+        userRoleScope.setEnabled(Boolean.TRUE.equals(delegate.getEnabled()));
 
         LocationService locationService = Context.getLocationService();
         List<UserRoleScopeLocation> locationsToAdd = new ArrayList<>();
-        for (UserRoleScopeLocationDTO userRoleScopeLocationDTO : delegate.getLocations()) {
+        // null lists on the delegate are treated as "no changes requested" rather than NPEs
+        for (UserRoleScopeLocationDTO userRoleScopeLocationDTO : delegate.getLocations() == null
+                ? Collections.<UserRoleScopeLocationDTO> emptyList()
+                : delegate.getLocations()) {
             Location location = locationService.getLocationByUuid(userRoleScopeLocationDTO.getLocationUuid());
             if (location == null) {
                 invalidRequest("stockmanagement.userrolescopes.location.invalid", userRoleScopeLocationDTO.getUuid());
@@ -913,7 +923,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 Optional<UserRoleScopeLocation> exisitingUserRoleScope = userRoleScope
                         .getUserRoleScopeLocations() != null ? userRoleScope.getUserRoleScopeLocations()
                         .stream()
-                        .filter(p -> !p.getVoided() && p.getLocation().getUuid()
+                        .filter(p -> !p.getVoided() && p.getLocation() != null && p.getLocation().getUuid()
                                 .equalsIgnoreCase(userRoleScopeLocationDTO.getLocationUuid()))
                         .findAny() : Optional.<UserRoleScopeLocation>empty();
                 if (exisitingUserRoleScope.isPresent()) {
@@ -931,7 +941,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 }
                 UserRoleScopeLocation userRoleScopeLocation = new UserRoleScopeLocation();
                 userRoleScopeLocation.setLocation(location);
-                userRoleScopeLocation.setEnableDescendants(userRoleScopeLocationDTO.getEnableDescendants());
+                // setEnableDescendants takes a primitive and would NPE on a null DTO value
+                userRoleScopeLocation.setEnableDescendants(
+                        Boolean.TRUE.equals(userRoleScopeLocationDTO.getEnableDescendants()));
                 userRoleScopeLocation.setCreator(Context.getAuthenticatedUser());
                 userRoleScopeLocation.setDateCreated(new Date());
                 locationsToAdd.add(userRoleScopeLocation);
@@ -942,14 +954,16 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 ? new ArrayList<>()
                 : userRoleScope.getUserRoleScopeLocations()
                 .stream()
-                .filter(p -> !p.getVoided() && delegate.getLocations() != null
+                .filter(p -> !p.getVoided() && p.getLocation() != null && delegate.getLocations() != null
                         && !delegate.getLocations().stream()
                         .anyMatch(x -> x.getLocationUuid().equalsIgnoreCase(p.getLocation().getUuid())))
                 .collect(Collectors.toList());
 
         List<UserRoleScopeOperationType> stockOperationTypesToAdd = new ArrayList<>();
         List<StockOperationType> allStockOperationTypes = getAllStockOperationTypes();
-        for (UserRoleScopeOperationTypeDTO userRoleScopeOperationTypeDTO : delegate.getOperationTypes()) {
+        for (UserRoleScopeOperationTypeDTO userRoleScopeOperationTypeDTO : delegate.getOperationTypes() == null
+                ? Collections.<UserRoleScopeOperationTypeDTO> emptyList()
+                : delegate.getOperationTypes()) {
             Optional<StockOperationType> stockOperationType = allStockOperationTypes.stream()
                     .filter(p -> p.getUuid().equalsIgnoreCase(userRoleScopeOperationTypeDTO.getOperationTypeUuid()))
                     .findFirst();
@@ -980,7 +994,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                 ? new ArrayList<>()
                 : userRoleScope.getUserRoleScopeOperationTypes()
                 .stream()
-                .filter(p -> !p.getVoided() && delegate.getOperationTypes() != null
+                .filter(p -> !p.getVoided() && p.getStockOperationType() != null && delegate.getOperationTypes() != null
                         && !delegate.getOperationTypes().stream()
                         .anyMatch(x -> x.getOperationTypeUuid()
                                 .equalsIgnoreCase(p.getStockOperationType().getUuid())))
@@ -1207,7 +1221,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             stockOperation.setReason(null);
         }
 
-        stockOperation.setAtLocation(Context.getLocationService().getLocationByUuid(dto.getAtLocationUuid()));
+        if (!StringUtils.isBlank(dto.getAtLocationUuid())) {
+            stockOperation.setAtLocation(Context.getLocationService().getLocationByUuid(dto.getAtLocationUuid()));
+        }
 
         if (!StringUtils.isBlank(dto.getSourceUuid())) {
             stockOperation.setSource(dao.getPartyByUuid(dto.getSourceUuid()));

@@ -7,6 +7,7 @@ import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Location;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
@@ -29,15 +30,22 @@ import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.*;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.openmrs.module.stockmanagement.api.validator.StockOperationDTOValidator;
+import org.openmrs.module.webservices.rest.web.response.GenericRestException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.springframework.web.client.RestClientException;
-
+import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperation", supportedClass = StockOperationDTO.class, supportedOpenmrsVersions = {
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockOperationResource extends ResourceBase<StockOperationDTO> {
-	
+
+	private static final Log log = LogFactory.getLog(StockOperationResource.class);
+
 	private Map<String, SimpleObject> permissionCache;
 	
 	public StockOperationResource() {
@@ -189,12 +197,48 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	@Override
 	public StockOperationDTO save(StockOperationDTO delegate) {
 		try {
+			validateStockOperation(delegate);
 			StockOperation stockOperation = getStockManagementService().saveStockOperation(delegate);
 			return getByUniqueId(stockOperation.getUuid());
 		}
-		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+		catch (ResponseException | APIAuthenticationException exception) {
+			// already a meaningful REST error (e.g. validation, or an authorization failure that
+			// BaseRestController renders as 403); let the framework render it
+			throw exception;
 		}
+		catch (StockManagementException exception) {
+			logSaveFailure(delegate, exception);
+			// business rule violation; never let a null message through to the client; the cause
+			// is not passed on either: wrapErrorResponse appends each cause's message to the
+			// response, and logSaveFailure already logged it
+			throw new IllegalRequestException(safeMessage(exception, "Unable to save stock operation"));
+		}
+		catch (Exception exception) {
+			logSaveFailure(delegate, exception);
+			// unexpected failure: generic message to the client, original exception kept in the log
+			throw new GenericRestException("Unable to save stock operation");
+		}
+	}
+
+	/**
+	 * Runs the StockOperationDTOValidator explicitly: webservices.rest 3.x removed the
+	 * ValidateUtil.validate call from DelegatingCrudResource.create, so the @Handler validator no
+	 * longer runs on REST saves. It derives atLocationUuid for clients that do not send it, and
+	 * enforces the operation type/location permission checks.
+	 */
+	protected void validateStockOperation(StockOperationDTO delegate) {
+		validateDelegate(new StockOperationDTOValidator(), delegate, "stockOperationDTO");
+	}
+
+	private void logSaveFailure(StockOperationDTO delegate, Exception exception) {
+		log.error(String.format(
+		    "Failed to save stock operation. operationUuid=%s, operationTypeUuid=%s, sourceUuid=%s, destinationUuid=%s, itemCount=%s",
+		    delegate == null ? null : delegate.getUuid(),
+		    delegate == null ? null : delegate.getOperationTypeUuid(),
+		    delegate == null ? null : delegate.getSourceUuid(),
+		    delegate == null ? null : delegate.getDestinationUuid(),
+		    delegate == null || delegate.getStockOperationItems() == null ? 0 : delegate.getStockOperationItems().size()),
+		    exception);
 	}
 	
 	@Override

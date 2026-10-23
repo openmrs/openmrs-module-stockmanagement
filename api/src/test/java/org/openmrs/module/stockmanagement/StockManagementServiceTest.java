@@ -25,6 +25,7 @@ import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItemFilter;
@@ -1469,5 +1470,34 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         filter.setBatchJobIds(Arrays.asList(Integer.MAX_VALUE));
         result = stockManagementService.findBatchJobs(filter, null);
         assertTrue(result.getData().isEmpty());
+    }
+
+    @Test
+    public void saveUserRoleScope_shouldDefaultNullLocationAndOperationTypeLists() {
+        stockManagementService.setDao(dao());
+        UserRoleScopeDTO dto = new UserRoleScopeDTO();
+        dto.setUserUuid(Context.getUserService().getUser(501).getUuid());
+        dto.setRole("Provider");
+        // locations and operation types deliberately left null: saving must not NPE
+        UserRoleScope saved = stockManagementService.saveUserRoleScope(dto);
+        assertNotNull(saved.getId());
+        assertNotNull(saved.getRole());
+    }
+
+    @Test
+    public void saveUserRoleScope_shouldNotThrow_whenLocationEnableDescendantsIsNull() {
+        stockManagementService.setDao(dao());
+        UserRoleScopeDTO dto = new UserRoleScopeDTO();
+        dto.setUserUuid(Context.getUserService().getUser(501).getUuid());
+        dto.setRole("Provider");
+        UserRoleScopeLocationDTO locationDto = new UserRoleScopeLocationDTO();
+        locationDto.setLocationUuid(Context.getLocationService().getLocation(1).getUuid());
+        // enableDescendants deliberately left null: adding this location must not NPE
+        dto.setLocations(new ArrayList<>(Arrays.asList(locationDto)));
+
+        UserRoleScope saved = stockManagementService.saveUserRoleScope(dto);
+        // the point of this test is that saving with a null enableDescendants does not throw; the
+        // location rows are persisted separately from the in-memory scope collection
+        assertNotNull(saved.getId());
     }
 }
