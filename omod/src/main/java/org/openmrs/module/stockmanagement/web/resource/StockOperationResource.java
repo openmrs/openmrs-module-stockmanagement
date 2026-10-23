@@ -7,6 +7,7 @@ import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Location;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
@@ -34,11 +35,8 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.stockmanagement.api.validator.StockOperationDTOValidator;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
-import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.springframework.validation.Errors;
-import org.springframework.validation.MapBindingResult;
 import org.springframework.web.client.RestClientException;
-
+import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -203,19 +201,22 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			StockOperation stockOperation = getStockManagementService().saveStockOperation(delegate);
 			return getByUniqueId(stockOperation.getUuid());
 		}
-		catch (ResponseException exception) {
-			// already a meaningful REST error (e.g. validation); let the framework render it
+		catch (ResponseException | APIAuthenticationException exception) {
+			// already a meaningful REST error (e.g. validation, or an authorization failure that
+			// BaseRestController renders as 403); let the framework render it
 			throw exception;
 		}
 		catch (StockManagementException exception) {
 			logSaveFailure(delegate, exception);
-			// business rule violation; never let a null message through to the client
-			throw new IllegalRequestException(safeMessage(exception, "Unable to save stock operation"), exception);
+			// business rule violation; never let a null message through to the client; the cause
+			// is not passed on either: wrapErrorResponse appends each cause's message to the
+			// response, and logSaveFailure already logged it
+			throw new IllegalRequestException(safeMessage(exception, "Unable to save stock operation"));
 		}
 		catch (Exception exception) {
 			logSaveFailure(delegate, exception);
 			// unexpected failure: generic message to the client, original exception kept in the log
-			throw new GenericRestException("Unable to save stock operation", exception);
+			throw new GenericRestException("Unable to save stock operation");
 		}
 	}
 
@@ -226,17 +227,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	 * enforces the operation type/location permission checks.
 	 */
 	protected void validateStockOperation(StockOperationDTO delegate) {
-		Errors errors = new MapBindingResult(new HashMap<>(), "stockOperationDTO");
-		new StockOperationDTOValidator().validate(delegate, errors);
-		if (errors.hasErrors()) {
-			// the validator passes the human-readable text as the error code, so fall back to it
-			// when no default message was resolved
-			String message = errors.getAllErrors().stream()
-			        .map(error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : error.getCode())
-			        .map(message1 -> message1 == null ? "Invalid stock operation" : message1)
-			        .collect(Collectors.joining(", "));
-			throw new IllegalRequestException(message);
-		}
+		validateDelegate(new StockOperationDTOValidator(), delegate, "stockOperationDTO");
 	}
 
 	private void logSaveFailure(StockOperationDTO delegate, Exception exception) {

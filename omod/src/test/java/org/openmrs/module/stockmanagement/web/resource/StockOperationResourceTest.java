@@ -2,7 +2,6 @@ package org.openmrs.module.stockmanagement.web.resource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -19,7 +18,8 @@ import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 /**
  * Unit tests for the error translation in {@link StockOperationResource#save(StockOperationDTO)}:
  * business exceptions must never surface with a null message, unexpected exceptions must never
- * leak their details to the client, and the original cause must survive for troubleshooting.
+ * leak their details to the client, and the original exception is kept in the log rather than
+ * attached as the cause (wrapErrorResponse appends each cause's message to the response).
  */
 public class StockOperationResourceTest {
 
@@ -51,8 +51,6 @@ public class StockOperationResourceTest {
 		    () -> resource.save(new StockOperationDTO()));
 		assertNotNull("REST errors must never carry a null message", exception.getMessage());
 		assertEquals("Unable to save stock operation", exception.getMessage());
-		assertNotNull("The original exception must be preserved as the cause", exception.getCause());
-		assertSame(original, exception.getCause());
 	}
 
 	@Test
@@ -63,19 +61,15 @@ public class StockOperationResourceTest {
 		IllegalRequestException exception = assertThrows(IllegalRequestException.class,
 		    () -> resource.save(new StockOperationDTO()));
 		assertEquals("Stock operation requires a destination", exception.getMessage());
-		assertNotNull(exception.getCause());
 	}
 
 	@Test
 	public void save_shouldReturnSafeGenericError_whenUnexpectedExceptionOccurs() {
-		NullPointerException original = new NullPointerException();
-		when(service.saveStockOperation(any(StockOperationDTO.class))).thenThrow(original);
+		when(service.saveStockOperation(any(StockOperationDTO.class))).thenThrow(new NullPointerException());
 
 		GenericRestException exception = assertThrows(GenericRestException.class,
 		    () -> resource.save(new StockOperationDTO()));
 		// unexpected failures must expose a safe generic message only
 		assertEquals("Unable to save stock operation", exception.getMessage());
-		assertNotNull(exception.getCause());
-		assertSame(original, exception.getCause());
 	}
 }

@@ -1233,27 +1233,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             stockOperation.setDestination(dao.getPartyByUuid(dto.getDestinationUuid()));
         }
 
-        // at_location_id is NOT NULL in the database yet the stock management UIs (OWA and SPA) never
-        // send atLocationUuid. webservices.rest 3.x no longer invokes the @Handler
-        // StockOperationDTOValidator on REST saves (ValidateUtil.validate was removed from
-        // DelegatingCrudResource.create), so derive atLocation from the operation parties here the
-        // same way the validator does; keep the loaded value when updating an existing operation.
-        if (stockOperation.getAtLocation() == null) {
-            // source first, matching StockOperationDTOValidator's permissionLocation order, so that
-            // both-location types (e.g. stock issue) resolve to the same location on every path
-            if (stockOperation.getSource() != null
-                    && stockOperationType.getSourceType() == LocationType.Location) {
-                stockOperation.setAtLocation(stockOperation.getSource().getLocation());
-            } else if (stockOperation.getDestination() != null
-                    && stockOperationType.getDestinationType() == LocationType.Location) {
-                stockOperation.setAtLocation(stockOperation.getDestination().getLocation());
-            }
-            if (stockOperation.getAtLocation() == null) {
-                throw new StockManagementException(
-                        messageSourceService.getMessage("stockmanagement.stockoperation.atlocationrequired"));
-            }
-        }
-
         if (!StringUtils.isBlank(dto.getResponsiblePersonUuid())) {
             User user = Context.getUserService().getUserByUuid(dto.getResponsiblePersonUuid());
             if (user == null) {
