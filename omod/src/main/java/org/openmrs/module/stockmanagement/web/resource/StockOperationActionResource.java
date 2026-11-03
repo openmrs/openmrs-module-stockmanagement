@@ -4,6 +4,8 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
+import org.apache.commons.lang.StringUtils;
+import org.openmrs.api.ValidationException;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -17,8 +19,11 @@ import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.springframework.web.client.RestClientException;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Errors;
 
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperationaction", supportedClass = StockOperationAction.class, supportedOpenmrsVersions = {
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
@@ -46,13 +51,19 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 	
 	@Override
 	public StockOperationAction save(StockOperationAction delegate) {
+		// A blank UUID removes the search filter and would select an unrelated operation.
+		if (StringUtils.isBlank(delegate.getUuid())) {
+			Errors errors = new BeanPropertyBindingResult(delegate, "stockOperationAction");
+			errors.rejectValue("uuid", "stockmanagement.stockoperation.action.uuidrequired");
+			throw new ValidationException(errors);
+		}
 		StockOperationDTO stockOperation = null;
 		try {
 			StockOperationSearchFilter filter = new StockOperationSearchFilter();
 			filter.setStockOperationUuid(delegate.getUuid());
 			Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
 			if (result.getData().isEmpty()) {
-				throw new RestClientException("Stock operation " + delegate.getUuid() + " not found");
+				throw new ObjectNotFoundException("Stock operation " + delegate.getUuid() + " not found");
 			}
 			stockOperation = result.getData().get(0);
 			
