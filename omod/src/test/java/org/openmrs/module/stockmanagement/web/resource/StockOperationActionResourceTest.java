@@ -2,12 +2,16 @@ package org.openmrs.module.stockmanagement.web.resource;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.openmrs.api.ValidationException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationSearchFilter;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.module.webservices.rest.web.v1_0.controller.BaseRestController;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,10 +47,26 @@ public class StockOperationActionResourceTest {
 					resource.save(action);
 					fail("Expected validation failure for " + name + " with UUID [" + uuid + "]");
 				}
-				catch (ValidationException exception) {
-					assertNotNull(exception.getErrors().getFieldError("uuid"));
+				catch (IllegalRequestException exception) {
+					assertEquals("Stock operation UUID is required", exception.getMessage());
 				}
 			}
+		}
+		verifyNoInteractions(service);
+	}
+
+	@Test
+	public void shouldReturnBadRequestUsingTheDeclaredRestVersion() throws Exception {
+		try {
+			resource.save(action(StockOperationAction.Action.SUBMIT, null));
+			fail("Expected a missing UUID to be rejected");
+		}
+		catch (IllegalRequestException exception) {
+			// Stack-trace diagnostics read server global properties, unrelated to this HTTP status check.
+			exception.setStackTrace(new StackTraceElement[0]);
+			HttpServletResponse response = mock(HttpServletResponse.class);
+			new BaseRestController().handleException(exception, mock(HttpServletRequest.class), response);
+			verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		}
 		verifyNoInteractions(service);
 	}
