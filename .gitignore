@@ -25,6 +25,9 @@ target/
 # JetBrains IDE
 .idea/
 
+# Visual Studio Code
+.vscode/
+
 # Unit test reports
 TEST*.xml
 
@@ -46,4 +49,3 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
-

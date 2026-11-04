@@ -12,6 +12,7 @@ package org.openmrs.module.stockmanagement;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.BaseModuleActivator;
+import org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob;
 import org.openmrs.module.stockmanagement.tasks.*;
 
 import java.util.ArrayList;
@@ -46,6 +47,14 @@ public class StockManagementActivator extends BaseModuleActivator {
 		}
 
 		log.info("Started Stock Management");
+
+		try {
+			AsyncTasksBatchJob.ensureTaskScheduled();
+			log.info("Ensured async tasks batch job is configured and scheduled");
+		}
+		catch (Exception e) {
+			log.error("Could not configure and schedule async tasks batch job", e);
+		}
 	}
 	
 	/**

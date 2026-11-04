@@ -1,10 +1,12 @@
 package org.openmrs.module.stockmanagement.web.controller;
 
 import org.apache.commons.io.IOUtils;
+import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.model.BatchJob;
+import org.openmrs.module.stockmanagement.api.model.BatchJobType;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.api.utils.FileUtil;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -29,6 +31,7 @@ public class BatchJobArtifactController {
 	        throws IOException {
 		boolean authenticated = Context.isAuthenticated();
 		if (!authenticated) {
+			response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
 			response.setContentType("text/plain");
 			response.getOutputStream().print(
 			    Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.authrequired"));
@@ -43,17 +46,10 @@ public class BatchJobArtifactController {
 			return;
 		}
 		
-		boolean hasAccess = true;
-		if (batchJob.getPrivilegeScope() != null) {
-			if (batchJob.getLocationScope() != null) {
-				hasAccess = stockManagementService.userHasStockManagementPrivilege(Context.getAuthenticatedUser(),
-				    batchJob.getLocationScope(), null, batchJob.getPrivilegeScope());
-			} else {
-				hasAccess = Context.hasPrivilege(batchJob.getPrivilegeScope());
-			}
-		}
+		boolean hasAccess = canAccessArtifact(Context.getAuthenticatedUser(), batchJob, stockManagementService);
 		
 		if (!hasAccess) {
+			response.setStatus(HttpServletResponse.SC_FORBIDDEN);
 			response.setContentType("text/plain");
 			response.getOutputStream().print(Context.getMessageSourceService().getMessage("stockmanagement.notauthorised"));
 			return;
@@ -93,6 +89,20 @@ public class BatchJobArtifactController {
 		response.setContentType(contentType);
 		response.addHeader("Content-Disposition", "attachment;filename=\"" + getFileName(batchJob) + "\""); // custom header FileName=\"{1}\"
 		response.getOutputStream().write(IOUtils.toByteArray(fileSystemResource.getInputStream()));
+	}
+
+	static boolean canAccessArtifact(User user, BatchJob batchJob, StockManagementService stockManagementService) {
+		if (user.isSuperUser()) {
+			return true;
+		}
+		if (batchJob.getPrivilegeScope() == null) {
+			return batchJob.getBatchJobType() != BatchJobType.Report;
+		}
+		if (batchJob.getLocationScope() == null) {
+			return Context.hasPrivilege(batchJob.getPrivilegeScope());
+		}
+		return stockManagementService.userHasStockManagementPrivilege(user, batchJob.getLocationScope(), null,
+		    batchJob.getPrivilegeScope());
 	}
 	
 	private String getFileName(BatchJob batchJob) {
