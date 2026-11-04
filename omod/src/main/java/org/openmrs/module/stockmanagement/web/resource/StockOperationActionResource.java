@@ -53,6 +53,9 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 		if (StringUtils.isBlank(delegate.getUuid())) {
 			throw new IllegalRequestException("Stock operation UUID is required");
 		}
+		if (delegate.getName() == null) {
+			throw new IllegalRequestException("Stock operation action is required");
+		}
 		StockOperationDTO stockOperation = null;
 		try {
 			StockOperationSearchFilter filter = new StockOperationSearchFilter();

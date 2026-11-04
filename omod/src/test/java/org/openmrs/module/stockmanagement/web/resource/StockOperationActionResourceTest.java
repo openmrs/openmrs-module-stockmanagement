@@ -56,6 +56,18 @@ public class StockOperationActionResourceTest {
 	}
 
 	@Test
+	public void shouldRejectMissingActionNameBeforeLookingUpAnOperation() {
+		try {
+			resource.save(action(null, "existing-operation"));
+			fail("Expected a missing action name to be rejected");
+		}
+		catch (IllegalRequestException exception) {
+			assertEquals("Stock operation action is required", exception.getMessage());
+		}
+		verifyNoInteractions(service);
+	}
+
+	@Test
 	public void shouldReturnBadRequestUsingTheDeclaredRestVersion() throws Exception {
 		try {
 			resource.save(action(StockOperationAction.Action.SUBMIT, null));
