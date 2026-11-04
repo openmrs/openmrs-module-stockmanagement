@@ -38,8 +38,11 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.stockmanagement.tasks.StockOperationNotificationTask;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
+import org.openmrs.module.stockmanagement.api.validator.StockOperationDTOValidator;
 import org.openmrs.util.OpenmrsConstants;
 import org.springframework.util.Assert;
+import org.springframework.validation.BindException;
+import org.springframework.validation.ObjectError;
 
 import javax.mail.Session;
 import java.math.BigDecimal;
@@ -1165,8 +1168,32 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         return result;
     }
 
+    /**
+     * Runs {@link StockOperationDTOValidator} against the submitted operation.
+     * <p>
+     * Besides rejecting invalid submissions, the validator resolves and assigns the operation's
+     * {@code atLocationUuid} from the location the authenticated user is permitted to operate at.
+     * Without this call {@code atLocationUuid} is never populated, so
+     * {@code stockmgmt_stock_operation.at_location_id} (NOT NULL) violates on every insert, and the
+     * operation-type, location-scope and user-permission checks the validator performs never run.
+     *
+     * @param dto the submitted stock operation
+     * @throws StockManagementException if the submission is invalid
+     */
+    private void validateStockOperationDTO(StockOperationDTO dto) {
+        BindException errors = new BindException(dto, "stockOperationDTO");
+        new StockOperationDTOValidator().validate(dto, errors);
+        if (!errors.hasErrors()) {
+            return;
+        }
+        ObjectError error = errors.getAllErrors().get(0);
+        String message = error.getCode() != null ? error.getCode() : error.getDefaultMessage();
+        throw new StockManagementException(message);
+    }
+
     public StockOperation saveStockOperation(StockOperationDTO dto) {
         MessageSourceService messageSourceService = Context.getMessageSourceService();
+        validateStockOperationDTO(dto);
         StockOperation stockOperation = null;
         boolean isNew = true;
         StockOperationType stockOperationType = null;
