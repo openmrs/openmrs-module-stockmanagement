@@ -4,6 +4,7 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
+import org.apache.commons.lang3.StringUtils;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -17,6 +18,8 @@ import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.springframework.web.client.RestClientException;
 
@@ -46,13 +49,20 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 	
 	@Override
 	public StockOperationAction save(StockOperationAction delegate) {
+		// A blank UUID removes the search filter and would select an unrelated operation.
+		if (StringUtils.isBlank(delegate.getUuid())) {
+			throw new IllegalRequestException("Stock operation UUID is required");
+		}
+		if (delegate.getName() == null) {
+			throw new IllegalRequestException("Stock operation action is required");
+		}
 		StockOperationDTO stockOperation = null;
 		try {
 			StockOperationSearchFilter filter = new StockOperationSearchFilter();
 			filter.setStockOperationUuid(delegate.getUuid());
 			Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
 			if (result.getData().isEmpty()) {
-				throw new RestClientException("Stock operation " + delegate.getUuid() + " not found");
+				throw new ObjectNotFoundException("Stock operation " + delegate.getUuid() + " not found");
 			}
 			stockOperation = result.getData().get(0);
 			
