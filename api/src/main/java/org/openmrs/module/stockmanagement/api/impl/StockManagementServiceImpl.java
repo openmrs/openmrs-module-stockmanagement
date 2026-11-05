@@ -3494,4 +3494,98 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             return null;
         }
     }
+
+    @Override
+    public StockItemPackagingUomReference saveStockItemPackagingUomReference(StockItemPackagingUomReference stockItemPackagingUomReference) {
+        if (stockItemPackagingUomReference == null) {
+            throw new APIException("Stock item packaging UOM reference is required");
+        }
+
+        StockItemPackagingUOM stockItemPackagingUOM = stockItemPackagingUomReference.getStockItemPackagingUOM();
+        if (stockItemPackagingUOM == null || stockItemPackagingUOM.getId() == null
+                || dao.getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid()) == null) {
+            throw new APIException("Stock item packaging UOM is required and must exist");
+        }
+        if (stockItemPackagingUOM.getVoided()) {
+            throw new APIException("References cannot be created for a voided stock item packaging UOM");
+        }
+
+        if (stockItemPackagingUomReference.getReferenceSource() == null
+                || stockItemPackagingUomReference.getReferenceSource().getId() == null) {
+            throw new APIException("Stock source is required and must exist");
+        }
+
+        if (stockItemPackagingUomReference.getStockReferenceCode() == null
+                || stockItemPackagingUomReference.getStockReferenceCode().trim().isEmpty()) {
+            throw new APIException("Stock reference code is required");
+        }
+        stockItemPackagingUomReference
+                .setStockReferenceCode(stockItemPackagingUomReference.getStockReferenceCode().trim());
+
+        // Mirrors the database unique constraint on (stock_source_id, stock_reference_code);
+        // voided rows are excluded because voiding suffixes their stored code, so only active
+        // references collide. The query must not auto-flush the pending edits or the database
+        // constraint fires before this friendly duplicate check runs
+        List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(
+            stockItemPackagingUomReference.getReferenceSource(), stockItemPackagingUomReference.getStockReferenceCode());
+        if (!matches.isEmpty()
+                && (matches.get(0).getId() == null
+                        || !matches.get(0).getId().equals(stockItemPackagingUomReference.getId()))) {
+            throw new APIException("Stock item packaging UOM reference code " + stockItemPackagingUomReference.getStockReferenceCode()
+                    + " already exists for the given stock source");
+        }
+
+        return dao.saveStockItemPackagingUomReference(stockItemPackagingUomReference);
+    }
+
+    @Override
+    public void voidStockItemPackagingUomReference(String uuid, String reason, Integer userId) {
+        if (uuid == null || uuid.trim().isEmpty()) {
+            throw new APIException("Stock item packaging UOM reference uuid is required");
+        }
+        dao.voidStockItemPackagingUomReference(uuid, reason, userId);
+    }
+
+    @Override
+    public StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid) {
+        return dao.getStockItemPackagingUomReferenceByUuid(uuid);
+    }
+
+    @Override
+    public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid) {
+        StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(stockItemPackagingUomUuid);
+        if (stockItemPackagingUOM == null) {
+            return Collections.emptyList();
+        }
+        return dao.getStockItemPackagingUomReferenceByPackagingUom(stockItemPackagingUOM);
+    }
+
+    @Override
+    public StockItemPackagingUOM getStockItemPackagingUomByReference(StockSource stockSource, String stockReferenceCode) {
+        if (stockSource == null || stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
+            throw new APIException("Stock source and stock reference code are required");
+        }
+        List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(stockSource,
+            stockReferenceCode.trim());
+        if (matches.isEmpty()) {
+            return null;
+        }
+        if (matches.size() > 1) {
+            throw new APIException("Multiple stock item packaging UOM references found for stock reference code "
+                    + stockReferenceCode + " and the given stock source");
+        }
+        return matches.get(0).getStockItemPackagingUOM();
+    }
+
+    @Override
+    public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesBySourceAndCode(String stockSourceUuid, String stockReferenceCode) {
+        StockSource stockSource = getStockSourceByUuid(stockSourceUuid);
+        if (stockSource == null) {
+            throw new APIException("Stock source " + stockSourceUuid + " not found");
+        }
+        if (stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
+            throw new APIException("Stock reference code is required");
+        }
+        return dao.getStockItemPackagingUomReferenceBySourceAndCode(stockSource, stockReferenceCode.trim());
+    }
 }
