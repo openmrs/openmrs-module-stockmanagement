@@ -14,6 +14,7 @@ import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.validator.StockItemDTOValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -201,6 +202,8 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	@Override
 	public StockItemDTO save(StockItemDTO delegate) {
 		try {
+			// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+			validateDelegate(new StockItemDTOValidator(), delegate, "stockItemDTO");
 			StockItem stockItem = getStockManagementService().saveStockItem(delegate);
 			return getByUniqueId(stockItem.getUuid());
 		}
