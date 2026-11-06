@@ -1004,6 +1004,31 @@ public class StockManagementDao extends DaoBase {
 		return stockSource;
 	}
 	
+	/**
+	 * Returns a non-voided stock source, other than the one with the given UUID, whose name or acronym
+	 * matches the given value case-insensitively, or null if there is none.
+	 */
+	public StockSource getDuplicateStockSource(String name, String acronym, String excludeUuid) {
+		if (StringUtils.isBlank(name) && StringUtils.isBlank(acronym)) {
+			return null;
+		}
+		Criteria criteria = getSession().createCriteria(StockSource.class, "ss");
+		criteria.add(Restrictions.eq("ss.voided", false));
+		if (excludeUuid != null) {
+			criteria.add(Restrictions.ne("ss.uuid", excludeUuid));
+		}
+		Disjunction nameOrAcronym = Restrictions.disjunction();
+		if (StringUtils.isNotBlank(name)) {
+			nameOrAcronym.add(Restrictions.eq("ss.name", name.trim()).ignoreCase());
+		}
+		if (StringUtils.isNotBlank(acronym)) {
+			nameOrAcronym.add(Restrictions.eq("ss.acronym", acronym.trim()).ignoreCase());
+		}
+		criteria.add(nameOrAcronym);
+		criteria.setMaxResults(1);
+		return (StockSource) criteria.uniqueResult();
+	}
+	
 	public Result<StockSource> findStockSources(StockSourceSearchFilter filter) {
         DbSession dbSession = getSession();
         Criteria criteria = dbSession.createCriteria(StockSource.class, "ss");
