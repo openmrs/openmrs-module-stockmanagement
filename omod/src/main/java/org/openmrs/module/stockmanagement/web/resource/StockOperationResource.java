@@ -39,8 +39,6 @@ import java.util.stream.Collectors;
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*", "3.*" })
 public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
-	private Map<String, SimpleObject> permissionCache;
-	
 	public StockOperationResource() {
 	}
 	
@@ -382,9 +380,6 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
 	@PropertyGetter("permission")
     public SimpleObject getPermission(StockOperationDTO stockOperationDTO) {
-        if(permissionCache != null && permissionCache.containsKey(stockOperationDTO.getUuid()))
-            return permissionCache.get(stockOperationDTO.getUuid());
-
         SimpleObject simpleObject = new SimpleObject();
         simpleObject.add("canView", true);
 
@@ -463,11 +458,6 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
         simpleObject.add("canDisplayReceivedItems", canDisplayReceivedItems);
         simpleObject.add("isRequisitionAndCanIssueStock", isRequisitionAndCanIssueStock);
         simpleObject.add("canUpdateBatchInformation", canUpdateBatchInformation);
-
-        if(permissionCache == null){
-            permissionCache=new HashMap<>();
-            permissionCache.put(stockOperationDTO.getUuid(), simpleObject);
-        }
         return simpleObject;
     }
 	
