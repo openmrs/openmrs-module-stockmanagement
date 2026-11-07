@@ -16,6 +16,7 @@ import org.hibernate.criterion.*;
 import org.hibernate.criterion.Order;
 import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.type.IntegerType;
+import org.hibernate.type.StandardBasicTypes;
 import org.openmrs.*;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
@@ -1019,10 +1020,12 @@ public class StockManagementDao extends DaoBase {
 		}
 		Disjunction nameOrAcronym = Restrictions.disjunction();
 		if (StringUtils.isNotBlank(name)) {
-			nameOrAcronym.add(Restrictions.eq("ss.name", name.trim()).ignoreCase());
+			nameOrAcronym.add(Restrictions.sqlRestriction("lower(trim({alias}.name)) = ?", name.trim().toLowerCase(),
+			    StandardBasicTypes.STRING));
 		}
 		if (StringUtils.isNotBlank(acronym)) {
-			nameOrAcronym.add(Restrictions.eq("ss.acronym", acronym.trim()).ignoreCase());
+			nameOrAcronym.add(Restrictions.sqlRestriction("lower(trim({alias}.acronym)) = ?", acronym.trim().toLowerCase(),
+			    StandardBasicTypes.STRING));
 		}
 		criteria.add(nameOrAcronym);
 		criteria.setMaxResults(1);

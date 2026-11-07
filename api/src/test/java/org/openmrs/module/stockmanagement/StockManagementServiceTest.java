@@ -415,6 +415,32 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 
 	@Test
+	public void saveStockSource_shouldRejectANameOrAcronymMatchingAnExistingPaddedValue() {
+		stockManagementService.setDao(dao());
+		stockManagementService.saveStockSource(newActiveStockSource(" Watsons ", " WAT "));
+
+		StockSource sameName = newActiveStockSource("Watsons", "WAT2");
+		try {
+			stockManagementService.saveStockSource(sameName);
+			fail("Expected a stock source matching a padded existing name to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+		assertNull(dao().getStockSourceByUuid(sameName.getUuid()));
+
+		StockSource sameAcronym = newActiveStockSource("Watsons Pharmacy", "wat");
+		try {
+			stockManagementService.saveStockSource(sameAcronym);
+			fail("Expected a stock source matching a padded existing acronym to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+		assertNull(dao().getStockSourceByUuid(sameAcronym.getUuid()));
+	}
+
+	@Test
 	public void saveStockSource_shouldAllowEditingASourceWithoutChangingItsNameOrAcronym() {
 		stockManagementService.setDao(dao());
 		StockSource existing = stockManagementService.saveStockSource(newActiveStockSource("Watsons", "WAT"));

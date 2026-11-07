@@ -685,7 +685,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                     stockSource.getUuid());
             if (duplicate != null) {
                 if (StringUtils.isNotBlank(stockSource.getName())
-                        && stockSource.getName().trim().equalsIgnoreCase(duplicate.getName())) {
+                        && stockSource.getName().trim().equalsIgnoreCase(StringUtils.trim(duplicate.getName()))) {
                     invalidRequestWithKey("stockmanagement.stocksource.duplicatename", duplicate.getName());
                 }
                 invalidRequestWithKey("stockmanagement.stocksource.duplicateacronym", duplicate.getAcronym(),
