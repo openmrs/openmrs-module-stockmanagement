@@ -16,6 +16,7 @@ import org.hibernate.criterion.*;
 import org.hibernate.criterion.Order;
 import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.type.IntegerType;
+import org.hibernate.type.StandardBasicTypes;
 import org.openmrs.*;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
@@ -1002,6 +1003,33 @@ public class StockManagementDao extends DaoBase {
 	public StockSource saveStockSource(StockSource stockSource) {
 		getSession().saveOrUpdate(stockSource);
 		return stockSource;
+	}
+	
+	/**
+	 * Returns a non-voided stock source, other than the one with the given UUID, whose name or acronym
+	 * matches the given value case-insensitively, or null if there is none.
+	 */
+	public StockSource getDuplicateStockSource(String name, String acronym, String excludeUuid) {
+		if (StringUtils.isBlank(name) && StringUtils.isBlank(acronym)) {
+			return null;
+		}
+		Criteria criteria = getSession().createCriteria(StockSource.class, "ss");
+		criteria.add(Restrictions.eq("ss.voided", false));
+		if (excludeUuid != null) {
+			criteria.add(Restrictions.ne("ss.uuid", excludeUuid));
+		}
+		Disjunction nameOrAcronym = Restrictions.disjunction();
+		if (StringUtils.isNotBlank(name)) {
+			nameOrAcronym.add(Restrictions.sqlRestriction("lower(trim({alias}.name)) = ?", name.trim().toLowerCase(),
+			    StandardBasicTypes.STRING));
+		}
+		if (StringUtils.isNotBlank(acronym)) {
+			nameOrAcronym.add(Restrictions.sqlRestriction("lower(trim({alias}.acronym)) = ?", acronym.trim().toLowerCase(),
+			    StandardBasicTypes.STRING));
+		}
+		criteria.add(nameOrAcronym);
+		criteria.setMaxResults(1);
+		return (StockSource) criteria.uniqueResult();
 	}
 	
 	public Result<StockSource> findStockSources(StockSourceSearchFilter filter) {

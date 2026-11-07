@@ -24,6 +24,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
@@ -380,6 +381,102 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
     }
 	
+	@Test
+	public void saveStockSource_shouldRejectANameUsedByAnotherSourceIgnoringCase() {
+		stockManagementService.setDao(dao());
+		StockSource existing = newActiveStockSource("Watsons", "WAT");
+		stockManagementService.saveStockSource(existing);
+
+		StockSource duplicate = newActiveStockSource(" watsons ", "WAT2");
+		try {
+			stockManagementService.saveStockSource(duplicate);
+			fail("Expected a stock source with a duplicate name to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+		assertNull(dao().getStockSourceByUuid(duplicate.getUuid()));
+	}
+
+	@Test
+	public void saveStockSource_shouldRejectAnAcronymUsedByAnotherSourceIgnoringCase() {
+		stockManagementService.setDao(dao());
+		stockManagementService.saveStockSource(newActiveStockSource("Watsons", "WAT"));
+
+		StockSource duplicate = newActiveStockSource("Watsons Pharmacy", "wat");
+		try {
+			stockManagementService.saveStockSource(duplicate);
+			fail("Expected a stock source with a duplicate acronym to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+		assertNull(dao().getStockSourceByUuid(duplicate.getUuid()));
+	}
+
+	@Test
+	public void saveStockSource_shouldRejectANameOrAcronymMatchingAnExistingPaddedValue() {
+		stockManagementService.setDao(dao());
+		stockManagementService.saveStockSource(newActiveStockSource(" Watsons ", " WAT "));
+
+		StockSource sameName = newActiveStockSource("Watsons", "WAT2");
+		try {
+			stockManagementService.saveStockSource(sameName);
+			fail("Expected a stock source matching a padded existing name to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+		assertNull(dao().getStockSourceByUuid(sameName.getUuid()));
+
+		StockSource sameAcronym = newActiveStockSource("Watsons Pharmacy", "wat");
+		try {
+			stockManagementService.saveStockSource(sameAcronym);
+			fail("Expected a stock source matching a padded existing acronym to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+		assertNull(dao().getStockSourceByUuid(sameAcronym.getUuid()));
+	}
+
+	@Test
+	public void saveStockSource_shouldAllowEditingASourceWithoutChangingItsNameOrAcronym() {
+		stockManagementService.setDao(dao());
+		StockSource existing = stockManagementService.saveStockSource(newActiveStockSource("Watsons", "WAT"));
+
+		existing.setSourceType(eu().getConcept());
+		stockManagementService.saveStockSource(existing);
+
+		assertNotNull(dao().getStockSourceByUuid(existing.getUuid()));
+	}
+
+	@Test
+	public void saveStockSource_shouldAllowReusingTheNameAndAcronymOfAVoidedSource() {
+		stockManagementService.setDao(dao());
+		StockSource voided = newActiveStockSource("Watsons", "WAT");
+		voided.setVoided(true);
+		voided.setVoidedBy(eu().getUser());
+		voided.setDateVoided(new Date());
+		voided.setVoidReason("Closed");
+		dao().saveStockSource(voided);
+
+		StockSource replacement = stockManagementService.saveStockSource(newActiveStockSource("Watsons", "WAT"));
+
+		assertNotNull(dao().getStockSourceByUuid(replacement.getUuid()));
+	}
+
+	private StockSource newActiveStockSource(String name, String acronym) {
+		StockSource stockSource = new StockSource();
+		stockSource.setName(name);
+		stockSource.setAcronym(acronym);
+		stockSource.setSourceType(eu().getConcept());
+		stockSource.setCreator(eu().getUser());
+		stockSource.setDateCreated(new Date());
+		stockSource.setVoided(false);
+		return stockSource;
+	}
+
 	@Test
 	public void getAllDTOS_shouldHaveAllLocations() {
 		stockManagementService.setDao(dao());

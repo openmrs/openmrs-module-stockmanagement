@@ -680,6 +680,18 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     public StockSource saveStockSource(StockSource stockSource) {
+        if (!Boolean.TRUE.equals(stockSource.getVoided())) {
+            StockSource duplicate = dao.getDuplicateStockSource(stockSource.getName(), stockSource.getAcronym(),
+                    stockSource.getUuid());
+            if (duplicate != null) {
+                if (StringUtils.isNotBlank(stockSource.getName())
+                        && stockSource.getName().trim().equalsIgnoreCase(StringUtils.trim(duplicate.getName()))) {
+                    invalidRequestWithKey("stockmanagement.stocksource.duplicatename", duplicate.getName());
+                }
+                invalidRequestWithKey("stockmanagement.stocksource.duplicateacronym", duplicate.getAcronym(),
+                        duplicate.getName());
+            }
+        }
         if (stockSource.getId() != null && stockSource.getId() > 0) {
             stockSource.setChangedBy(Context.getAuthenticatedUser());
             stockSource.setDateChanged(new Date());
