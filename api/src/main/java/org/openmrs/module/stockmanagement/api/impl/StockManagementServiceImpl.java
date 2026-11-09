@@ -105,15 +105,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         LocationService locationService = Context.getLocationService();
 
         List<LocationTag> locationTags = new ArrayList<>();
-        LocationTag locationTag = locationService.getLocationTagByName(StockLocationTags.MAIN_PHARMACY_LOCATION_TAG);
-        if (locationTag != null)
-            locationTags.add(locationTag);
-        locationTag = locationService.getLocationTagByName(StockLocationTags.DISPENSARY_LOCATION_TAG);
-        if (locationTag != null)
-            locationTags.add(locationTag);
-        locationTag = locationService.getLocationTagByName(StockLocationTags.MAIN_STORE_LOCATION_TAG);
-        if (locationTag != null)
-            locationTags.add(locationTag);
+        for (String tagName : GlobalProperties.getStockLocationTagNames()) {
+            LocationTag locationTag = locationService.getLocationTagByName(tagName);
+            if (locationTag != null)
+                locationTags.add(locationTag);
+        }
 
         if (locationTags.isEmpty()) {
             return new ArrayList<>();

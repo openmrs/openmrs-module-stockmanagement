@@ -108,6 +108,14 @@
     </messages>
 
     <globalProperty>
+        <property>stockmanagement.locationTags</property>
+        <defaultValue>Main Store,Main Pharmacy,Dispensary,Sub Store</defaultValue>
+        <description>
+            Comma-separated names of the location tags that mark a location as a stock location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
         <property>stockmanagement.environment</property>
         <defaultValue>prod</defaultValue>
         <description>
