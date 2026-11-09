@@ -9,6 +9,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.model.Party;
+import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -63,6 +64,32 @@ public class LocationTagsSynchronize implements StartupTask {
 		return dispensary;
 	}
 	
+	static final String SUB_STORE_LOCATION_TAG_UUID = "0b5f3c1e-6d2a-4f8b-9e7c-3a1d5b9f2c64";
+	
+	/**
+	 * Creates any tag listed in the stockmanagement.locationTags global property that does not exist yet,
+	 * so a configured tier such as Sub Store can be assigned to locations straight away.
+	 */
+	private void ensureConfiguredTags(LocationService locationService) {
+		for (String tagName : GlobalProperties.getStockLocationTagNames()) {
+			if (locationService.getLocationTagByName(tagName) != null) {
+				continue;
+			}
+			log.debug("Creating stock location tag " + tagName);
+			LocationTag locationTag = new LocationTag();
+			if (StockLocationTags.SUB_STORE_LOCATION_TAG.equalsIgnoreCase(tagName)) {
+				locationTag.setUuid(SUB_STORE_LOCATION_TAG_UUID);
+				locationTag.setDescription("A store below the main store that holds stock, such as a ward or satellite store.");
+			} else {
+				locationTag.setDescription("A stock holding location.");
+			}
+			locationTag.setName(tagName);
+			locationTag.setDateCreated(new Date());
+			locationTag.setCreator(Context.getAuthenticatedUser());
+			locationService.saveLocationTag(locationTag);
+		}
+	}
+	
 	private Location getSuitableParentLocation(List<Location> locations){
         Map<Optional<Location>, List<Location>> parents = locations.stream().collect(Collectors.groupingBy(p -> Optional.ofNullable(p.getParentLocation())));
         if(parents.isEmpty()) return null;
@@ -79,6 +106,7 @@ public class LocationTagsSynchronize implements StartupTask {
             LocationTag mainStoreTag = ensureMainStore(locationService);
             LocationTag mainPharmacyTag = ensureMainPharmacy(locationService);
             ensureDispensary(locationService);
+            ensureConfiguredTags(locationService);
 
             Location pharmacy = null;
             Location mainStore = null;

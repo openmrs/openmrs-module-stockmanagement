@@ -4736,4 +4736,24 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
     </addColumn>
   </changeSet>
+  <changeSet author="avanishkasar" id="stockmanagement-2026-11-09-O3-6173">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_operation_type_location_scope" />
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*) FROM stockmgmt_operation_type_location_scope WHERE location_tag = 'Sub Store'
+      </sqlCheck>
+    </preConditions>
+    <comment>
+      O3-6173: let Sub Store locations act as source or destination wherever Main Store, Main Pharmacy or Dispensary can
+    </comment>
+    <sql>
+      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id, location_tag, is_source, is_destination, creator, date_created, uuid)
+      SELECT existing.stock_operation_type_id, 'Sub Store', existing.is_source, existing.is_destination, 1, now(), uuid()
+      FROM (
+        SELECT DISTINCT stock_operation_type_id, is_source, is_destination
+        FROM stockmgmt_operation_type_location_scope
+        WHERE location_tag IN ('Main Store', 'Main Pharmacy', 'Dispensary') AND voided = 0
+      ) existing
+    </sql>
+  </changeSet>
 </databaseChangeLog>

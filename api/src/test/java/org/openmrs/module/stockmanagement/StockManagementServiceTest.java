@@ -32,6 +32,7 @@ import org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl;
 import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
+import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 import org.openmrs.module.stockmanagement.tasks.LocationTagsSynchronize;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1162,6 +1163,59 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertNotNull(dispensary);
 		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainPharmacy)).isEmpty());
 		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainStore)).isEmpty());
+	}
+	
+	@Test
+	public void locationTagsSynchronize_shouldCreateTheSubStoreTag() {
+		new LocationTagsSynchronize().execute();
+		LocationTag subStore = Context.getLocationService().getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG);
+		assertNotNull(subStore);
+	}
+	
+	@Test
+	public void getAllStockHoldingPartyList_shouldIncludeSubStoreLocations() {
+		stockManagementService.setDao(dao());
+		Location location = tagLocation(StockLocationTags.SUB_STORE_LOCATION_TAG);
+		eu().getParty(dao());
+		
+		List<Integer> locationIds = stockManagementService.getAllStockHoldingPartyList().stream()
+		        .map(PartyDTO::getLocationId).collect(Collectors.toList());
+		
+		assertThat(locationIds, hasItem(location.getLocationId()));
+	}
+	
+	@Test
+	public void getAllStockHoldingPartyList_shouldUseTheConfiguredLocationTags() {
+		stockManagementService.setDao(dao());
+		Location location = tagLocation("Ward Store");
+		eu().getParty(dao());
+		
+		Context.getAdministrationService().setGlobalProperty(GlobalProperties.STOCK_LOCATION_TAGS, "Main Store");
+		assertThat(stockManagementService.getAllStockHoldingPartyList().stream().map(PartyDTO::getLocationId)
+		        .collect(Collectors.toList()), not(hasItem(location.getLocationId())));
+		
+		Context.getAdministrationService().setGlobalProperty(GlobalProperties.STOCK_LOCATION_TAGS, "Main Store, Ward Store");
+		assertThat(stockManagementService.getAllStockHoldingPartyList().stream().map(PartyDTO::getLocationId)
+		        .collect(Collectors.toList()), hasItem(location.getLocationId()));
+	}
+	
+	@Test
+	public void parseStockLocationTagNames_shouldDefaultToTheFourTiersAndIgnoreBlanksAndDuplicates() {
+		assertEquals(Arrays.asList("Main Store", "Main Pharmacy", "Dispensary", "Sub Store"),
+		    GlobalProperties.parseStockLocationTagNames(null));
+		assertEquals(Arrays.asList("Main Store", "Ward Store"),
+		    GlobalProperties.parseStockLocationTagNames(" Main Store, ,Ward Store,main store "));
+	}
+	
+	private Location tagLocation(String tagName) {
+		LocationService locationService = Context.getLocationService();
+		LocationTag tag = locationService.getLocationTagByName(tagName);
+		if (tag == null) {
+			tag = locationService.saveLocationTag(new LocationTag(tagName, tagName));
+		}
+		Location location = locationService.getLocation(eu().getLocation().getLocationId());
+		location.addTag(tag);
+		return locationService.saveLocation(location);
 	}
 	
 	@Test

@@ -5,12 +5,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.openmrs.GlobalProperty;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public class GlobalProperties {
@@ -77,6 +80,8 @@ public class GlobalProperties {
 	
 	public static final String APPLICATION_ROOT_URL = ModuleConstants.MODULE_ID + ".applicationRootUrl";
 	
+	public static final String STOCK_LOCATION_TAGS = ModuleConstants.MODULE_ID + ".locationTags";
+	
 	public static GlobalProperty setGlobalProperty(String property, String propertyValue) {
 		GlobalProperty globalProperty = new GlobalProperty();
 		globalProperty.setProperty(property);
@@ -90,6 +95,29 @@ public class GlobalProperties {
 	
 	public static void saveGlobalProperty(GlobalProperty property) {
 		Context.getAdministrationService().saveGlobalProperty(property);
+	}
+	
+	/**
+	 * Returns the names of the location tags that mark a location as a stock location, read from the
+	 * stockmanagement.locationTags global property (comma-separated). Falls back to
+	 * {@link StockLocationTags#DEFAULT_STOCK_LOCATION_TAGS} when the property is blank.
+	 */
+	public static List<String> getStockLocationTagNames() {
+		return parseStockLocationTagNames(getGlobalProperty(STOCK_LOCATION_TAGS));
+	}
+	
+	public static List<String> parseStockLocationTagNames(String value) {
+		if (StringUtils.isBlank(value)) {
+			value = StockLocationTags.DEFAULT_STOCK_LOCATION_TAGS;
+		}
+		List<String> tagNames = new ArrayList<>();
+		for (String tagName : value.split(",")) {
+			String trimmed = tagName.trim();
+			if (!trimmed.isEmpty() && tagNames.stream().noneMatch(trimmed::equalsIgnoreCase)) {
+				tagNames.add(trimmed);
+			}
+		}
+		return tagNames;
 	}
 	
 	public static String getPrintLogo() {
