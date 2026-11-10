@@ -4736,4 +4736,22 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
     </addColumn>
   </changeSet>
+  <changeSet id="stockmanagement-2026-11-10-O3-6255" author="avanishkasar">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+        FROM stockmgmt_operation_type_location_scope sotls
+        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='11111111-1111-1111-1111-111111111111') AND
+        location_tag='Main Store'
+      </sqlCheck>
+    </preConditions>
+    <comment>O3-6255: Add the Main Store source scope for adjustments that changeset stockmanagement-1758855877841-241 never inserted because of a malformed uuid</comment>
+    <sql>
+      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,voided,uuid)
+      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(),false, '019f2d4b-2a56-11ed-9cab-507b9dea1806'
+      FROM stockmgmt_stock_operation_type sot
+      WHERE sot.uuid='11111111-1111-1111-1111-111111111111'
+      AND NOT EXISTS (SELECT 1 FROM stockmgmt_operation_type_location_scope s WHERE s.uuid='019f2d4b-2a56-11ed-9cab-507b9dea1806')
+    </sql>
+  </changeSet>
 </databaseChangeLog>
