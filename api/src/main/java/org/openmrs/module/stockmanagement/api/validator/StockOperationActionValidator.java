@@ -5,11 +5,10 @@ import org.openmrs.annotation.Handler;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
-import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
-@Handler(supports = { StockOperationDTO.class }, order = 50)
+@Handler(supports = { StockOperationAction.class }, order = 50)
 public class StockOperationActionValidator implements Validator {
 	
 	@Override
@@ -36,8 +35,8 @@ public class StockOperationActionValidator implements Validator {
 			return;
 		}
 		
-		if (object.getUuid() == null) {
-			errors.rejectValue("uuid", messageSourceService.getMessage("stockmanagement.stockoperation.action.namerequired"));
+		if (StringUtils.isBlank(object.getUuid())) {
+			errors.rejectValue("uuid", messageSourceService.getMessage("stockmanagement.stockoperation.action.uuidrequired"));
 			return;
 		}
 		

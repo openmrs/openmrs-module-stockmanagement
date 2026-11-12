@@ -102,6 +102,17 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		return message == null ? null : message.trim();
 	}
 
+	@Test
+	public void validate_shouldReportMissingOperationDate() {
+		StockOperationDTO dto = new StockOperationDTO();
+		dto.setOperationTypeUuid(TEST_RECEIPT_TYPE_UUID);
+
+		Errors errors = validate(dto);
+
+		assertNotNull(errors.getFieldError("operationDate"));
+		assertEquals("Operation date is required", messageOf(errors.getFieldError("operationDate")));
+	}
+
 	private StockOperationDTO newReceiptDto() {
 		StockOperationDTO dto = new StockOperationDTO();
 		dto.setOperationTypeUuid(TEST_RECEIPT_TYPE_UUID);

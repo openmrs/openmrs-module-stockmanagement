@@ -5,6 +5,7 @@ import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.validator.StockOperationActionValidator;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -46,6 +47,8 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 	
 	@Override
 	public StockOperationAction save(StockOperationAction delegate) {
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+		validateDelegate(new StockOperationActionValidator(), delegate, "stockOperationAction");
 		StockOperationDTO stockOperation = null;
 		try {
 			StockOperationSearchFilter filter = new StockOperationSearchFilter();

@@ -58,7 +58,7 @@ public class StockOperationDTOValidator implements Validator {
         }
 
         if (object.getOperationDate() == null) {
-            errors.rejectValue("operationDate", messageSourceService.getMessage("stockmanagement.stockoperation.sourcerequired"));
+            errors.rejectValue("operationDate", messageSourceService.getMessage("stockmanagement.stockoperation.operationdaterequired"));
             return;
         }
 

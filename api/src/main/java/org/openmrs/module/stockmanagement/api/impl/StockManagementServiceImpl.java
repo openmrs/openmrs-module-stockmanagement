@@ -876,11 +876,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             userRoleScope = getUserRoleScopeByUuid(delegate.getUuid());
             if (userRoleScope == null)
                 throw new APIException("User role scope " + delegate.getUuid() + " not found");
-            if (userRoleScope.getUser() == null) {
-                // A scope row without a user is malformed configuration; reject it clearly instead
-                // of throwing a bare NullPointerException here or later during authorization checks
-                invalidRequest("stockmanagement.userrolescopes.user.notfound");
-            }
             if (userRoleScope.getUser().getUuid().equalsIgnoreCase(Context.getAuthenticatedUser().getUuid())) {
                 invalidRequest("stockmanagement.userrolescopes.userUuid.selfupdate");
             }
