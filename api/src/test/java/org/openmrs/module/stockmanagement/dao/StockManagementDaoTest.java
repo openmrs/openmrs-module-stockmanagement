@@ -15,6 +15,7 @@ import org.openmrs.*;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
+import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import static org.junit.Assert.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 
 /**
  * It is an integration test (extends BaseModuleContextSensitiveTest), which verifies DAO methods
@@ -113,6 +115,29 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		assertThat(savedStockItemTransaction, hasProperty("stockOperation", is(stockItemTransaction.getStockOperation())));
 		assertThat(savedStockItemTransaction,
 		    hasProperty("stockItemPackagingUOM", is(stockItemTransaction.getStockItemPackagingUOM())));
+	}
+	
+	@Test
+	public void setStockItemCurrentBalanceWithoutDescendants_shouldSetTheBalanceHeldAtTheLocation() {
+		//Given
+		StockItemTransaction stockItemTransaction = eu().newStockItemTransaction(dao());
+		stockItemTransaction.getStockBatch().setExpiration(null);
+		dao().saveStockBatch(stockItemTransaction.getStockBatch());
+		stockItemTransaction.getStockItemPackagingUOM().setFactor(new BigDecimal("2"));
+		dao().saveStockItemPackagingUOM(stockItemTransaction.getStockItemPackagingUOM());
+		stockItemTransaction.setQuantity(new BigDecimal("10"));
+		dao().saveStockItemTransaction(stockItemTransaction);
+		Context.flushSession();
+		
+		StockRuleCurrentQuantity currentQuantity = new StockRuleCurrentQuantity(stockItemTransaction.getStockItem().getId(),
+		        stockItemTransaction.getParty().getLocation().getLocationId(), null, false);
+		
+		//When
+		dao().setStockItemCurrentBalanceWithoutDescendants(Collections.singletonList(currentQuantity));
+		
+		//Then
+		assertNotNull(currentQuantity.getQuantity());
+		assertEquals(0, new BigDecimal("20").compareTo(currentQuantity.getQuantity()));
 	}
 	
 	@Test
