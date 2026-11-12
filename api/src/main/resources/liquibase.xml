@@ -2591,8 +2591,6 @@
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
     </sql>
-    <!-- No rollback is defined because the column's previous character set and collation
-         are not recorded and cannot be restored reliably. -->
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-218" failOnError="false">
     <preConditions onFail="MARK_RAN">
