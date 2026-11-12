@@ -83,7 +83,7 @@ public class StockOperationDTOValidator implements Validator {
             }
             Party party = service.getPartyByUuid(object.getSourceUuid());
             if (party == null || party.getVoided()) {
-                errors.rejectValue("sourceUuid", messageSourceService.getMessage("stockmanagement.stockoperation.sourceuuidinvalid"));
+                errors.rejectValue("sourceUuid", messageSourceService.getMessage("stockmanagement.stockoperation.sourceinvalid"));
                 return;
             }
             if (stockOperationType.getSourceType() == LocationType.Location) {
@@ -123,7 +123,7 @@ public class StockOperationDTOValidator implements Validator {
             }
             Party party = service.getPartyByUuid(object.getDestinationUuid());
             if (party == null || party.getVoided()) {
-                errors.rejectValue("destinationUuid", messageSourceService.getMessage("stockmanagement.stockoperation.destinationuuidinvalid"));
+                errors.rejectValue("destinationUuid", messageSourceService.getMessage("stockmanagement.stockoperation.destinationinvalid"));
                 return;
             }
             if (stockOperationType.getDestinationType() == LocationType.Location) {

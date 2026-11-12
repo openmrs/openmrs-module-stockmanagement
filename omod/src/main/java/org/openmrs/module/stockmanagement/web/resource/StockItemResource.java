@@ -30,7 +30,7 @@ import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceD
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.util.LocaleUtility;
-import org.springframework.web.client.RestClientException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -208,7 +208,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 			return getByUniqueId(stockItem.getUuid());
 		}
 		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+			throw new IllegalRequestException(safeMessage(exception, "Unable to save stock item"));
 		}
 	}
 	

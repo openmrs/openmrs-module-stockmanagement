@@ -19,10 +19,9 @@ import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
-import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
-import org.springframework.web.client.RestClientException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.module.webservices.rest.web.response.ResponseException;
 
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperationaction", supportedClass = StockOperationAction.class, supportedOpenmrsVersions = {
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
@@ -50,7 +49,7 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 	
 	@Override
 	public StockOperationAction save(StockOperationAction delegate) {
-		// Keep explicit REST errors for older versions that do not map core ValidationException.
+		// A blank UUID removes the search filter and would select an unrelated operation.
 		if (StringUtils.isBlank(delegate.getUuid())) {
 			throw new IllegalRequestException("Stock operation UUID is required");
 		}
@@ -100,7 +99,7 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 			}
 		}
 		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+			throw new IllegalRequestException(safeMessage(exception, "Unable to process the stock operation action"));
 		}
 		return delegate;
 	}

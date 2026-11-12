@@ -2591,6 +2591,11 @@
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
     </sql>
+    <rollback>
+      <!-- Intentionally a no-op: this changeset only aligns the column's character set and
+           collation with role.role, and putting the old mismatched values back would
+           reintroduce the foreign key incompatibility it fixes (O3-5811). -->
+    </rollback>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-218" failOnError="false">
     <preConditions onFail="MARK_RAN">

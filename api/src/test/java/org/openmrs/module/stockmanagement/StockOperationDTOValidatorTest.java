@@ -145,6 +145,50 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 	}
 
 	@Test
+	public void validate_shouldReportAnUnknownSourceWithAResolvedMessage() {
+		StockOperationDTO dto = newReceiptDto();
+		dto.setSourceUuid("unknown-party-uuid");
+
+		Errors errors = validate(dto);
+
+		assertNotNull(errors.getFieldError("sourceUuid"));
+		assertEquals("Source is invalid", messageOf(errors.getFieldError("sourceUuid")));
+	}
+
+	@Test
+	public void validate_shouldReportAVoidedSourceWithAResolvedMessage() {
+		StockOperationDTO dto = newReceiptDto();
+		dao().getPartyByUuid(dto.getSourceUuid()).setVoided(true);
+
+		Errors errors = validate(dto);
+
+		assertNotNull(errors.getFieldError("sourceUuid"));
+		assertEquals("Source is invalid", messageOf(errors.getFieldError("sourceUuid")));
+	}
+
+	@Test
+	public void validate_shouldReportAnUnknownDestinationWithAResolvedMessage() {
+		StockOperationDTO dto = newReceiptDto();
+		dto.setDestinationUuid("unknown-party-uuid");
+
+		Errors errors = validate(dto);
+
+		assertNotNull(errors.getFieldError("destinationUuid"));
+		assertEquals("Destination is invalid", messageOf(errors.getFieldError("destinationUuid")));
+	}
+
+	@Test
+	public void validate_shouldReportAVoidedDestinationWithAResolvedMessage() {
+		StockOperationDTO dto = newReceiptDto();
+		dao().getPartyByUuid(dto.getDestinationUuid()).setVoided(true);
+
+		Errors errors = validate(dto);
+
+		assertNotNull(errors.getFieldError("destinationUuid"));
+		assertEquals("Destination is invalid", messageOf(errors.getFieldError("destinationUuid")));
+	}
+
+	@Test
 	public void validate_shouldRejectUnknownOperationTypeWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
 		dto.setOperationTypeUuid("00000000-0000-0000-0000-000000000000");
