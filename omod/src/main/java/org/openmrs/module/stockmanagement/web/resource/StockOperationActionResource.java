@@ -4,6 +4,7 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
+import org.apache.commons.lang.StringUtils;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.validator.StockOperationActionValidator;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
@@ -19,6 +20,8 @@ import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.springframework.web.client.RestClientException;
 
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperationaction", supportedClass = StockOperationAction.class, supportedOpenmrsVersions = {
@@ -47,6 +50,13 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 	
 	@Override
 	public StockOperationAction save(StockOperationAction delegate) {
+		// Keep explicit REST errors for older versions that do not map core ValidationException.
+		if (StringUtils.isBlank(delegate.getUuid())) {
+			throw new IllegalRequestException("Stock operation UUID is required");
+		}
+		if (delegate.getName() == null) {
+			throw new IllegalRequestException("Stock operation action is required");
+		}
 		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
 		validateDelegate(new StockOperationActionValidator(), delegate, "stockOperationAction");
 		StockOperationDTO stockOperation = null;
@@ -55,7 +65,7 @@ public class StockOperationActionResource extends ResourceBase<StockOperationAct
 			filter.setStockOperationUuid(delegate.getUuid());
 			Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
 			if (result.getData().isEmpty()) {
-				throw new RestClientException("Stock operation " + delegate.getUuid() + " not found");
+				throw new ObjectNotFoundException("Stock operation " + delegate.getUuid() + " not found");
 			}
 			stockOperation = result.getData().get(0);
 			
