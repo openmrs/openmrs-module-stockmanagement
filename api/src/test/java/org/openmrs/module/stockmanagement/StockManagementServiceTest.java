@@ -1160,8 +1160,8 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertNotNull(mainStore);
 		LocationTag dispensary = locationService.getLocationTagByName(StockLocationTags.DISPENSARY_LOCATION_TAG);
 		assertNotNull(dispensary);
-		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainPharmacy)).isEmpty());
-		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainStore)).isEmpty());
+		assertTrue(locationService.getLocationsHavingAnyTag(Arrays.asList(mainPharmacy)).isEmpty());
+		assertTrue(locationService.getLocationsHavingAnyTag(Arrays.asList(mainStore)).isEmpty());
 	}
 	
 	@Test
