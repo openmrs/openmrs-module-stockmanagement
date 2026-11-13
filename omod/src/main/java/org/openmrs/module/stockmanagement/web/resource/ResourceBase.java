@@ -112,4 +112,5 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	protected <E> AlreadyPaged<E> toAlreadyPaged(List<E> result, RequestContext context) {
 		return new AlreadyPaged<E>(context, result, false, (long) result.size());
 	}
+	
 }

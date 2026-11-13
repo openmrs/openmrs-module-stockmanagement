@@ -47,7 +47,7 @@ public class StockItemImportController {
             ImportResult importResult = new ImportResult();
             importResult.setSuccess(false);
             importResult.setErrors(new ArrayList<>());
-            importResult.getErrors().add(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.authrequired"));
+            importResult.getErrors().add(Context.getMessageSourceService().getMessage("stockmanagement.authrequired"));
             return importResult;
         }
 
@@ -106,7 +106,7 @@ public class StockItemImportController {
 	        throws IOException {
 		boolean authenticated = Context.isAuthenticated();
 		if (!authenticated) {
-			return Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.authrequired");
+			return Context.getMessageSourceService().getMessage("stockmanagement.authrequired");
 		}
 		
 		int userIdPartEnds = -1;

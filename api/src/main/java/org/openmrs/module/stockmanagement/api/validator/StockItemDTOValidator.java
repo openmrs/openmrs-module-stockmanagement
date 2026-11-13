@@ -29,7 +29,7 @@ public class StockItemDTOValidator implements Validator {
 		}
 		
 		if (Context.getAuthenticatedUser() == null) {
-			errors.reject(messageSourceService.getMessage("stockmanagement.stockitem.authrequired"));
+			errors.reject(messageSourceService.getMessage("stockmanagement.authrequired"));
 			return;
 		}
 		

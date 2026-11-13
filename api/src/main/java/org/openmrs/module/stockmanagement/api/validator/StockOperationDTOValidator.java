@@ -34,7 +34,7 @@ public class StockOperationDTOValidator implements Validator {
         }
 
         if (Context.getAuthenticatedUser() == null) {
-            errors.reject(messageSourceService.getMessage("stockmanagement.stockoperation.authrequired"));
+            errors.reject(messageSourceService.getMessage("stockmanagement.authrequired"));
             return;
         }
 

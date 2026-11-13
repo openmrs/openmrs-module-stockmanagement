@@ -44,9 +44,9 @@ import java.util.stream.Collectors;
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperation", supportedClass = StockOperationDTO.class, supportedOpenmrsVersions = {
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockOperationResource extends ResourceBase<StockOperationDTO> {
-
+	
 	private static final Log log = LogFactory.getLog(StockOperationResource.class);
-
+	
 	private Map<String, SimpleObject> permissionCache;
 	
 	public StockOperationResource() {

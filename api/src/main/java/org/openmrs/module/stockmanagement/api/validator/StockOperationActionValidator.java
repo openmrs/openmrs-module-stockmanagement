@@ -25,7 +25,7 @@ public class StockOperationActionValidator implements Validator {
 		}
 		
 		if (Context.getAuthenticatedUser() == null) {
-			errors.reject(messageSourceService.getMessage("stockmanagement.stockoperation.authrequired"));
+			errors.reject(messageSourceService.getMessage("stockmanagement.authrequired"));
 			return;
 		}
 		
