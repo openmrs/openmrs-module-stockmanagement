@@ -4736,4 +4736,150 @@ CREATE TRIGGER stockmgmt_location_after_delete
       </column>
     </addColumn>
   </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-1">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <tableExists tableName="stockmgmt_stock_item_packaging_uom_reference" />
+      </not>
+    </preConditions>
+    <comment>
+      Creating the stockmgmt_stock_item_packaging_uom_reference table
+    </comment>
+    <createTable tableName="stockmgmt_stock_item_packaging_uom_reference">
+      <column autoIncrement="true" name="stock_item_packaging_uom_reference_id" type="INT">
+        <constraints nullable="false" primaryKey="true" />
+      </column>
+      <column name="stock_item_packaging_uom_id" type="INT">
+        <constraints nullable="false" />
+      </column>
+      <column name="stock_source_id" type="INT">
+        <constraints nullable="false" />
+      </column>
+      <column name="stock_reference_code" type="VARCHAR(255)">
+        <constraints nullable="false" />
+      </column>
+      <column name="name" type="VARCHAR(255)" />
+      <column name="description" type="VARCHAR(1024)" />
+      <column name="creator" type="INT">
+        <constraints nullable="false" />
+      </column>
+      <column name="date_created" type="DATETIME">
+        <constraints nullable="false" />
+      </column>
+      <column name="changed_by" type="INT" />
+      <column name="date_changed" type="DATETIME" />
+      <column defaultValueBoolean="false" name="voided" type="BOOLEAN">
+        <constraints nullable="false" />
+      </column>
+      <column name="date_voided" type="DATETIME" />
+      <column name="voided_by" type="INT" />
+      <column name="void_reason" type="VARCHAR(255)" />
+      <column name="uuid" type="CHAR(38)">
+        <constraints nullable="false" unique="true" />
+      </column>
+    </createTable>
+  </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-2">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <indexExists indexName="stockmgmt_stock_item_packaging_uom_reference_uom_fk" />
+      </not>
+    </preConditions>
+    <comment>
+      Adding index on stock_item_packaging_uom_id
+    </comment>
+    <createIndex indexName="stockmgmt_stock_item_packaging_uom_reference_uom_fk" tableName="stockmgmt_stock_item_packaging_uom_reference" unique="false">
+      <column name="stock_item_packaging_uom_id" />
+    </createIndex>
+  </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-3">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <foreignKeyConstraintExists foreignKeyName="stockmgmt_stock_item_packaging_uom_reference_uom_fk" />
+      </not>
+    </preConditions>
+    <comment>
+      Adding foreign key to stockmgmt_stock_item_packaging_uom
+    </comment>
+    <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_packaging_uom_reference"
+                             baseColumnNames="stock_item_packaging_uom_id"
+                             referencedTableName="stockmgmt_stock_item_packaging_uom"
+                             referencedColumnNames="stock_item_packaging_uom_id"
+                             constraintName="stockmgmt_stock_item_packaging_uom_reference_uom_fk"/>
+  </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-4">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <foreignKeyConstraintExists foreignKeyName="stockmgmt_stock_item_packaging_uom_reference_stock_source_fk" />
+      </not>
+    </preConditions>
+    <comment>
+      Adding foreign key to stockmgmt_stock_source
+    </comment>
+    <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_packaging_uom_reference"
+                             baseColumnNames="stock_source_id"
+                             referencedTableName="stockmgmt_stock_source"
+                             referencedColumnNames="stock_source_id"
+                             constraintName="stockmgmt_stock_item_packaging_uom_reference_stock_source_fk"/>
+  </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-5">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <foreignKeyConstraintExists foreignKeyName="stockmgmt_stock_item_packaging_uom_reference_users_creator_fk" />
+      </not>
+    </preConditions>
+    <comment>
+      Adding foreign key to users for creator
+    </comment>
+    <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_packaging_uom_reference"
+                             baseColumnNames="creator"
+                             referencedTableName="users"
+                             referencedColumnNames="user_id"
+                             constraintName="stockmgmt_stock_item_packaging_uom_reference_users_creator_fk"/>
+  </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-6">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <foreignKeyConstraintExists foreignKeyName="stockmgmt_stock_item_packaging_uom_reference_users_changed_by_fk" />
+      </not>
+    </preConditions>
+    <comment>
+      Adding foreign key to users for changed_by
+    </comment>
+    <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_packaging_uom_reference"
+                             baseColumnNames="changed_by"
+                             referencedTableName="users"
+                             referencedColumnNames="user_id"
+                             constraintName="stockmgmt_stock_item_packaging_uom_reference_users_changed_by_fk"/>
+  </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-7">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <foreignKeyConstraintExists foreignKeyName="stockmgmt_stock_item_packaging_uom_reference_users_voided_by_fk" />
+      </not>
+    </preConditions>
+    <comment>
+      Adding foreign key to users for voided_by
+    </comment>
+    <addForeignKeyConstraint baseTableName="stockmgmt_stock_item_packaging_uom_reference"
+                             baseColumnNames="voided_by"
+                             referencedTableName="users"
+                             referencedColumnNames="user_id"
+                             constraintName="stockmgmt_stock_item_packaging_uom_reference_users_voided_by_fk"/>
+  </changeSet>
+  <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-8">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <uniqueConstraintExists tableName="stockmgmt_stock_item_packaging_uom_reference"
+                                constraintName="stockmgmt_stock_item_packaging_uom_reference_source_code_uk" />
+      </not>
+    </preConditions>
+    <comment>
+      Unique source/code per reference; voiding suffixes the stored code so the
+      original code is freed for reuse on the same source
+    </comment>
+    <addUniqueConstraint tableName="stockmgmt_stock_item_packaging_uom_reference"
+                         columnNames="stock_source_id,stock_reference_code"
+                         constraintName="stockmgmt_stock_item_packaging_uom_reference_source_code_uk"/>
+  </changeSet>
 </databaseChangeLog>
