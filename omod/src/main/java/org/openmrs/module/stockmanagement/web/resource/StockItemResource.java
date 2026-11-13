@@ -14,6 +14,7 @@ import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.validator.StockItemDTOValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -29,7 +30,7 @@ import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceD
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.util.LocaleUtility;
-import org.springframework.web.client.RestClientException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -201,11 +202,13 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	@Override
 	public StockItemDTO save(StockItemDTO delegate) {
 		try {
+			// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+			validateDelegate(new StockItemDTOValidator(), delegate, "stockItemDTO");
 			StockItem stockItem = getStockManagementService().saveStockItem(delegate);
 			return getByUniqueId(stockItem.getUuid());
 		}
 		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+			throw new IllegalRequestException(safeMessage(exception, "Unable to save stock item"));
 		}
 	}
 	

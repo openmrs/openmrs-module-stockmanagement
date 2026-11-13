@@ -114,7 +114,7 @@ public class BatchJobValidator implements Validator {
 		for(Map.Entry<Object,Object> property : properties.entrySet()) {
 			String propertyName = (String) property.getKey();
 			if (!propertyName.startsWith("param.")) {
-				errors.rejectValue("parameters", messageSourceService.getMessage("stockmanagement.batchjob.paramformatinvalid"));
+				errors.rejectValue("parameters", messageSourceService.getMessage("stockmanagement.batchjob.parameterformatnotvalid"));
 				return;
 			}
 			if (propertyName.equals("param.report")) {

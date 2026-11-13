@@ -34,7 +34,7 @@ public class StockOperationDTOValidator implements Validator {
         }
 
         if (Context.getAuthenticatedUser() == null) {
-            errors.reject(messageSourceService.getMessage("stockmanagement.stockoperation.authrequired"));
+            errors.reject(messageSourceService.getMessage("stockmanagement.authrequired"));
             return;
         }
 
@@ -58,7 +58,7 @@ public class StockOperationDTOValidator implements Validator {
         }
 
         if (object.getOperationDate() == null) {
-            errors.rejectValue("operationDate", messageSourceService.getMessage("stockmanagement.stockoperation.sourcerequired"));
+            errors.rejectValue("operationDate", messageSourceService.getMessage("stockmanagement.stockoperation.operationdaterequired"));
             return;
         }
 
@@ -70,6 +70,12 @@ public class StockOperationDTOValidator implements Validator {
         Location permissionLocation = null;
 
         StockOperationType stockOperationType = stockOperation != null ? stockOperation.getStockOperationType() : service.getStockOperationTypeByUuid(object.getOperationTypeUuid());
+        if (stockOperationType == null) {
+            // an unknown type must be a clean rejection, not a NullPointerException downstream
+            errors.rejectValue("operationTypeUuid",
+                messageSourceService.getMessage("stockmanagement.stockoperation.typenotfound"));
+            return;
+        }
         if (stockOperationType.getHasSource() != null && stockOperationType.getHasSource()) {
             if (object.getSourceUuid() == null) {
                 errors.rejectValue("sourceUuid", messageSourceService.getMessage("stockmanagement.stockoperation.sourcerequired"));
@@ -77,7 +83,7 @@ public class StockOperationDTOValidator implements Validator {
             }
             Party party = service.getPartyByUuid(object.getSourceUuid());
             if (party == null || party.getVoided()) {
-                errors.rejectValue("sourceUuid", messageSourceService.getMessage("stockmanagement.stockoperation.sourceuuidinvalid"));
+                errors.rejectValue("sourceUuid", messageSourceService.getMessage("stockmanagement.stockoperation.sourceinvalid"));
                 return;
             }
             if (stockOperationType.getSourceType() == LocationType.Location) {
@@ -117,7 +123,7 @@ public class StockOperationDTOValidator implements Validator {
             }
             Party party = service.getPartyByUuid(object.getDestinationUuid());
             if (party == null || party.getVoided()) {
-                errors.rejectValue("destinationUuid", messageSourceService.getMessage("stockmanagement.stockoperation.destinationuuidinvalid"));
+                errors.rejectValue("destinationUuid", messageSourceService.getMessage("stockmanagement.stockoperation.destinationinvalid"));
                 return;
             }
             if (stockOperationType.getDestinationType() == LocationType.Location) {
