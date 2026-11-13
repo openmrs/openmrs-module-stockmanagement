@@ -25,6 +25,7 @@ import static org.junit.Assert.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * It is an integration test (extends BaseModuleContextSensitiveTest), which verifies DAO methods
@@ -670,5 +671,104 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		assertThat(savedBatchJob, hasProperty("exitMessage", is(batchJob.getExitMessage())));
 		assertThat(savedBatchJob, hasProperty("completedDate", is(batchJob.getCompletedDate())));
 		assertThat(savedBatchJob, hasProperty("outputArtifactSize", is(batchJob.getOutputArtifactSize())));
+	}
+
+	private StockItemPackagingUomReference createNonVoidedReference(StockManagementDao dao, StockSource stockSource) {
+		StockItemPackagingUOM stockItemPackagingUOM = eu().newStockItemPackagingUOM(dao, false);
+		stockItemPackagingUOM.setVoided(false);
+		dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
+		StockItemPackagingUomReference reference = eu().newStockItemPackagingUomReference(dao, stockItemPackagingUOM,
+		    stockSource);
+		dao.saveStockItemPackagingUomReference(reference);
+		return reference;
+	}
+
+	@Test
+	public void saveStockItemPackagingUomReference_shouldSaveAllProperties() {
+		//Given
+		StockSource stockSource = eu().newStockSource(dao());
+		stockSource.setVoided(false);
+		dao().saveStockSource(stockSource);
+		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
+
+		//Let's clean up the cache to be sure getStockItemPackagingUomReferenceByUuid fetches from DB and not from cache
+		Context.flushSession();
+		Context.clearSession();
+
+		//Then
+		StockItemPackagingUomReference savedReference = dao().getStockItemPackagingUomReferenceByUuid(reference.getUuid());
+		assertThat(savedReference, hasProperty("uuid", is(reference.getUuid())));
+		assertThat(savedReference, hasProperty("stockReferenceCode", is(reference.getStockReferenceCode())));
+		assertThat(savedReference, hasProperty("name", is(reference.getName())));
+		assertThat(savedReference, hasProperty("description", is(reference.getDescription())));
+		assertThat(savedReference, hasProperty("voided", is(false)));
+		assertThat(savedReference, hasProperty("creator", is(reference.getCreator())));
+		assertNotNull(savedReference.getDateCreated());
+		assertThat(savedReference, hasProperty("stockItemPackagingUOM", is(reference.getStockItemPackagingUOM())));
+	}
+
+	@Test
+	public void getStockItemPackagingUomReferenceByPackagingUom_shouldReturnOnlyNonVoidedReferencesOfThePackagingUom() {
+		//Given
+		StockSource stockSource = eu().newStockSource(dao());
+		stockSource.setVoided(false);
+		dao().saveStockSource(stockSource);
+		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
+
+		StockItemPackagingUomReference voidedReference = eu().newStockItemPackagingUomReference(dao(),
+		    reference.getStockItemPackagingUOM(), stockSource);
+		voidedReference.setVoided(true);
+		dao().saveStockItemPackagingUomReference(voidedReference);
+
+		//When
+		List<StockItemPackagingUomReference> references = dao()
+		        .getStockItemPackagingUomReferenceByPackagingUom(reference.getStockItemPackagingUOM());
+
+		//Then
+		assertThat(references.size(), is(1));
+		assertThat(references.get(0).getUuid(), is(reference.getUuid()));
+	}
+
+	@Test
+	public void getStockItemPackagingUomReferenceBySourceAndCode_shouldOnlyReturnReferencesOfTheGivenSource() {
+		//Given
+		StockSource stockSource = eu().newStockSource(dao());
+		stockSource.setVoided(false);
+		dao().saveStockSource(stockSource);
+		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
+
+		StockSource otherSource = eu().newStockSource(dao());
+		otherSource.setVoided(false);
+		dao().saveStockSource(otherSource);
+		StockItemPackagingUomReference otherSourceReference = createNonVoidedReference(dao(), otherSource);
+		otherSourceReference.setStockReferenceCode(reference.getStockReferenceCode());
+		dao().saveStockItemPackagingUomReference(otherSourceReference);
+
+		//When
+		List<StockItemPackagingUomReference> references = dao().getStockItemPackagingUomReferenceBySourceAndCode(
+		    stockSource, reference.getStockReferenceCode());
+
+		//Then
+		assertThat(references.size(), is(1));
+		assertThat(references.get(0).getUuid(), is(reference.getUuid()));
+	}
+
+	@Test
+	public void voidStockItemPackagingUomReference_shouldVoidTheReference() {
+		//Given
+		StockSource stockSource = eu().newStockSource(dao());
+		stockSource.setVoided(false);
+		dao().saveStockSource(stockSource);
+		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
+
+		//When
+		dao().voidStockItemPackagingUomReference(reference.getUuid(), "test void", reference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+
+		//Then
+		StockItemPackagingUomReference voidedReference = dao().getStockItemPackagingUomReferenceByUuid(reference.getUuid());
+		assertThat(voidedReference, hasProperty("voided", is(true)));
+		assertThat(voidedReference, hasProperty("voidReason", is("test void")));
 	}
 }

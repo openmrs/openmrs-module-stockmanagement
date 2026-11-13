@@ -236,6 +236,22 @@ public class EntityUtil {
 		stockItemPackagingUOM.setStockItem(stockItem);
 		return stockItemPackagingUOM;
 	}
+
+	public StockItemPackagingUomReference newStockItemPackagingUomReference(StockManagementDao dao,
+	        StockItemPackagingUOM stockItemPackagingUOM, StockSource stockSource) {
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setCreator(getUser());
+		reference.setDateCreated(getRandomDate());
+		reference.setChangedBy(getUser());
+		reference.setDateChanged(getRandomDate());
+		reference.setVoided(false);
+		reference.setStockItemPackagingUOM(stockItemPackagingUOM);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode(getRandomString(20));
+		reference.setName(getRandomString(255));
+		reference.setDescription(getRandomString(1024));
+		return reference;
+	}
 	
 	public UserRoleScopeOperationType newUserRoleScopeOperationType(StockManagementDao dao) {
 		UserRoleScopeOperationType userRoleScopeOperationType = new UserRoleScopeOperationType();

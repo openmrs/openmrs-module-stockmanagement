@@ -549,4 +549,30 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
 	List<StockItemReference> getStockItemReferenceByStockItem(String uuid);
+
+	@Transactional
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, requireAll = true)
+	StockItemPackagingUomReference saveStockItemPackagingUomReference(StockItemPackagingUomReference stockItemPackagingUomReference);
+
+	@Transactional
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, requireAll = true)
+	void voidStockItemPackagingUomReference(String uuid, String reason, Integer userId);
+
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid);
+
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid);
+
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockItemPackagingUOM getStockItemPackagingUomByReference(StockSource stockSource, String stockReferenceCode);
+
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesBySourceAndCode(String stockSourceUuid, String stockReferenceCode);
 }
