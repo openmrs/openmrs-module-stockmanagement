@@ -3049,26 +3049,6 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <column name="uuid">e539ebca-2899-11ed-bdcb-507b9dea1806</column>
     </insert>
   </changeSet>
-  <changeSet id="stockmanagement-1758855877841-236" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location where lower(name) like '%pharmacy%'</sqlCheck>
-    </preConditions>
-    <comment>Creating the Pharmacy location</comment>
-    <sql>
-      INSERT INTO location(name,description,creator,date_created,parent_location,uuid)
-      SELECT 'Main Pharmacy', null,1,NOW(), (SELECT parent_location from location group by parent_location order by COUNT(*) DESC LIMIT 1),'7f65d926-57d6-4402-ae10-a5b3bcbf7986'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-237" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location where lower(name) like '%main store%'</sqlCheck>
-    </preConditions>
-    <comment>Creating the Main Store location</comment>
-    <sql>
-      INSERT INTO location(name,description,creator,date_created,parent_location,uuid)
-      SELECT 'Main Store', null,1,NOW(), (SELECT parent_location from location group by parent_location order by COUNT(*) DESC LIMIT 1),'19dbe2c0-289d-11ed-bdcb-507b9dea1806'
-    </sql>
-  </changeSet>
   <changeSet id="stockmanagement-1758855877841-238" author="dev">
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">

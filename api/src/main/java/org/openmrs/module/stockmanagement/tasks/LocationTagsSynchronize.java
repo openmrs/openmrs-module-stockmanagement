@@ -2,16 +2,12 @@ package org.openmrs.module.stockmanagement.tasks;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.openmrs.Location;
 import org.openmrs.LocationTag;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.StockLocationTags;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
-import org.openmrs.module.stockmanagement.api.model.Party;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Date;
 
 public class LocationTagsSynchronize implements StartupTask {
 	
@@ -63,119 +59,24 @@ public class LocationTagsSynchronize implements StartupTask {
 		return dispensary;
 	}
 	
-	private Location getSuitableParentLocation(List<Location> locations){
-        Map<Optional<Location>, List<Location>> parents = locations.stream().collect(Collectors.groupingBy(p -> Optional.ofNullable(p.getParentLocation())));
-        if(parents.isEmpty()) return null;
-        ArrayList<List<Location>> locationGroups = new ArrayList<>(parents.values());
-        locationGroups.sort((x, y) -> Integer.compare(y.size(),x.size()));
-        return locationGroups.get(0).get(0).getParentLocation();
-    }
-	
+	/**
+	 * Makes sure the location tags the module relies on exist. Which locations carry these tags is
+	 * left to the implementation (for example through Initializer or the location administration
+	 * pages); this task does not create or tag any location.
+	 */
 	@Override
-    public void execute() {
-        log.debug("Checking the synchronization status of the location tags for main store, main pharmacy, dispensary");
-        try {
-            LocationService locationService = Context.getLocationService();
-            LocationTag mainStoreTag = ensureMainStore(locationService);
-            LocationTag mainPharmacyTag = ensureMainPharmacy(locationService);
-            ensureDispensary(locationService);
-
-            Location pharmacy = null;
-            Location mainStore = null;
-
-            List<Location> locationsWithTag = locationService.getLocationsHavingAllTags(Arrays.asList(mainStoreTag));
-            if(!locationsWithTag.isEmpty()){
-                Optional<Location> tempLocation = locationsWithTag.stream().filter(p->p.getRetired() == null || !p.getRetired()).findFirst();
-                if(tempLocation.isPresent()){
-                    mainStore = tempLocation.get();
-                }else{
-                    mainStore = locationsWithTag.get(0);
-                }
-            }
-
-            locationsWithTag = locationService.getLocationsHavingAllTags(Arrays.asList(mainPharmacyTag));
-            if(!locationsWithTag.isEmpty()){
-                Optional<Location> tempLocation = locationsWithTag.stream().filter(p->p.getRetired() == null || !p.getRetired()).findFirst();
-                if(tempLocation.isPresent()){
-                    pharmacy = tempLocation.get();
-                }else{
-                    pharmacy = locationsWithTag.get(0);
-                }
-            }
-
-            List<Location> locations = locationService.getAllLocations(true);
-            for(Location location : locations){
-                if(pharmacy == null){
-                    if(location.getName().toLowerCase().indexOf("pharmacy") >= 0){
-                        pharmacy = location;
-                    }
-                }
-
-                if(mainStore == null){
-                    String locationName =location.getName().toLowerCase();
-                    if(locationName.indexOf("main") >= 0 && locationName.indexOf("store") >= 0){
-                        mainStore = location;
-                    }
-                }
-
-                if(pharmacy != null && mainStore != null){
-                    break;
-                }
-            }
-
-            if(mainStore == null){
-                mainStore = locationService.getLocationByUuid("19dbe2c0-289d-11ed-bdcb-507b9dea1806");
-            }
-
-            if(pharmacy == null){
-                pharmacy = locationService.getLocationByUuid("7f65d926-57d6-4402-ae10-a5b3bcbf7986");
-            }
-
-            Location parentLocation = null;
-            if(mainStore == null){
-                log.debug("Creating main store location");
-                parentLocation = getSuitableParentLocation(locations);
-                mainStore=new Location();
-                mainStore.setName("Main Store");
-                mainStore.setCreator(Context.getAuthenticatedUser());
-                mainStore.setDateCreated(new Date());
-                mainStore.setParentLocation(parentLocation);
-                mainStore.setUuid("19dbe2c0-289d-11ed-bdcb-507b9dea1806");
-                mainStore = locationService.saveLocation(mainStore);
-            }
-
-            if(pharmacy == null){
-                log.debug("Creating main pharmacy location");
-                if(parentLocation == null){
-                    parentLocation = getSuitableParentLocation(locations);
-                }
-                pharmacy=new Location();
-                pharmacy.setName("Main Pharmacy");
-                pharmacy.setCreator(Context.getAuthenticatedUser());
-                pharmacy.setDateCreated(new Date());
-                pharmacy.setParentLocation(parentLocation);
-                pharmacy.setUuid("7f65d926-57d6-4402-ae10-a5b3bcbf7986");
-                pharmacy = locationService.saveLocation(pharmacy);
-            }
-
-            Set<LocationTag> locationTags = mainStore.getTags();
-            if(locationTags == null || !locationTags.contains(mainStoreTag)){
-                log.debug("Taging main store location");
-                mainStore.addTag(mainStoreTag);
-                locationService.saveLocation(mainStore);
-            }
-
-            locationTags = pharmacy.getTags();
-            if(locationTags == null || !locationTags.contains(mainStoreTag)){
-                log.debug("Taging main pharmacy location");
-                pharmacy.addTag(mainPharmacyTag);
-                locationService.saveLocation(pharmacy);
-            }
-
-        }catch (Exception exception){
-            log.error("Error while synchronizing location and tags", exception);
-        }
-    }
+	public void execute() {
+		log.debug("Checking that the main store, main pharmacy and dispensary location tags exist");
+		try {
+			LocationService locationService = Context.getLocationService();
+			ensureMainStore(locationService);
+			ensureMainPharmacy(locationService);
+			ensureDispensary(locationService);
+		}
+		catch (Exception exception) {
+			log.error("Error while synchronizing location tags", exception);
+		}
+	}
 	
 	@Override
 	public int getPriority() {
