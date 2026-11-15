@@ -4747,8 +4747,8 @@ CREATE TRIGGER stockmgmt_location_after_delete
       O3-6173: let Sub Store locations act as source or destination wherever Main Store, Main Pharmacy or Dispensary can
     </comment>
     <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id, location_tag, is_source, is_destination, creator, date_created, uuid)
-      SELECT existing.stock_operation_type_id, 'Sub Store', existing.is_source, existing.is_destination, 1, now(), uuid()
+      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id, location_tag, is_source, is_destination, creator, date_created, voided, uuid)
+      SELECT existing.stock_operation_type_id, 'Sub Store', existing.is_source, existing.is_destination, 1, now(), false, uuid()
       FROM (
         SELECT DISTINCT stock_operation_type_id, is_source, is_destination
         FROM stockmgmt_operation_type_location_scope

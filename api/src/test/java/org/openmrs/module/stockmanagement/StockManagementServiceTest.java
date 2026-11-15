@@ -1207,6 +1207,41 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		    GlobalProperties.parseStockLocationTagNames(" Main Store, ,Ward Store,main store "));
 	}
 	
+	@Test
+	public void locationTagsSynchronize_shouldGiveTheSubStoreTagItsFixedUuid() {
+		new LocationTagsSynchronize().execute();
+		
+		assertEquals("0b5f3c1e-6d2a-4f8b-9e7c-3a1d5b9f2c64",
+		    Context.getLocationService().getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG).getUuid());
+	}
+	
+	@Test
+	public void locationTagsSynchronize_shouldCreateEveryConfiguredTagThatIsMissing() {
+		Context.getAdministrationService().setGlobalProperty(GlobalProperties.STOCK_LOCATION_TAGS,
+		    "Main Store, Ward Store");
+		
+		new LocationTagsSynchronize().execute();
+		
+		LocationService locationService = Context.getLocationService();
+		assertNotNull(locationService.getLocationTagByName("Ward Store"));
+		assertNull(locationService.getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG));
+	}
+	
+	@Test
+	public void locationTagsSynchronize_shouldKeepAnExistingTagAndNotAddASecondOne() {
+		LocationService locationService = Context.getLocationService();
+		LocationTag existing = locationService.saveLocationTag(new LocationTag(StockLocationTags.SUB_STORE_LOCATION_TAG,
+		        "Configured by the site"));
+		
+		new LocationTagsSynchronize().execute();
+		int tagsAfterFirstRun = locationService.getAllLocationTags(true).size();
+		new LocationTagsSynchronize().execute();
+		
+		assertEquals(existing.getUuid(), locationService.getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG)
+		        .getUuid());
+		assertEquals(tagsAfterFirstRun, locationService.getAllLocationTags(true).size());
+	}
+	
 	private Location tagLocation(String tagName) {
 		LocationService locationService = Context.getLocationService();
 		LocationTag tag = locationService.getLocationTagByName(tagName);
