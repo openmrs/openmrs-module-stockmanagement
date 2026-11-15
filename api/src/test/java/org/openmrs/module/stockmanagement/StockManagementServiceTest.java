@@ -466,6 +466,72 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertNotNull(dao().getStockSourceByUuid(replacement.getUuid()));
 	}
 
+	@Test
+	public void saveStockSource_shouldSayWhetherTheNameOrTheAcronymIsTheDuplicate() {
+		stockManagementService.setDao(dao());
+		stockManagementService.saveStockSource(newActiveStockSource("Watsons", "WAT"));
+
+		try {
+			stockManagementService.saveStockSource(newActiveStockSource("watsons", "WAT2"));
+			fail("Expected a stock source with a duplicate name to be rejected");
+		}
+		catch (StockManagementException exception) {
+			assertEquals("A stock source named \"Watsons\" already exists", exception.getMessage());
+		}
+
+		try {
+			stockManagementService.saveStockSource(newActiveStockSource("Watsons Pharmacy", "wat"));
+			fail("Expected a stock source with a duplicate acronym to be rejected");
+		}
+		catch (StockManagementException exception) {
+			assertEquals("The acronym \"WAT\" is already used by the stock source \"Watsons\"", exception.getMessage());
+		}
+	}
+
+	@Test
+	public void saveStockSource_shouldRejectRenamingASourceToTheNameOrAcronymOfAnotherSource() {
+		stockManagementService.setDao(dao());
+		stockManagementService.saveStockSource(newActiveStockSource("Watsons", "WAT"));
+		StockSource other = stockManagementService.saveStockSource(newActiveStockSource("Medipharm", "MED"));
+		Context.flushSession();
+
+		other.setName("WATSONS");
+		try {
+			stockManagementService.saveStockSource(other);
+			fail("Expected renaming a stock source to an existing name to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+
+		other.setName("Medipharm");
+		other.setAcronym("wat");
+		try {
+			stockManagementService.saveStockSource(other);
+			fail("Expected changing a stock source to an existing acronym to be rejected");
+		}
+		catch (StockManagementException expected) {
+			// expected
+		}
+	}
+
+	@Test
+	public void saveStockSource_shouldAllowVoidingASourceThatSharesItsNameWithAnotherSource() {
+		stockManagementService.setDao(dao());
+		stockManagementService.saveStockSource(newActiveStockSource("Watsons", "WAT"));
+		// Sources saved before this check existed can already share a name, so save this one through the DAO.
+		StockSource legacyDuplicate = dao().saveStockSource(newActiveStockSource("Watsons", "WAT"));
+		Context.flushSession();
+
+		legacyDuplicate.setVoided(true);
+		legacyDuplicate.setVoidedBy(eu().getUser());
+		legacyDuplicate.setDateVoided(new Date());
+		legacyDuplicate.setVoidReason("Duplicate");
+		stockManagementService.saveStockSource(legacyDuplicate);
+
+		assertTrue(dao().getStockSourceByUuid(legacyDuplicate.getUuid()).getVoided());
+	}
+
 	private StockSource newActiveStockSource(String name, String acronym) {
 		StockSource stockSource = new StockSource();
 		stockSource.setName(name);
