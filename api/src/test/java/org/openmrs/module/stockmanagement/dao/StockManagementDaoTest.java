@@ -26,7 +26,11 @@ import static org.junit.Assert.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
+
+import org.apache.commons.lang.time.DateUtils;
 
 /**
  * It is an integration test (extends BaseModuleContextSensitiveTest), which verifies DAO methods
@@ -138,6 +142,84 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		//Then
 		assertNotNull(currentQuantity.getQuantity());
 		assertEquals(0, new BigDecimal("20").compareTo(currentQuantity.getQuantity()));
+	}
+	
+	@Test
+	public void setStockItemCurrentBalanceWithoutDescendants_shouldKeepTheBalancesOfDifferentStockItemsApart() {
+		//Given
+		StockItemTransaction first = balanceTransaction(eu().newStockItemTransaction(dao()), "10", "2", null);
+		StockItemTransaction second = balanceTransaction(eu().newStockItemTransaction(dao()), "7", "3", null);
+		Context.flushSession();
+		Integer locationId = first.getParty().getLocation().getLocationId();
+		
+		StockRuleCurrentQuantity firstQuantity = new StockRuleCurrentQuantity(first.getStockItem().getId(), locationId,
+		        null, false);
+		StockRuleCurrentQuantity secondQuantity = new StockRuleCurrentQuantity(second.getStockItem().getId(), locationId,
+		        null, false);
+		
+		//When
+		dao().setStockItemCurrentBalanceWithoutDescendants(Arrays.asList(firstQuantity, secondQuantity));
+		
+		//Then
+		assertEquals(0, new BigDecimal("20").compareTo(firstQuantity.getQuantity()));
+		assertEquals(0, new BigDecimal("21").compareTo(secondQuantity.getQuantity()));
+	}
+	
+	@Test
+	public void setStockItemCurrentBalanceWithoutDescendants_shouldAddUpTheBatchesOfAStockItemAndSkipExpiredOnes() {
+		//Given
+		StockItemTransaction first = balanceTransaction(eu().newStockItemTransaction(dao()), "10", "2", null);
+		
+		StockBatch secondBatch = eu().newStockBatch(dao(), first.getStockItem());
+		secondBatch.setExpiration(DateUtils.addDays(new Date(), 30));
+		dao().saveStockBatch(secondBatch);
+		balanceTransaction(eu().newStockItemTransaction(dao(), first.getStockItem(), secondBatch,
+		    first.getStockItemPackagingUOM()), "4", "2", secondBatch.getExpiration());
+		
+		StockBatch expiredBatch = eu().newStockBatch(dao(), first.getStockItem());
+		expiredBatch.setExpiration(DateUtils.addDays(new Date(), -30));
+		dao().saveStockBatch(expiredBatch);
+		balanceTransaction(eu().newStockItemTransaction(dao(), first.getStockItem(), expiredBatch,
+		    first.getStockItemPackagingUOM()), "100", "2", expiredBatch.getExpiration());
+		Context.flushSession();
+		
+		StockRuleCurrentQuantity currentQuantity = new StockRuleCurrentQuantity(first.getStockItem().getId(), first
+		        .getParty().getLocation().getLocationId(), null, false);
+		
+		//When
+		dao().setStockItemCurrentBalanceWithoutDescendants(Collections.singletonList(currentQuantity));
+		
+		//Then
+		assertEquals(0, new BigDecimal("28").compareTo(currentQuantity.getQuantity()));
+	}
+	
+	@Test
+	public void setStockItemCurrentBalanceWithoutDescendants_shouldLeaveTheQuantityUnsetWhenNothingIsHeld() {
+		//Given
+		StockItemTransaction transaction = balanceTransaction(eu().newStockItemTransaction(dao()), "10", "2", null);
+		StockItem otherStockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(otherStockItem);
+		Context.flushSession();
+		
+		StockRuleCurrentQuantity currentQuantity = new StockRuleCurrentQuantity(otherStockItem.getId(), transaction
+		        .getParty().getLocation().getLocationId(), null, false);
+		
+		//When
+		dao().setStockItemCurrentBalanceWithoutDescendants(Collections.singletonList(currentQuantity));
+		
+		//Then
+		assertNull(currentQuantity.getQuantity());
+	}
+	
+	private StockItemTransaction balanceTransaction(StockItemTransaction stockItemTransaction, String quantity,
+	        String factor, Date expiration) {
+		stockItemTransaction.getStockBatch().setExpiration(expiration);
+		dao().saveStockBatch(stockItemTransaction.getStockBatch());
+		stockItemTransaction.getStockItemPackagingUOM().setFactor(new BigDecimal(factor));
+		dao().saveStockItemPackagingUOM(stockItemTransaction.getStockItemPackagingUOM());
+		stockItemTransaction.setQuantity(new BigDecimal(quantity));
+		dao().saveStockItemTransaction(stockItemTransaction);
+		return stockItemTransaction;
 	}
 	
 	@Test
