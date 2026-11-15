@@ -25,7 +25,8 @@ public class LiquibaseChangeSetTest extends BaseModuleContextSensitiveTest {
 	
 	private static final String COUNT_MAIN_STORE_SCOPES = "SELECT COUNT(*) FROM stockmgmt_operation_type_location_scope s "
 	        + "JOIN stockmgmt_stock_operation_type t ON t.stock_operation_type_id = s.stock_operation_type_id "
-	        + "WHERE t.uuid = '" + ADJUSTMENT_UUID + "' AND s.location_tag = 'Main Store' AND s.is_source = true";
+	        + "WHERE t.uuid = '" + ADJUSTMENT_UUID + "' AND s.location_tag = 'Main Store' AND s.is_source = true AND s.is_destination = false "
+	        + "AND s.voided = false";
 	
 	@Before
 	public void setup() throws Exception {
