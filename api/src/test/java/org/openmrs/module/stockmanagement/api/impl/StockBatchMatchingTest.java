@@ -80,4 +80,32 @@ public class StockBatchMatchingTest {
 		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(nonExpiringItem, "B-01", JUNE), nonExpiringItem,
 		    "B-01", JUNE));
 	}
+	
+	@Test
+	public void isSameStockBatch_shouldMatchAnExpiryLoadedFromTheDatabaseAsATimestamp() {
+		assertTrue(StockManagementServiceImpl.isSameStockBatch(
+		    batch(expiringItem, "B-01", new java.sql.Timestamp(JUNE.getTime())), expiringItem, "B-01", JUNE));
+		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01",
+		    new java.sql.Timestamp(JUNE.getTime())));
+	}
+	
+	@Test
+	public void isSameStockBatch_shouldNotMatchOrFailWhenTheLineHasNoExpiryForAnItemThatExpires() {
+		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01",
+		    null));
+		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01",
+		    null));
+	}
+	
+	@Test
+	public void isSameStockBatch_shouldNotMatchOrFailWhenTheLineHasNoBatchNumber() {
+		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, null,
+		    JUNE));
+		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, null, JUNE), expiringItem, null, JUNE));
+	}
+	
+	@Test
+	public void isSameStockBatch_shouldNotMatchOrFailWhenTheCandidateHasNoStockItem() {
+		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(null, "B-01", JUNE), expiringItem, "B-01", JUNE));
+	}
 }
