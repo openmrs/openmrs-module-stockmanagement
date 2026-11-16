@@ -1482,6 +1482,8 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         UserRoleScope saved = stockManagementService.saveUserRoleScope(dto);
         assertNotNull(saved.getId());
         assertNotNull(saved.getRole());
+        assertFalse(saved.getEnabled());
+        assertFalse(saved.getPermanent());
     }
 
     @Test
