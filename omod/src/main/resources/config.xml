@@ -126,7 +126,6 @@
 
     <globalProperty>
         <property>stockmanagement.stockSourceCodeConceptId</property>
-        <defaultValue>2e1e8049-9cbe-4a2d-b1e5-8a91e5d7d97d</defaultValue>
         <description>
             The code concept for stock source types.
         </description>
@@ -134,7 +133,6 @@
 
     <globalProperty>
         <property>stockmanagement.stockAdjustmentReasonCodeConceptId</property>
-        <defaultValue>3bbfaa44-d5b8-404d-b4c1-2bf49ad8ce25</defaultValue>
         <description>
             The code concept for stock adjustment reasons.
         </description>
@@ -150,7 +148,6 @@
 
     <globalProperty>
         <property>stockmanagement.packagingUnitsConceptId</property>
-        <defaultValue>bce2b1af-98b1-48a2-98a2-3e4ffb3c79c2</defaultValue>
         <description>
             The concept for packaging units.
         </description>
@@ -158,7 +155,6 @@
 
     <globalProperty>
         <property>stockmanagement.stockItemCategoryConceptId</property>
-        <defaultValue>6d24eb6e-b42f-4706-ab2d-ae4472161f6a</defaultValue>
         <description>
             The concept for stock item categories.
         </description>
@@ -222,7 +218,6 @@
 
     <globalProperty>
         <property>stockmanagement.printLogoText</property>
-        <defaultValue>Ministry of Health</defaultValue>
         <description>
             Text that appears below the logo on print documents
         </description>
@@ -270,7 +265,6 @@
 
     <globalProperty>
         <property>stockmanagement.stockOperationNotificationEmail</property>
-        <defaultValue></defaultValue>
         <description>
             Email address to send notifications when a stock operation is submitted, approved, rejected etc.
         </description>
@@ -278,7 +272,6 @@
 
     <globalProperty>
         <property>stockmanagement.stockOperationNotificationRole</property>
-        <defaultValue>Inventory Manager</defaultValue>
         <description>
            Role whose users will be sent alerts and email notifications when a stock operation is submitted, approved, rejected etc.
         </description>
@@ -302,7 +295,6 @@
 
     <globalProperty>
         <property>stockmanagement.applicationRootUrl</property>
-        <defaultValue></defaultValue>
         <description>
             The application root url including its context path e.g. https://hospital.gov.co.ug/openmrs
         </description>
@@ -326,7 +318,6 @@
 
     <globalProperty>
         <property>stockmanagement.observationDispensingLocationConcept</property>
-        <defaultValue>0ebc62ac-4a43-4bbb-a9af-e4269e0f143f</defaultValue>
         <description>
             Observation: dispensing location concept
         </description>
@@ -334,7 +325,6 @@
 
     <globalProperty>
         <property>stockmanagement.observationDrugConcept</property>
-        <defaultValue>46c5508c-a7fb-456f-989c-c3aee01b72f9</defaultValue>
         <description>
             Observation: drug concept
         </description>
