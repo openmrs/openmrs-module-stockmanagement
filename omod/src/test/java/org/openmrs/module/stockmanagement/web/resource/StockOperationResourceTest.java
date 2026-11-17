@@ -2,6 +2,7 @@ package org.openmrs.module.stockmanagement.web.resource;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -51,6 +52,8 @@ public class StockOperationResourceTest {
 		    () -> resource.save(new StockOperationDTO()));
 		assertNotNull("REST errors must never carry a null message", exception.getMessage());
 		assertEquals("Unable to save stock operation", exception.getMessage());
+		// wrapErrorResponse appends each cause's message to the response: the cause must stay out
+		assertNull(exception.getCause());
 	}
 
 	@Test
@@ -61,6 +64,7 @@ public class StockOperationResourceTest {
 		IllegalRequestException exception = assertThrows(IllegalRequestException.class,
 		    () -> resource.save(new StockOperationDTO()));
 		assertEquals("Stock operation requires a destination", exception.getMessage());
+		assertNull(exception.getCause());
 	}
 
 	@Test
@@ -71,5 +75,6 @@ public class StockOperationResourceTest {
 		    () -> resource.save(new StockOperationDTO()));
 		// unexpected failures must expose a safe generic message only
 		assertEquals("Unable to save stock operation", exception.getMessage());
+		assertNull(exception.getCause());
 	}
 }

@@ -208,6 +208,17 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 	}
 
 	@Test
+	public void save_shouldValidateAnUpdate() {
+		StockOperationType receiptType = dao().getStockOperationTypeByUuid(TEST_RECEIPT_TYPE_UUID);
+		grantAuthenticatedUserScope(eu().getLocation(), receiptType);
+		StockOperationResource resource = new StockOperationResource();
+		StockOperationDTO saved = resource.save(newReceiptDtoWithoutAtLocationUuid());
+		saved.setOperationDate(DateUtils.addDays(new Date(), 1));
+		// validation must run on updates too: the validator rejects operation dates in the future
+		assertThrows(ValidationException.class, () -> resource.save(saved));
+	}
+
+	@Test
 	public void save_shouldRejectUserWithoutScopeAtTheLocation() {
 		// no user role scope at the destination location: the validator save() runs must reject
 		// the operation instead of silently creating it
