@@ -211,8 +211,10 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 	public StockItemPackagingUomReference convertFromDTO(StockItemPackagingUomReferenceDTO dto) {
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		if (dto != null) {
-			StockItemPackagingUomReference reference = stockManagementService
-			        .getStockItemPackagingUomReferenceByUuid(dto.getUuid());
+			// only look up the stored reference on an update (a delegate loaded from storage carries
+			// its id); a create carrying an existing uuid must not overwrite that reference
+			StockItemPackagingUomReference reference = dto.getId() == null ? null
+			        : stockManagementService.getStockItemPackagingUomReferenceByUuid(dto.getUuid());
 			if (reference == null) {
 				reference = new StockItemPackagingUomReference();
 				reference.setStockItemPackagingUOM(

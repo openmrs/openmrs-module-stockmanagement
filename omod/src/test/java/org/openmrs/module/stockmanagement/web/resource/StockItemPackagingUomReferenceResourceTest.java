@@ -28,6 +28,7 @@ import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUomReference;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
@@ -201,6 +202,22 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		} catch (IllegalRequestException e) {
 			assertTrue(e.getMessage().contains("voided"));
 		}
+	}
+
+	@Test
+	public void create_shouldNotOverwriteTheReferenceWhoseUuidItCarries() throws ResponseException {
+		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
+
+		SimpleObject post = new SimpleObject().add("uuid", saved.getUuid())
+		        .add("stockItemPackagingUomUuid", saved.getStockItemPackagingUomUuid())
+		        .add("stockSourceUuid", saved.getStockSourceUuid()).add("referenceCode", "M221680001EP60T");
+		resource.create(post, searchContext(new MockHttpServletRequest()));
+		Context.flushSession();
+		Context.clearSession();
+
+		StockItemPackagingUomReferenceDTO original = resource.getByUniqueId(saved.getUuid());
+		assertEquals("M221680001EP30T", original.getReferenceCode());
+		assertEquals("UNHTS packaging reference", original.getName());
 	}
 
 	@Test
