@@ -4284,6 +4284,29 @@ CREATE TRIGGER stockmgmt_location_after_delete
     </preConditions>
     <addForeignKeyConstraint baseColumnNames="owner" baseTableName="stockmgmt_batch_job_owner" constraintName="stockmgmt_batch_job_owner_owner_fk" deferrable="false" initiallyDeferred="false" onDelete="NO ACTION" onUpdate="NO ACTION" referencedColumnNames="user_id" referencedTableName="users" />
   </changeSet>
+  <changeSet author="dev" id="stockmanagement-1758855877841-331">
+    <preConditions onFail="MARK_RAN">
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*) FROM scheduler_task_config
+        WHERE schedulable_class = 'org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob'
+      </sqlCheck>
+    </preConditions>
+    <sql>DELETE FROM scheduler_task_config where uuid='73eb1d31-6e5e-11ed-9a5b-00155db5005a'</sql>
+    <comment>Inserting Asynchronous Report Generation And Batch Jobs into 'schedule_task_config' table</comment>
+    <insert tableName="scheduler_task_config">
+      <column name="name" value="Asynchronous Report Generation And Batch Jobs" />
+      <column name="description" value="Runs report generation and batch jobs asynchronously" />
+      <column name="schedulable_class" value="org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob" />
+      <column name="start_time_pattern" value="MM/dd/yyyy HH:mm:ss" />
+      <column name="start_time" valueDate="2022-10-01T00:59:59" />
+      <column name="repeat_interval" value="60" />
+      <column name="date_created" valueDate="CURRENT_TIMESTAMP" />
+      <column name="created_by" value="1" />
+      <column name="start_on_startup" value="1"/>
+      <column name="started" value="1"/>
+      <column name="uuid" value="73eb1d31-6e5e-11ed-9a5b-00155db5005a" />
+    </insert>
+  </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-332">
     <validCheckSum>9:4bb3d291b287b86b92dedbb3e17dee5e</validCheckSum>
     <preConditions onFail="MARK_RAN">
