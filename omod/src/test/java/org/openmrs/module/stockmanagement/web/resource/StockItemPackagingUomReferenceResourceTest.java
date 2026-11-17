@@ -18,7 +18,6 @@ import org.junit.Test;
 import org.openmrs.Privilege;
 import org.openmrs.Role;
 import org.openmrs.api.APIAuthenticationException;
-import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
@@ -31,6 +30,7 @@ import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
@@ -161,8 +161,8 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 
 		try {
 			resource.save(dto);
-			fail("Expected an APIException to be thrown");
-		} catch (APIException e) {
+			fail("Expected an IllegalRequestException to be thrown");
+		} catch (IllegalRequestException e) {
 			assertTrue(e.getMessage().contains("packaging UOM"));
 		}
 	}
@@ -178,9 +178,28 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 
 		try {
 			resource.save(duplicate);
-			fail("Expected an APIException to be thrown");
-		} catch (APIException e) {
+			fail("Expected an IllegalRequestException to be thrown");
+		} catch (IllegalRequestException e) {
 			assertTrue(e.getMessage().contains("already exists"));
+		}
+	}
+
+	@Test
+	public void save_shouldRejectEditingAVoidedReference() throws ResponseException {
+		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
+
+		resource.delete(saved, "test void", searchContext(new MockHttpServletRequest()));
+		Context.flushSession();
+		Context.clearSession();
+
+		// an update carrying a voided reference's uuid must be refused, not silently edit the voided row
+		StockItemPackagingUomReferenceDTO edited = resource.getByUniqueId(saved.getUuid());
+		edited.setName("renamed while voided");
+		try {
+			resource.save(edited);
+			fail("Expected an IllegalRequestException to be thrown");
+		} catch (IllegalRequestException e) {
+			assertTrue(e.getMessage().contains("voided"));
 		}
 	}
 
@@ -219,6 +238,18 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		AlreadyPaged<StockItemPackagingUomReferenceDTO> result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource
 		        .doSearch(searchContext(request));
 		assertTrue(result.getPageOfResults().isEmpty());
+	}
+
+	@Test
+	public void doSearch_shouldRejectARequestWithoutAnyParameter() throws ResponseException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		try {
+			resource.doSearch(searchContext(request));
+			fail("Expected an IllegalRequestException to be thrown");
+		} catch (IllegalRequestException e) {
+			// the resolved message or, if the message source is unavailable in the test context, the key
+			assertTrue(e.getMessage().contains("required"));
+		}
 	}
 
 	@Test

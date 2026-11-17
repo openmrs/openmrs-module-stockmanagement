@@ -1739,4 +1739,36 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
             assertThat(e.getMessage(), containsString("already exists"));
         }
     }
+
+    @Test
+    public void saveStockItemPackagingUomReference_shouldUpdateAnExistingReference() {
+        StockItemPackagingUomReference reference = createReferenceForServiceTests();
+        reference.setName("renamed");
+        stockManagementService.saveStockItemPackagingUomReference(reference);
+        Context.flushSession();
+        Context.clearSession();
+
+        assertEquals("renamed",
+            stockManagementService.getStockItemPackagingUomReferenceByUuid(reference.getUuid()).getName());
+    }
+
+    @Test
+    public void saveStockItemPackagingUomReference_shouldRejectEditingAVoidedReference() {
+        StockItemPackagingUomReference reference = createReferenceForServiceTests();
+
+        stockManagementService.voidStockItemPackagingUomReference(reference.getUuid(), "test void",
+            reference.getCreator().getUserId());
+        Context.flushSession();
+        Context.clearSession();
+
+        StockItemPackagingUomReference voidedReference = stockManagementService
+                .getStockItemPackagingUomReferenceByUuid(reference.getUuid());
+        voidedReference.setStockReferenceCode("M221680001EP30T");
+        try {
+            stockManagementService.saveStockItemPackagingUomReference(voidedReference);
+            fail("Expected an APIException to be thrown");
+        } catch (APIException e) {
+            assertThat(e.getMessage(), containsString("voided"));
+        }
+    }
 }

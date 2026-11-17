@@ -4,6 +4,9 @@ import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
+import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.APIException;
+import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -19,6 +22,7 @@ import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 
@@ -65,8 +69,9 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			return toAlreadyPaged(referenceDTOS, context);
 		}
 
-		invalidRequest("stockmanagement.stockitempackaginguomreference.search.parameter.required");
-		return null;
+		// thrown as a bad request directly, since invalidRequest's RestClientException answers a 500
+		throw new IllegalRequestException(
+		        Context.getMessageSourceService().getMessage("stockmanagement.stockitempackaginguomreference.search.parameter.required"));
 	}
 
 	@Override
@@ -81,8 +86,20 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 
 	@Override
 	public StockItemPackagingUomReferenceDTO save(StockItemPackagingUomReferenceDTO delegate) {
-		StockItemPackagingUomReference reference = getStockManagementService()
-		        .saveStockItemPackagingUomReference(convertFromDTO(delegate));
+		StockItemPackagingUomReference reference;
+		try {
+			reference = getStockManagementService().saveStockItemPackagingUomReference(convertFromDTO(delegate));
+		}
+		catch (APIAuthenticationException e) {
+			throw e;
+		}
+		catch (ValidationException e) {
+			throw e;
+		}
+		catch (APIException e) {
+			// the REST module answers service rejections with a 500 otherwise
+			throw new IllegalRequestException(e.getMessage());
+		}
 		return getByUniqueId(reference.getUuid());
 	}
 
@@ -105,7 +122,6 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 	@Override
 	public DelegatingResourceDescription getUpdatableProperties() {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
-		description.addProperty("uuid");
 		description.addProperty("referenceCode");
 		description.addProperty("name");
 		description.addProperty("description");

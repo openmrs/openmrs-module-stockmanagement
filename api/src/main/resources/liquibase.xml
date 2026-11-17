@@ -4870,8 +4870,7 @@ CREATE TRIGGER stockmgmt_location_after_delete
   <changeSet author="slubwama" id="stockmanagement-2026-10-25-0700-8">
     <preConditions onFail="MARK_RAN">
       <not>
-        <uniqueConstraintExists tableName="stockmgmt_stock_item_packaging_uom_reference"
-                                constraintName="stockmgmt_stock_item_packaging_uom_reference_source_code_uk" />
+        <indexExists indexName="stockmgmt_stock_item_packaging_uom_reference_source_code_uk" />
       </not>
     </preConditions>
     <comment>

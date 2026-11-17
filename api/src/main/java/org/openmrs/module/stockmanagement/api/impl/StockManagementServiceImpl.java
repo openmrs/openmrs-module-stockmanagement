@@ -3500,6 +3500,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         if (stockItemPackagingUomReference == null) {
             throw new APIException("Stock item packaging UOM reference is required");
         }
+        if (Boolean.TRUE.equals(stockItemPackagingUomReference.getVoided())) {
+            throw new APIException("A voided stock item packaging UOM reference cannot be edited");
+        }
 
         StockItemPackagingUOM stockItemPackagingUOM = stockItemPackagingUomReference.getStockItemPackagingUOM();
         if (stockItemPackagingUOM == null || stockItemPackagingUOM.getId() == null
