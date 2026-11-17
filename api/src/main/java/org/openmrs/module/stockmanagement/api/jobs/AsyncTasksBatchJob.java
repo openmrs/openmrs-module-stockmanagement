@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AsyncTasksBatchJob extends AbstractTask {
 	
-	private static final String TaskName = "Asynchronous Report Generation And Batch Jobs";
+	public static final String TASK_NAME = "Asynchronous Report Generation And Batch Jobs";
 	
 	private static AtomicBoolean isAlreadyRunning = new AtomicBoolean(false);
 	
@@ -206,7 +206,7 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	
 	protected void stopThisJob() {
 		SchedulerService schedulerService = Context.getSchedulerService();
-		TaskDefinition taskDefinition = schedulerService.getTaskByName(TaskName);
+		TaskDefinition taskDefinition = schedulerService.getTaskByName(TASK_NAME);
 		if (taskDefinition != null) {
 			try {
 				schedulerService.shutdownTask(taskDefinition);
@@ -219,7 +219,7 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	
 	public static void queueBatchJob(BatchJob batchJob) {
 		SchedulerService schedulerService = Context.getSchedulerService();
-		TaskDefinition taskDefinition = schedulerService.getTaskByName(TaskName);
+		TaskDefinition taskDefinition = schedulerService.getTaskByName(TASK_NAME);
 		if (taskDefinition != null) {
 			schedulerService.scheduleIfNotRunning(taskDefinition);
 		}
