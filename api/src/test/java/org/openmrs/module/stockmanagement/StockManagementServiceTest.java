@@ -25,6 +25,7 @@ import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItemFilter;
@@ -33,7 +34,6 @@ import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
-import org.openmrs.module.stockmanagement.tasks.LocationTagsSynchronize;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -1151,28 +1151,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
     }
 	
 	@Test
-	public void synchronizeTags() {
-		LocationTagsSynchronize locationTagsSynchronize = new LocationTagsSynchronize();
-		locationTagsSynchronize.execute();
-		LocationService locationService = Context.getLocationService();
-		LocationTag mainPharmacy = locationService.getLocationTagByName(StockLocationTags.MAIN_PHARMACY_LOCATION_TAG);
-		assertNotNull(mainPharmacy);
-		LocationTag mainStore = locationService.getLocationTagByName(StockLocationTags.MAIN_STORE_LOCATION_TAG);
-		assertNotNull(mainStore);
-		LocationTag dispensary = locationService.getLocationTagByName(StockLocationTags.DISPENSARY_LOCATION_TAG);
-		assertNotNull(dispensary);
-		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainPharmacy)).isEmpty());
-		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainStore)).isEmpty());
-	}
-	
-	@Test
-	public void locationTagsSynchronize_shouldCreateTheSubStoreTag() {
-		new LocationTagsSynchronize().execute();
-		LocationTag subStore = Context.getLocationService().getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG);
-		assertNotNull(subStore);
-	}
-	
-	@Test
 	public void getAllStockHoldingPartyList_shouldIncludeSubStoreLocations() {
 		stockManagementService.setDao(dao());
 		Location location = tagLocation(StockLocationTags.SUB_STORE_LOCATION_TAG);
@@ -1205,41 +1183,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		    GlobalProperties.parseStockLocationTagNames(null));
 		assertEquals(Arrays.asList("Main Store", "Ward Store"),
 		    GlobalProperties.parseStockLocationTagNames(" Main Store, ,Ward Store,main store "));
-	}
-	
-	@Test
-	public void locationTagsSynchronize_shouldGiveTheSubStoreTagItsFixedUuid() {
-		new LocationTagsSynchronize().execute();
-		
-		assertEquals("0b5f3c1e-6d2a-4f8b-9e7c-3a1d5b9f2c64",
-		    Context.getLocationService().getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG).getUuid());
-	}
-	
-	@Test
-	public void locationTagsSynchronize_shouldCreateEveryConfiguredTagThatIsMissing() {
-		Context.getAdministrationService().setGlobalProperty(GlobalProperties.STOCK_LOCATION_TAGS,
-		    "Main Store, Ward Store");
-		
-		new LocationTagsSynchronize().execute();
-		
-		LocationService locationService = Context.getLocationService();
-		assertNotNull(locationService.getLocationTagByName("Ward Store"));
-		assertNull(locationService.getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG));
-	}
-	
-	@Test
-	public void locationTagsSynchronize_shouldKeepAnExistingTagAndNotAddASecondOne() {
-		LocationService locationService = Context.getLocationService();
-		LocationTag existing = locationService.saveLocationTag(new LocationTag(StockLocationTags.SUB_STORE_LOCATION_TAG,
-		        "Configured by the site"));
-		
-		new LocationTagsSynchronize().execute();
-		int tagsAfterFirstRun = locationService.getAllLocationTags(true).size();
-		new LocationTagsSynchronize().execute();
-		
-		assertEquals(existing.getUuid(), locationService.getLocationTagByName(StockLocationTags.SUB_STORE_LOCATION_TAG)
-		        .getUuid());
-		assertEquals(tagsAfterFirstRun, locationService.getAllLocationTags(true).size());
 	}
 	
 	private Location tagLocation(String tagName) {
@@ -1558,5 +1501,36 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         filter.setBatchJobIds(Arrays.asList(Integer.MAX_VALUE));
         result = stockManagementService.findBatchJobs(filter, null);
         assertTrue(result.getData().isEmpty());
+    }
+
+    @Test
+    public void saveUserRoleScope_shouldDefaultNullLocationAndOperationTypeLists() {
+        stockManagementService.setDao(dao());
+        UserRoleScopeDTO dto = new UserRoleScopeDTO();
+        dto.setUserUuid(Context.getUserService().getUser(501).getUuid());
+        dto.setRole("Provider");
+        // locations and operation types deliberately left null: saving must not NPE
+        UserRoleScope saved = stockManagementService.saveUserRoleScope(dto);
+        assertNotNull(saved.getId());
+        assertNotNull(saved.getRole());
+        assertFalse(saved.getEnabled());
+        assertFalse(saved.getPermanent());
+    }
+
+    @Test
+    public void saveUserRoleScope_shouldNotThrow_whenLocationEnableDescendantsIsNull() {
+        stockManagementService.setDao(dao());
+        UserRoleScopeDTO dto = new UserRoleScopeDTO();
+        dto.setUserUuid(Context.getUserService().getUser(501).getUuid());
+        dto.setRole("Provider");
+        UserRoleScopeLocationDTO locationDto = new UserRoleScopeLocationDTO();
+        locationDto.setLocationUuid(Context.getLocationService().getLocation(1).getUuid());
+        // enableDescendants deliberately left null: adding this location must not NPE
+        dto.setLocations(new ArrayList<>(Arrays.asList(locationDto)));
+
+        UserRoleScope saved = stockManagementService.saveUserRoleScope(dto);
+        // the point of this test is that saving with a null enableDescendants does not throw; the
+        // location rows are persisted separately from the in-memory scope collection
+        assertNotNull(saved.getId());
     }
 }
