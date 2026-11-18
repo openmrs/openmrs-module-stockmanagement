@@ -29,7 +29,7 @@ public class StockItemDTOValidator implements Validator {
 		}
 		
 		if (Context.getAuthenticatedUser() == null) {
-			errors.reject(messageSourceService.getMessage("stockmanagement.stockitem.authrequired"));
+			errors.reject(messageSourceService.getMessage("stockmanagement.authrequired"));
 			return;
 		}
 		
@@ -98,13 +98,13 @@ public class StockItemDTOValidator implements Validator {
 		
 		if ((!StringUtils.isBlank(object.getReorderLevelUoMUuid()) && object.getReorderLevel() == null)
 		        || (StringUtils.isBlank(object.getReorderLevelUoMUuid()) && object.getReorderLevel() != null)) {
-			errors.rejectValue("reorderlevel",
+			errors.rejectValue("reorderLevel",
 			    messageSourceService.getMessage("stockmanagement.stockitem.reorderlevelanduomrequired"));
 			return;
 		}
 		
 		if (object.getReorderLevel() != null && object.getReorderLevel().compareTo(BigDecimal.ZERO) < 0) {
-			errors.rejectValue("reorderlevel",
+			errors.rejectValue("reorderLevel",
 			    messageSourceService.getMessage("stockmanagement.stockitem.reorderlevelpositive"));
 			return;
 		}

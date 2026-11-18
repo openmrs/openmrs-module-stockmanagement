@@ -18,6 +18,15 @@
             <version>${project.parent.version}</version>
         </dependency>
 
+        <!-- EntityUtil and the test datasets shared with the api module's context-sensitive tests -->
+        <dependency>
+            <groupId>${project.parent.groupId}</groupId>
+            <artifactId>${project.parent.artifactId}-api</artifactId>
+            <version>${project.parent.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Begin OpenMRS core -->
 
         <dependency>

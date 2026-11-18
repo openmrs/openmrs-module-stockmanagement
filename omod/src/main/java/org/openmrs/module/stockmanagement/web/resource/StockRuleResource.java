@@ -9,6 +9,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dto.*;
+import org.openmrs.module.stockmanagement.api.validator.StockRuleValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -24,7 +25,6 @@ import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceD
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.validator.ValidateUtil;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -105,7 +105,8 @@ public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 	
 	@Override
 	public StockRuleDTO save(StockRuleDTO delegate) {
-		ValidateUtil.validate(delegate);
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+		validateDelegate(new StockRuleValidator(), delegate, "stockRuleDTO");
 		return getStockManagementService().saveStockRule(delegate);
 	}
 	
