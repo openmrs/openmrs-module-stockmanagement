@@ -206,7 +206,7 @@ On a standalone server, replace the `.omod` in the `modules` folder of the appli
 
 ## Contributing
 
-- Tickets are in the [O3 project](https://openmrs.atlassian.net/browse/O3) in Jira, under the "Stock & Inventory Management" component.
+- Tickets are in the [O3 project](https://openmrs.atlassian.net/browse/O3) in Jira.
 - Branch off `master`, or off `core-3.x` for changes that only apply to Platform 3. A fix that both lines need gets a pull request against each branch.
 - Pull requests are usually squash-merged, so the PR title becomes the commit message. Title them `(type) O3-1234: Summary of the change`, for example `(fix) O3-6201: Reject stock actions without an operation UUID`.
 - Add or update tests for the behaviour you change. CI runs the build on every pull request to `master` and `core-3.x`.
