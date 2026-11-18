@@ -13,6 +13,7 @@ import org.openmrs.module.stockmanagement.api.dto.BatchJobSearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.model.BatchJobStatus;
 import org.openmrs.module.stockmanagement.api.model.BatchJobType;
+import org.openmrs.module.stockmanagement.api.validator.BatchJobValidator;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -157,6 +158,8 @@ public class BatchJobResource extends ResourceBase<BatchJobDTO> {
 	
 	@Override
 	public BatchJobDTO save(BatchJobDTO delegate) {
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+		validateDelegate(new BatchJobValidator(), delegate, "batchJobDTO");
 		return getStockManagementService().saveBatchJob(delegate);
 	}
 	

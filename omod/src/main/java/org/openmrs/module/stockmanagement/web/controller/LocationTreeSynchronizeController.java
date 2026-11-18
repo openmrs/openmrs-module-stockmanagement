@@ -22,7 +22,7 @@ public class LocationTreeSynchronizeController {
 		if (!authenticated) {
 			response.setContentType("text/plain");
 			response.getOutputStream().print(
-			    Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.authrequired"));
+			    Context.getMessageSourceService().getMessage("stockmanagement.authrequired"));
 			return;
 		}
 		
