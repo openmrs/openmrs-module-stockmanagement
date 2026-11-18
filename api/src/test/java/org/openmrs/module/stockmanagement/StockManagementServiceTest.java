@@ -1700,6 +1700,19 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
     }
 
     @Test
+    public void saveStockItemPackagingUomReference_shouldReuseACodeVoidedInTheSameTransaction() {
+        StockItemPackagingUomReference reference = createReferenceForServiceTests();
+        stockManagementService.voidStockItemPackagingUomReference(reference.getUuid(), "moved",
+            reference.getCreator().getUserId());
+
+        StockItemPackagingUomReference replacement = new StockItemPackagingUomReference();
+        replacement.setStockItemPackagingUOM(reference.getStockItemPackagingUOM());
+        replacement.setReferenceSource(reference.getReferenceSource());
+        replacement.setStockReferenceCode("M221680001EP30T");
+        assertNotNull(stockManagementService.saveStockItemPackagingUomReference(replacement).getId());
+    }
+
+    @Test
     public void saveStockItemPackagingUomReference_shouldAllowRecreatingAfterVoid() {
         StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
 

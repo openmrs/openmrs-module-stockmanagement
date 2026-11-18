@@ -31,6 +31,7 @@ import org.openmrs.module.stockmanagement.api.model.StockSource;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
+import org.openmrs.module.webservices.rest.web.response.ConversionException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
@@ -218,6 +219,22 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		StockItemPackagingUomReferenceDTO original = resource.getByUniqueId(saved.getUuid());
 		assertEquals("M221680001EP30T", original.getReferenceCode());
 		assertEquals("UNHTS packaging reference", original.getName());
+	}
+
+	@Test
+	public void update_shouldRefuseToReassignThePackagingUomOrTheSource() throws ResponseException {
+		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
+		SimpleObject[] moves = { new SimpleObject().add("stockSourceUuid", createNonVoidedStockSource().getUuid()),
+		        new SimpleObject().add("stockItemPackagingUomUuid", createNonVoidedPackagingUom().getUuid()) };
+		for (SimpleObject move : moves) {
+			try {
+				resource.update(saved.getUuid(), move, searchContext(new MockHttpServletRequest()));
+				fail("Expected a ConversionException for " + move.keySet());
+			}
+			catch (ConversionException e) {
+				// refused before save(): neither property is updatable
+			}
+		}
 	}
 
 	@Test

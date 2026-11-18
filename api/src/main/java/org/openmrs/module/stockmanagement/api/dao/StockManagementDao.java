@@ -5301,7 +5301,9 @@ public class StockManagementDao extends DaoBase {
 	}
 
 	public StockItemPackagingUomReference saveStockItemPackagingUomReference(StockItemPackagingUomReference stockItemPackagingUomReference) {
-		getSession().saveOrUpdate(stockItemPackagingUomReference);
+		DbSession dbSession = getSession();
+		dbSession.saveOrUpdate(stockItemPackagingUomReference);
+		dbSession.flush();
 		return stockItemPackagingUomReference;
 	}
 
@@ -5346,5 +5348,8 @@ public class StockManagementDao extends DaoBase {
 		//so suffix the stored code to free the original code for reuse on the same source
 		reference.setStockReferenceCode(reference.getStockReferenceCode() + " (voided " + reference.getId() + ")");
 		dbSession.saveOrUpdate(reference);
+		//flush so a create or rename of the freed code in the same transaction sees the voided
+		//row (the duplicate check reads under MANUAL flush mode, so it misses this pending edit)
+		dbSession.flush();
 	}
 }

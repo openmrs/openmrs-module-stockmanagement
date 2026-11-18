@@ -220,17 +220,6 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 				reference.setStockItemPackagingUOM(
 				    stockManagementService.getStockItemPackagingUOMByUuid(dto.getStockItemPackagingUomUuid()));
 				reference.setReferenceSource(stockManagementService.getStockSourceByUuid(dto.getStockSourceUuid()));
-			} else {
-				// Packaging association and source namespace are not reassignable on update
-				if (dto.getStockItemPackagingUomUuid() != null
-				        && reference.getStockItemPackagingUOM().getUuid() != null
-				        && !dto.getStockItemPackagingUomUuid().equals(reference.getStockItemPackagingUOM().getUuid())) {
-					invalidRequest("stockmanagement.stockitempackaginguomreference.packaginguom.reassign");
-				}
-				if (dto.getStockSourceUuid() != null && reference.getReferenceSource().getUuid() != null
-				        && !dto.getStockSourceUuid().equals(reference.getReferenceSource().getUuid())) {
-					invalidRequest("stockmanagement.stockitempackaginguomreference.source.reassign");
-				}
 			}
 			reference.setStockReferenceCode(dto.getReferenceCode());
 			reference.setName(dto.getName());
