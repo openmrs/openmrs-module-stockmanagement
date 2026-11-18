@@ -9,13 +9,13 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Date;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.module.stockmanagement.api.model.StockBatch;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 
@@ -29,7 +29,7 @@ public class StockBatchMatchingTest {
 	
 	private StockItem nonExpiringItem;
 	
-	@Before
+	@BeforeEach
 	public void setUp() {
 		expiringItem = new StockItem();
 		expiringItem.setId(1);
