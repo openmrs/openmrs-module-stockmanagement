@@ -3,6 +3,7 @@ package org.openmrs.module.stockmanagement.web.resource;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -15,6 +16,9 @@ import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.api.APIAuthenticationException;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 
 /**
  * Unit tests for the error translation in {@link StockOperationResource#save(StockOperationDTO)}:
@@ -65,6 +69,21 @@ public class StockOperationResourceTest {
 		    () -> resource.save(new StockOperationDTO()));
 		assertEquals("Stock operation requires a destination", exception.getMessage());
 		assertNull(exception.getCause());
+	}
+
+	@Test
+	public void save_shouldRethrowAuthorizationDenials() {
+		// a domain-object authorization rule denies with a plain AuthorizationDeniedException, which
+		// BaseRestController renders as 403; it must not become a generic 500
+		for (RuntimeException denial : new RuntimeException[] {
+		        new AuthorizationDeniedException("Access Denied", new AuthorizationDecision(false)),
+		        new APIAuthenticationException("Privileges required") }) {
+			when(service.saveStockOperation(any(StockOperationDTO.class))).thenThrow(denial);
+
+			RuntimeException exception = assertThrows(RuntimeException.class,
+			    () -> resource.save(new StockOperationDTO()));
+			assertSame(denial, exception);
+		}
 	}
 
 	@Test

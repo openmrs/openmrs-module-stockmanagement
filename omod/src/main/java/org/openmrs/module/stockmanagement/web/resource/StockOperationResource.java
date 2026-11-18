@@ -7,7 +7,6 @@ import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang3.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Location;
-import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
@@ -36,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.module.stockmanagement.api.validator.StockOperationDTOValidator;
 import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.client.RestClientException;
 
 import java.util.*;
@@ -202,9 +202,11 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			StockOperation stockOperation = getStockManagementService().saveStockOperation(delegate);
 			return getByUniqueId(stockOperation.getUuid());
 		}
-		catch (ResponseException | APIAuthenticationException | ValidationException exception) {
+		catch (ResponseException | AccessDeniedException | ValidationException exception) {
 			// already a meaningful REST error (e.g. validation, or an authorization failure that
-			// BaseRestController renders as 403); let the framework render it
+			// BaseRestController renders as 403); let the framework render it. AccessDeniedException
+			// covers APIAuthenticationException and the plain AuthorizationDeniedException that a
+			// domain-object authorization rule denies with
 			throw exception;
 		}
 		catch (StockManagementException exception) {
