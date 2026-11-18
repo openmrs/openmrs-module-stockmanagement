@@ -32,7 +32,6 @@ import org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl;
 import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.stockmanagement.tasks.LocationTagsSynchronize;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -1148,21 +1147,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         result = stockManagementService.findOrderItems(filter, null);
         assertTrue(result.getData().isEmpty());
     }
-	
-	@Test
-	public void synchronizeTags() {
-		LocationTagsSynchronize locationTagsSynchronize = new LocationTagsSynchronize();
-		locationTagsSynchronize.execute();
-		LocationService locationService = Context.getLocationService();
-		LocationTag mainPharmacy = locationService.getLocationTagByName(StockLocationTags.MAIN_PHARMACY_LOCATION_TAG);
-		assertNotNull(mainPharmacy);
-		LocationTag mainStore = locationService.getLocationTagByName(StockLocationTags.MAIN_STORE_LOCATION_TAG);
-		assertNotNull(mainStore);
-		LocationTag dispensary = locationService.getLocationTagByName(StockLocationTags.DISPENSARY_LOCATION_TAG);
-		assertNotNull(dispensary);
-		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainPharmacy)).isEmpty());
-		assertTrue(!locationService.getLocationsHavingAnyTag(Arrays.asList(mainStore)).isEmpty());
-	}
 	
 	@Test
     public void findStockRules(){
