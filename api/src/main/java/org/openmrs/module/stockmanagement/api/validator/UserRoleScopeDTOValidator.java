@@ -23,7 +23,12 @@ public class UserRoleScopeDTOValidator implements Validator {
 			errors.reject(messageSourceService.getMessage("error.general"));
 			return;
 		}
-		
+
+		if (Context.getAuthenticatedUser() == null) {
+			errors.reject(messageSourceService.getMessage("stockmanagement.authrequired"));
+			return;
+		}
+
 		UserRoleScopeDTO object = (UserRoleScopeDTO) target;
 		
 		ValidationUtils.rejectIfEmptyOrWhitespace(errors, "userUuid", "error.null");
