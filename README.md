@@ -28,7 +28,7 @@ Each maintained branch targets a different OpenMRS Platform. The versions below 
 | `master`   | 3.x (latest 3.0.0)     | 2.8.0            | 3.0.0             | Compiled for Java 8. CI also builds on 11, 17 and 21 |
 | `core-3.x` | 4.x (not yet released) | 3.0.0-SNAPSHOT   | 5.0.0-SNAPSHOT    | 21. CI also builds on 25                             |
 
-CI builds these two branches and publishes their snapshots. The older branches are not built by CI:
+GitHub Actions builds these two branches and publishes their snapshots. It doesn't build the older branches:
 
 - `2.x` (latest release 2.0.3) builds against Platform 2.4.3 and REST Web Services 2.32.0 with Java 8.
 - `1.X` (latest release 1.4.4) builds against Platform 2.3.1 with Java 8. It also requires 2.x Reference Application modules such as App Framework, UI Framework and Core Apps.
@@ -36,7 +36,7 @@ CI builds these two branches and publishes their snapshots. The older branches a
 
 [`omod/src/main/resources/config.xml`](omod/src/main/resources/config.xml) sets what the module needs at runtime:
 
-- **OpenMRS version**: the Platform version the branch builds against, so 2.8.0 on `master` and 3.0.0 on `core-3.x`.
+- **OpenMRS version**: 2.8.0 on `master`, which is the Platform version it builds against, and 3.0.0 on `core-3.x`.
 - **Required modules**: [REST Web Services](https://github.com/openmrs/openmrs-module-webservices.rest), at the version the branch builds against or later.
 - **Aware of**: Legacy UI.
 
@@ -58,22 +58,24 @@ To install a module file by hand, [build it](#building), put the `.omod` in the 
 
 On start the module creates its tables, the nine stock operation types, its privileges and one scheduled task. It also creates a party for every location and fills the location tree it uses to resolve user role scopes.
 
-The 2.x releases and 3.0.0 also created the location tags, a Main Store and a Main Pharmacy location where none existed, the email templates and two more scheduled tasks. `master` no longer does this since [#63](https://github.com/openmrs/openmrs-module-stockmanagement/pull/63), so an implementation has to supply them:
+Up to 3.0.0 the module also created the three location tags below and tagged matching locations, created a Main Store and a Main Pharmacy location where none existed, and seeded the email templates, two more scheduled tasks and default values for ten global properties. `master` no longer does any of this since [#63](https://github.com/openmrs/openmrs-module-stockmanagement/pull/63), so an implementation has to supply them:
 
 - **Location tags** named `Main Store`, `Main Pharmacy` and `Dispensary`. The module looks these up by name. Locations with any of the three tags hold stock, and locations tagged `Main Pharmacy` or `Dispensary` are dispensing locations.
 - **Email templates** named `STOCK_MGMT_OPERATION_ACTION`, `STOCK_MGMT_QTY_BELOW_THRESHOLD` and `STOCK_MGMT_BATCH_EXPIRING`. No email is sent for a template that is missing.
 - **Scheduled tasks** for stock rules and batch expiry. See [Scheduled tasks](#scheduled-tasks).
-- **Global properties** that have no default. See [Global properties](#global-properties).
+- **Feature-specific global properties** for notifications and reporting. See [Global properties](#global-properties).
+
+Email notifications also require SMTP configuration and valid recipient email addresses. Set the OpenMRS global property `mail.smtp.host` (or `mail.smtp_host`) and the port, authentication and TLS settings required by your mail server. If no SMTP host is configured, the module skips email notifications.
 
 ### Privileges
 
-The module declares 17 privileges in [`config.xml`](omod/src/main/resources/config.xml), and OpenMRS creates them when the module starts. `App: stockmanagement.*` privileges allow viewing, for example `App: stockmanagement.stockItems`. `Task: stockmanagement.*` privileges allow changes, for example `Task: stockmanagement.stockoperations.approve`. The same names are constants in [`Privileges.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/Privileges.java), and the service methods in [`StockManagementService.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/StockManagementService.java) are annotated with the privilege each one needs.
+The module declares 17 privileges in [`config.xml`](omod/src/main/resources/config.xml), and OpenMRS creates them when the module starts. `App: stockmanagement.*` privileges allow viewing, for example `App: stockmanagement.stockItems`. Most `Task: stockmanagement.*` privileges allow changes, for example `Task: stockmanagement.stockoperations.approve`. The same names are constants in [`Privileges.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/Privileges.java), and most of the service methods in [`StockManagementService.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/StockManagementService.java) are annotated with the privilege they need.
 
 The module does not create roles. Assign the privileges to roles of your own.
 
 ### User role scopes
 
-For stock operations, holding a privilege through a role is not enough. The user also needs a user role scope. A scope gives a user one of their roles at chosen locations, optionally including child locations, and for chosen stock operation types. A scope is either permanent or active between two dates, and can be disabled.
+To list, view, save or act on stock operations, holding a privilege through a role is not enough. The user also needs a user role scope. A scope gives a user one of their roles at chosen locations, optionally including child locations, and for chosen stock operation types. A scope is either permanent or active between two dates, and can be disabled.
 
 When the module checks a stock privilege at a location, it looks for an enabled, active scope for that user that covers the location and the operation type, and then checks that the scope's role has the privilege. `GET /ws/rest/v1/stockmanagement/session` returns the scoped privileges of the logged-in user.
 
@@ -95,14 +97,31 @@ The module declares 30 global properties, all prefixed with `stockmanagement.`. 
 | `stockmanagement.allowStockIssueWithoutRequisition`               | `false` | Allow a stock issue that isn't linked to a requisition                                                                  |
 | `stockmanagement.excessReceivedItemThreshold`                     | `10`    | Percentage by which the items acknowledged as received may exceed the items issued or returned                          |
 | `stockmanagement.stockItemsMaxUploadFileSize`                     | `2`     | Largest stock item import file, in megabytes                                                                            |
-| `stockmanagement.stockOperationNotificationRole`                  | None    | Role whose users get alerts and emails when a stock operation is submitted, approved, rejected and so on                |
-| `stockmanagement.stockOperationNotificationEmail`                 | None    | Email address that gets the same notifications                                                                          |
 | `stockmanagement.enableStockRuleJob`                              | `true`  | Let the stock rule task evaluate stock balances                                                                         |
 | `stockmanagement.enableStockBatchJob`                             | `true`  | Let the batch expiry task send notifications                                                                            |
-| `stockmanagement.stockBatchDefaultExpiryNotificationNoticePeriod` | `120`   | Default notice period for expiring batches. The notice period set on a stock item takes priority                        |
-| `stockmanagement.batchJobExpiryInMinutes`                         | `10080` | Minutes after which a queued batch job is considered stale                                                              |
+| `stockmanagement.stockBatchDefaultExpiryNotificationNoticePeriod` | `120`   | Default notice period for expiring batches, in days. The notice period set on a stock item takes priority               |
+| `stockmanagement.batchJobExpiryInMinutes`                         | `10080` | Minutes after creation when a batch job expires. Expired jobs are deleted with their report files. Values below 1440 are raised to 1440 |
 
-These properties have no default: `stockSourceCodeConceptId`, `stockAdjustmentReasonCodeConceptId`, `packagingUnitsConceptId`, `stockItemCategoryConceptId`, `observationDispensingLocationConcept`, `observationDrugConcept`, `printLogoText`, `stockOperationNotificationEmail`, `stockOperationNotificationRole` and `applicationRootUrl`.
+These properties have no default. Their use on `master` is shown below; prefix each property name with `stockmanagement.`.
+
+| Property | When to configure | Value |
+| --- | --- | --- |
+| `stockOperationNotificationRole` | Optional: send stock-operation alerts to users in a role. Also configure this role when enabling stock-operation emails. | Name of an existing OpenMRS role, not its UUID |
+| `stockOperationNotificationEmail` | Optional: send stock-operation emails to this address and to the role's users. Only works when `stockOperationNotificationRole` names an existing role, and needs the email template and SMTP settings. | A single valid email address |
+| `observationDispensingLocationConcept` | Optional: use with `observationDrugConcept` to resolve the fulfilment location from observations in prescription reports. | UUID of the concept used for the dispensing-location observation |
+| `observationDrugConcept` | Optional: use with `observationDispensingLocationConcept` to match the drug observation in the same observation group. | UUID of the concept used for the drug observation |
+| `stockSourceCodeConceptId` | Not used by the current backend. O3 uses `stockSourceTypeUUID` instead. | Leave unset |
+| `stockAdjustmentReasonCodeConceptId` | Not used by the current backend. O3 uses `stockAdjustmentReasonUUID` and `stockTakeReasonUUID` instead. | Leave unset |
+| `packagingUnitsConceptId` | Not used by the current backend. O3 uses `packingUnitsUUID` instead. | Leave unset |
+| `stockItemCategoryConceptId` | Not used by the current backend. O3 uses `stockItemCategoryUUID` instead. | Leave unset |
+| `printLogoText` | Not used by the current backend. | Leave unset |
+| `applicationRootUrl` | Not used by the current backend. | Leave unset |
+
+Stock operation alerts and emails are only sent for the operation types and actions that have notifications turned on. Liquibase turns them on for submit, approve and complete on Receipt and Transfer Out operations only, and they can't be changed over REST.
+
+The observation properties accept concept UUIDs, not numeric concept IDs. Leave them blank if your implementation does not record those observations; a configured UUID that does not resolve to a concept causes the report to fail.
+
+The O3 concept options above are frontend configuration, defined in its [`config-schema.ts`](https://github.com/openmrs/openmrs-esm-stock-management-app/blob/main/src/config-schema.ts). Set them to the UUIDs of concepts whose coded answers supply the corresponding dropdown choices. Setting the backend global properties does not configure those O3 choices.
 
 ### Scheduled tasks
 
@@ -110,10 +129,10 @@ Liquibase registers one task, which starts with OpenMRS:
 
 - **Asynchronous Report Generation And Batch Jobs** (`org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob`) runs every 60 seconds and generates queued reports. It stops itself when the queue stays empty and is started again when a report is queued. Report files are written to `stockmgmt/batchjob` in the application data directory.
 
-Two more task classes ship with the module. The 2.x releases and 3.0.0 registered them to run once a day. `master` no longer registers them, so register them yourself if you want the notifications, for example on the Manage Scheduler page of the Legacy UI:
+Two more task classes ship with the module. Up to 3.0.0 the module registered them with a daily interval, but not to start with OpenMRS, so they only ran once someone started them in the scheduler. `master` no longer registers them, so register them yourself if you want the notifications, for example on the Manage Scheduler page of the Legacy UI:
 
 - `org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob` checks stock rules and notifies users when a quantity is at or below its threshold. It does nothing while `stockmanagement.enableStockRuleJob` is `false`.
-- `org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob` notifies users about batches that are about to expire. It does nothing while `stockmanagement.enableStockBatchJob` is `false`. It notifies users with the roles `Inventory Manager` and `Inventory Clerk`, and falls back to every role that has `Task: stockmanagement.stockoperations.mutate` when neither role exists.
+- `org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob` notifies users about batches that are about to expire. It does nothing while `stockmanagement.enableStockBatchJob` is `false`. It notifies users who have an active user role scope with the `Inventory Manager` or `Inventory Clerk` role at the batch's location or at a Main Store location. When neither role exists, it uses every role that has `Task: stockmanagement.stockoperations.mutate` instead.
 
 ## REST API
 
@@ -129,7 +148,7 @@ The resource classes are in [`omod/src/main/java/org/openmrs/module/stockmanagem
 - **Access**: `userrolescope` with the sub-resources `locations` and `operationtypes`, and `privilegescope`
 - **Reports**: `report`, `batchjob`, `batchjobowner`
 
-A few endpoints are plain controllers in [`web/controller`](omod/src/main/java/org/openmrs/module/stockmanagement/web/controller):
+Five endpoints are plain controllers in [`web/controller`](omod/src/main/java/org/openmrs/module/stockmanagement/web/controller):
 
 | Endpoint                       | Purpose                                                                    |
 | ------------------------------ | -------------------------------------------------------------------------- |
@@ -137,6 +156,7 @@ A few endpoints are plain controllers in [`web/controller`](omod/src/main/java/o
 | `POST stockitemimport`         | Upload a CSV file of stock items. `GET` returns the errors from an upload  |
 | `GET batchjobartifact?id=`     | Download the output of a finished batch job, such as a report              |
 | `POST locationtreesynchronize` | Rebuild the location tree                                                  |
+| `POST indexrebuild`            | Does nothing and returns `true`                                            |
 
 ## Development
 
@@ -188,7 +208,7 @@ On a standalone server, replace the `.omod` in the `modules` folder of the appli
 
 - Tickets are in the [O3 project](https://openmrs.atlassian.net/browse/O3) in Jira, under the "Stock & Inventory Management" component.
 - Branch off `master`, or off `core-3.x` for changes that only apply to Platform 3. A fix that both lines need gets a pull request against each branch.
-- Pull requests are squash-merged, so the PR title becomes the commit message. Recent titles follow `(type) O3-1234: Summary of the change`, for example `(fix) O3-6201: Reject stock actions without an operation UUID`.
+- Pull requests are usually squash-merged, so the PR title becomes the commit message. Title them `(type) O3-1234: Summary of the change`, for example `(fix) O3-6201: Reject stock actions without an operation UUID`.
 - Add or update tests for the behaviour you change. CI runs the build on every pull request to `master` and `core-3.x`.
 - Report security issues privately. See [SECURITY.md](SECURITY.md).
 
