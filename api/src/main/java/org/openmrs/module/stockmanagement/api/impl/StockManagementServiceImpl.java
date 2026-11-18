@@ -1417,8 +1417,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         if (!stockItem.getHasExpiration()) {
             return candidate.getExpiration() == null;
         }
-        return candidate.getExpiration() != null && expiration != null
-                && candidate.getExpiration().getTime() == expiration.getTime();
+        if (candidate.getExpiration() == null || expiration == null) {
+            return candidate.getExpiration() == null && expiration == null;
+        }
+        return DateUtils.isSameDay(candidate.getExpiration(), expiration);
     }
 
     public StockBatch findStockBatch(StockItem stockItem, String batchNo, Date expiration) {

@@ -90,11 +90,23 @@ public class StockBatchMatchingTest {
 	}
 	
 	@Test
-	public void isSameStockBatch_shouldNotMatchOrFailWhenTheLineHasNoExpiryForAnItemThatExpires() {
+	public void isSameStockBatch_shouldNotMatchOrFailWhenOnlyOneSideHasAnExpiry() {
 		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01",
 		    null));
 		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01",
+		    JUNE));
+	}
+	
+	@Test
+	public void isSameStockBatch_shouldMatchAMissingExpiryWithAMissingExpiry() {
+		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01",
 		    null));
+	}
+	
+	@Test
+	public void isSameStockBatch_shouldMatchExpiriesOnTheSameDayAtDifferentTimes() {
+		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01",
+		    new Date(JUNE.getTime() + 3600000L)));
 	}
 	
 	@Test
