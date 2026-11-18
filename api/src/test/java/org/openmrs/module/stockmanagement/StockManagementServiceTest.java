@@ -1785,6 +1785,69 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
     }
 
     @Test
+    public void saveStockItemPackagingUomReference_shouldRejectAReferenceCodeTooLongToVoid() {
+        stockManagementService.setDao(dao());
+        StockItem stockItem = eu().newStockItem(dao(), false);
+        dao().saveStockItem(stockItem);
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+        packagingUom.setVoided(false);
+        dao().saveStockItemPackagingUOM(packagingUom);
+        StockSource stockSource = createNonVoidedStockSource();
+
+        // 235 characters is the longest code voiding can still suffix within VARCHAR(255)
+        char[] longestVoidableCode = new char[235];
+        Arrays.fill(longestVoidableCode, 'X');
+        StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+        reference.setStockItemPackagingUOM(packagingUom);
+        reference.setReferenceSource(stockSource);
+        reference.setStockReferenceCode(new String(longestVoidableCode));
+        assertNotNull(stockManagementService.saveStockItemPackagingUomReference(reference).getId());
+
+        // one character more and the (voided <id>) suffix would not fit
+        char[] tooLongCode = new char[236];
+        Arrays.fill(tooLongCode, 'X');
+        StockItemPackagingUomReference tooLong = new StockItemPackagingUomReference();
+        tooLong.setStockItemPackagingUOM(packagingUom);
+        tooLong.setReferenceSource(stockSource);
+        tooLong.setStockReferenceCode(new String(tooLongCode));
+        try {
+            stockManagementService.saveStockItemPackagingUomReference(tooLong);
+            fail("Expected an APIException to be thrown");
+        } catch (APIException e) {
+            assertThat(e.getMessage(), containsString("too long"));
+        }
+    }
+
+    @Test
+    public void voidStockItemPackagingUomReference_shouldRejectALegacyCodeTooLongForTheSuffix() {
+        stockManagementService.setDao(dao());
+        StockItem stockItem = eu().newStockItem(dao(), false);
+        dao().saveStockItem(stockItem);
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+        packagingUom.setVoided(false);
+        dao().saveStockItemPackagingUOM(packagingUom);
+        StockSource stockSource = createNonVoidedStockSource();
+
+        // a row saved before the save-side length guard existed: inserted through the dao, since
+        // the service would no longer accept a code the (voided <id>) suffix cannot fit
+        StockItemPackagingUomReference legacy = new StockItemPackagingUomReference();
+        legacy.setStockItemPackagingUOM(packagingUom);
+        legacy.setReferenceSource(stockSource);
+        char[] legacyCode = new char[250];
+        Arrays.fill(legacyCode, 'X');
+        legacy.setStockReferenceCode(new String(legacyCode));
+        StockItemPackagingUomReference saved = dao().saveStockItemPackagingUomReference(legacy);
+
+        try {
+            stockManagementService.voidStockItemPackagingUomReference(saved.getUuid(), "test void",
+                saved.getCreator().getUserId());
+            fail("Expected an APIException to be thrown");
+        } catch (APIException e) {
+            assertThat(e.getMessage(), containsString("too long"));
+        }
+    }
+
+    @Test
     public void saveUserRoleScope_shouldNotThrow_whenLocationEnableDescendantsIsNull() {
         stockManagementService.setDao(dao());
         UserRoleScopeDTO dto = new UserRoleScopeDTO();

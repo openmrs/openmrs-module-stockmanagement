@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -318,6 +319,34 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		StockItemPackagingUomReferenceDTO voided = resource.getByUniqueId(saved.getUuid());
 		assertNotNull(voided);
 		assertTrue(voided.isVoided());
+	}
+
+	@Test
+	public void delete_shouldAnswerABadRequestWhenTheServiceRejectsTheVoid() {
+		// a legacy row saved before the save-side length guard: a code the (voided <id>) suffix
+		// cannot fit, inserted through the dao since the service would no longer accept it
+		StockItemPackagingUOM packagingUom = createNonVoidedPackagingUom();
+		StockSource stockSource = createNonVoidedStockSource();
+		StockItemPackagingUomReference legacy = new StockItemPackagingUomReference();
+		legacy.setStockItemPackagingUOM(packagingUom);
+		legacy.setReferenceSource(stockSource);
+		char[] legacyCode = new char[250];
+		Arrays.fill(legacyCode, 'X');
+		legacy.setStockReferenceCode(new String(legacyCode));
+		StockItemPackagingUomReference saved = dao().saveStockItemPackagingUomReference(legacy);
+
+		StockItemPackagingUomReferenceDTO dto = resource.getByUniqueId(saved.getUuid());
+		try {
+			resource.delete(dto, "test void", searchContext(new MockHttpServletRequest()));
+			fail("Expected an IllegalRequestException to be thrown");
+		}
+		catch (IllegalRequestException e) {
+			// the void rejection must come back as a 400, not a 500
+			assertNotNull(e.getMessage());
+		}
+		catch (ResponseException e) {
+			fail("Expected an IllegalRequestException, got " + e.getClass().getSimpleName());
+		}
 	}
 
 	@Test

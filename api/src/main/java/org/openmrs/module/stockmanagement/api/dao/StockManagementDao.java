@@ -5346,7 +5346,14 @@ public class StockManagementDao extends DaoBase {
 		reference.setVoidReason(reason);
 		//the (stock_source_id, stock_reference_code) unique constraint covers voided rows too,
 		//so suffix the stored code to free the original code for reuse on the same source
-		reference.setStockReferenceCode(reference.getStockReferenceCode() + " (voided " + reference.getId() + ")");
+		String suffixedCode = reference.getStockReferenceCode() + " (voided " + reference.getId() + ")";
+		//a row saved before the service's code-length guard could carry a code the suffix would
+		//push past VARCHAR(255); a clear message beats the raw data-truncation error
+		if (suffixedCode.length() > 255) {
+			throw new APIException(
+			        "The stock reference code is too long to be voided: appending the (voided <id>) suffix would exceed 255 characters");
+		}
+		reference.setStockReferenceCode(suffixedCode);
 		dbSession.saveOrUpdate(reference);
 		//flush so a create or rename of the freed code in the same transaction sees the voided
 		//row (the duplicate check reads under MANUAL flush mode, so it misses this pending edit)

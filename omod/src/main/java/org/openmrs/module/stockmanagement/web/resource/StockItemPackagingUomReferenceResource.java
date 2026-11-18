@@ -6,7 +6,6 @@ import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.APIException;
-import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -41,8 +40,17 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 	@Override
 	protected void delete(StockItemPackagingUomReferenceDTO delegate, String reason, RequestContext context)
 	        throws ResponseException {
-		getStockManagementService().voidStockItemPackagingUomReference(delegate.getUuid(), reason,
-		    Context.getAuthenticatedUser().getUserId());
+		try {
+			getStockManagementService().voidStockItemPackagingUomReference(delegate.getUuid(), reason,
+			    Context.getAuthenticatedUser().getUserId());
+		}
+		catch (APIAuthenticationException e) {
+			throw e;
+		}
+		catch (APIException e) {
+			// the REST module answers service rejections with a 500 otherwise
+			throw new IllegalRequestException(e.getMessage());
+		}
 	}
 
 	@Override
@@ -91,9 +99,6 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			reference = getStockManagementService().saveStockItemPackagingUomReference(convertFromDTO(delegate));
 		}
 		catch (APIAuthenticationException e) {
-			throw e;
-		}
-		catch (ValidationException e) {
 			throw e;
 		}
 		catch (APIException e) {
