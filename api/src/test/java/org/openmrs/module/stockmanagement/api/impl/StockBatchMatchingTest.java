@@ -12,7 +12,10 @@ package org.openmrs.module.stockmanagement.api.impl;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Calendar;
 import java.util.Date;
+
+import org.apache.commons.lang3.time.DateUtils;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -105,8 +108,11 @@ public class StockBatchMatchingTest {
 	
 	@Test
 	public void isSameStockBatch_shouldMatchExpiriesOnTheSameDayAtDifferentTimes() {
-		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01",
-		    new Date(JUNE.getTime() + 3600000L)));
+		// build both times from local midnight so the test doesn't depend on the JVM's time zone
+		Date morning = DateUtils.addHours(DateUtils.truncate(JUNE, Calendar.DAY_OF_MONTH), 1);
+		Date evening = DateUtils.addHours(morning, 12);
+		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", morning), expiringItem, "B-01",
+		    evening));
 	}
 	
 	@Test
