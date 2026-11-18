@@ -38,8 +38,9 @@ public class DateUtil {
 	 * The formats parseDate accepts, tried in order: yyyy-MM-dd'T'HH:mm:ss with optional milliseconds
 	 * and an optional offset (Z, +03:00, +0300 or +03), yyyy-MM-dd HH:mm:ss, and yyyy-MM-dd. Month, day
 	 * and time fields may have one or two digits. A value without an offset is read in the default time
-	 * zone, and a date on its own is the start of that day. Invalid dates such as 2026-02-30, and local
-	 * times that a daylight saving change skips, are rejected rather than adjusted.
+	 * zone, and a date on its own is the start of that day, which is the first moment after the change on
+	 * a day when daylight saving starts at midnight. Invalid dates such as 2026-02-30, and local times
+	 * that a daylight saving change skips, are rejected rather than adjusted.
 	 */
 	private static final DateTimeFormatter[] PARSE_FORMATS = {
 	        parseFormat(time(date().appendLiteral('T')).optionalStart().appendLiteral('.')
@@ -100,7 +101,7 @@ public class DateUtil {
 				if (parsed instanceof LocalDateTime) {
 					return toDate((LocalDateTime) parsed);
 				}
-				return toDate(((LocalDate) parsed).atStartOfDay());
+				return Date.from(((LocalDate) parsed).atStartOfDay(ZoneId.systemDefault()).toInstant());
 			}
 			catch (DateTimeException ex) {
 				pex = ex;

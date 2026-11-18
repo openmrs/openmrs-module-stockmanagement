@@ -78,6 +78,14 @@ public class DateUtilTest {
 	}
 
 	@Test
+	public void parseDate_shouldReadADateAsTheFirstMomentOfADayWhoseMidnightIsSkipped() {
+		// clocks in Cairo went from 00:00 to 01:00 (UTC+3) on 24 April 2026
+		TimeZone.setDefault(TimeZone.getTimeZone("Africa/Cairo"));
+		assertEquals(Instant.parse("2026-04-23T22:00:00Z"), DateUtil.parseDate("2026-04-24").toInstant());
+		assertThrows(StockManagementException.class, () -> DateUtil.parseDate("2026-04-24 00:30:00"));
+	}
+
+	@Test
 	public void formatDateForJson_shouldPrintTheDefaultTimeZoneOffset() {
 		Date date = Date.from(Instant.parse("2026-11-18T15:00:00.123Z"));
 		assertEquals("2026-11-18T10:00:00.123-0500", DateUtil.formatDateForJson(date));
