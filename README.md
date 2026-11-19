@@ -60,7 +60,7 @@ On start the module creates its tables, the nine stock operation types, its priv
 
 Up to 3.0.0 the module also created the three location tags below and tagged matching locations, created a Main Store and a Main Pharmacy location where none existed, and seeded the email templates, two more scheduled tasks and default values for ten global properties. `master` no longer does any of this since [#63](https://github.com/openmrs/openmrs-module-stockmanagement/pull/63), so an implementation has to supply them:
 
-- **Location tags** named `Main Store`, `Main Pharmacy` and `Dispensary`. The module looks these up by name. Locations with any of the three tags hold stock, and locations tagged `Main Pharmacy` or `Dispensary` are dispensing locations.
+- **Location tags** named `Main Store`, `Main Pharmacy` and `Dispensary`. The module looks these up by name. Locations with any of the three tags hold stock, and locations tagged `Main Pharmacy` or `Dispensary` are dispensing locations. Each operation type also accepts only locations with certain tags. For example a Receipt can only go into a `Main Store` location, and a Stock Issue goes from `Main Store` to `Main Pharmacy` or `Dispensary`. `GET /ws/rest/v1/stockmanagement/stockoperationtype?v=default` lists these rules as `stockOperationTypeLocationScopes`.
 - **Email templates** named `STOCK_MGMT_OPERATION_ACTION`, `STOCK_MGMT_QTY_BELOW_THRESHOLD` and `STOCK_MGMT_BATCH_EXPIRING`. No email is sent for a template that is missing.
 - **Scheduled tasks** for stock rules and batch expiry. See [Scheduled tasks](#scheduled-tasks).
 - **Feature-specific global properties** for notifications and reporting. See [Global properties](#global-properties).
@@ -71,11 +71,11 @@ Email notifications also require SMTP configuration and valid recipient email ad
 
 The module declares 17 privileges in [`config.xml`](omod/src/main/resources/config.xml), and OpenMRS creates them when the module starts. `App: stockmanagement.*` privileges allow viewing, for example `App: stockmanagement.stockItems`. Most `Task: stockmanagement.*` privileges allow changes, for example `Task: stockmanagement.stockoperations.approve`. The same names are constants in [`Privileges.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/Privileges.java), and most of the service methods in [`StockManagementService.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/StockManagementService.java) are annotated with the privilege they need.
 
-The module does not create roles. Assign the privileges to roles of your own.
+The module does not create roles. Assign the privileges to roles of your own. A user who requests reports also needs core's `Manage Scheduler` privilege, because queuing a report looks up the report task through the scheduler.
 
 ### User role scopes
 
-To list, view, save or act on stock operations, holding a privilege through a role is not enough. The user also needs a user role scope. A scope gives a user one of their roles at chosen locations, optionally including child locations, and for chosen stock operation types. A scope is either permanent or active between two dates, and can be disabled.
+To list, view, save or act on stock operations, holding a privilege through a role is not enough. The user also needs a user role scope. Scopes also filter the lists of stock on hand, item transactions, stock rules and generated reports, so a user without one, even a superuser, gets those lists empty. Stock on hand looked up for dispensing is the exception for users who hold `Task: stockmanagement.stockItems.dispense.qty`. Nobody can create or change their own scope, so another account has to give an administrator their first one. A scope gives a user one of their roles at chosen locations, optionally including child locations, and for chosen stock operation types. A scope is either permanent or active between two dates, and can be disabled.
 
 When the module checks a stock privilege at a location, it looks for an enabled, active scope for that user that covers the location and the operation type, and then checks that the scope's role has the privilege. `GET /ws/rest/v1/stockmanagement/session` returns the scoped privileges of the logged-in user.
 
@@ -119,7 +119,7 @@ These properties have no default. Their use on `master` is shown below; prefix e
 
 Stock operation alerts and emails are only sent for the operation types and actions that have notifications turned on. Liquibase turns them on for submit, approve and complete on Receipt and Transfer Out operations only, and they can't be changed over REST.
 
-The observation properties accept concept UUIDs, not numeric concept IDs. Leave them blank if your implementation does not record those observations; a configured UUID that does not resolve to a concept causes the report to fail.
+The observation properties accept concept UUIDs, not numeric concept IDs. Leave them blank if your implementation does not record those observations; a configured UUID that does not resolve to a concept causes the report to fail. Releases up to 3.0.0 set both, and an upgrade keeps those values, so clear them on an upgraded installation unless they match your concepts.
 
 The O3 concept options above are frontend configuration, defined in its [`config-schema.ts`](https://github.com/openmrs/openmrs-esm-stock-management-app/blob/main/src/config-schema.ts). Set them to the UUIDs of concepts whose coded answers supply the corresponding dropdown choices. Setting the backend global properties does not configure those O3 choices.
 
@@ -129,7 +129,7 @@ Liquibase registers one task, which starts with OpenMRS:
 
 - **Asynchronous Report Generation And Batch Jobs** (`org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob`) runs every 60 seconds and generates queued reports. It stops itself when the queue stays empty and is started again when a report is queued. Report files are written to `stockmgmt/batchjob` in the application data directory.
 
-Two more task classes ship with the module. Up to 3.0.0 the module registered them with a daily interval, but not to start with OpenMRS, so they only ran once someone started them in the scheduler. `master` no longer registers them, so register them yourself if you want the notifications, for example on the Manage Scheduler page of the Legacy UI:
+Two more task classes ship with the module. Up to 3.0.0 the module registered them with a daily interval, but not to start with OpenMRS, so they only ran once someone started them in the scheduler. `master` no longer registers them, so register them yourself if you want the notifications, for example on the Manage Scheduler page of the Legacy UI, and tick Start on startup so they run again after a restart. A database that ran 3.0.0 or earlier still has them as Stock Rules Evaluation Job and Stock Batch Expiry Job, so edit those instead of adding new ones. The two classes are:
 
 - `org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob` checks stock rules and notifies users when a quantity is at or below its threshold. It does nothing while `stockmanagement.enableStockRuleJob` is `false`.
 - `org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob` notifies users about batches that are about to expire. It does nothing while `stockmanagement.enableStockBatchJob` is `false`. It notifies users who have an active user role scope with the `Inventory Manager` or `Inventory Clerk` role at the batch's location or at a Main Store location. When neither role exists, it uses every role that has `Task: stockmanagement.stockoperations.mutate` instead.
@@ -162,7 +162,7 @@ Five endpoints are plain controllers in [`web/controller`](omod/src/main/java/or
 
 ### Building
 
-You need Maven and a JDK that matches the branch: Java 8 or later for `master`, Java 21 or later for `core-3.x`.
+You need Maven and a JDK that matches the branch: Java 8, 11, 17 or 21 for `master`, Java 21 or later for `core-3.x`.
 
 ```bash
 mvn clean package
