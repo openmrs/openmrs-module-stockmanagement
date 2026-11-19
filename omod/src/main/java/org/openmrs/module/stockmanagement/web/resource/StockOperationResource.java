@@ -406,7 +406,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
                     isNew = false;
                     itemDTO = existingItem.get();
                 } else
-                    throw new RestClientException(String.format("Item %s not found", uuid));
+                    throw new IllegalRequestException(String.format("Item %s not found", uuid));
 
             } else {
                 itemDTO = new StockOperationItemDTO();

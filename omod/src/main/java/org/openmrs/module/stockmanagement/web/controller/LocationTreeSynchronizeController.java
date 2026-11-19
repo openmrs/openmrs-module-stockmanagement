@@ -38,6 +38,5 @@ public class LocationTreeSynchronizeController {
 		response.setStatus(200);
 		response.setContentType("text/plain");
 		response.getOutputStream().print("Done");
-		return;
 	}
 }

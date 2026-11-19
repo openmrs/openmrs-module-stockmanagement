@@ -23,9 +23,9 @@ import org.openmrs.module.webservices.rest.web.representation.DefaultRepresentat
 import org.openmrs.module.webservices.rest.web.representation.FullRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.springframework.web.client.RestClientException;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -55,7 +55,7 @@ public class StockOperationItemResource extends ResourceBase<StockOperationItemD
 			    Context.getAuthenticatedUser().getUserId());
 		}
 		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+			throw new IllegalRequestException(safeMessage(exception, "Unable to void stock operation item"));
 		}
 	}
 	

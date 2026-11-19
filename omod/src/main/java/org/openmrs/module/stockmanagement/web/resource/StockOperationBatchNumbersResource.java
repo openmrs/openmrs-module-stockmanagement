@@ -7,7 +7,6 @@ import io.swagger.models.properties.StringProperty;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
-import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -21,6 +20,7 @@ import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.springframework.web.client.RestClientException;
@@ -57,11 +57,11 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 	@Override
 	public StockOperationBatchNumbersDTO save(StockOperationBatchNumbersDTO delegate) {
 		try {
-			StockOperationBatchNumbersDTO result = getStockManagementService().saveStockOperationBatchNumbers(delegate);
-			return result;
+			return getStockManagementService().saveStockOperationBatchNumbers(delegate);
 		}
 		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+			throw new IllegalRequestException(
+	        safeMessage(exception, "Unable to save stock operation batch numbers"));
 		}
 	}
 	
