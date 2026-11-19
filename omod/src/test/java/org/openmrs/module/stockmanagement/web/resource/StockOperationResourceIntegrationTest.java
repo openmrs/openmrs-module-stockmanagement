@@ -36,6 +36,7 @@ import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.api.ValidationException;
+import org.openmrs.validator.ValidateUtil;
 
 /**
  * Context-sensitive test that saves through {@link StockOperationResource#save} end to end.
@@ -205,6 +206,25 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		assertNotNull(operation);
 		assertNotNull(operation.getAtLocation(), "at_location_id is NOT NULL: the validator must have derived it");
 		assertEquals(operation.getDestination().getLocation().getId(), operation.getAtLocation().getId());
+	}
+
+	@Test
+	public void save_shouldDeriveAtLocation_whenCoreValidationIsDisabled() {
+		StockOperationType receiptType = dao().getStockOperationTypeByUuid(TEST_RECEIPT_TYPE_UUID);
+		grantAuthenticatedUserScope(eu().getLocation(), receiptType);
+		// what the validation.disable global property sets at startup
+		Boolean validationDisabled = ValidateUtil.getDisableValidation();
+		ValidateUtil.setDisableValidation(true);
+		try {
+			StockOperationDTO saved = new StockOperationResource().save(newReceiptDtoWithoutAtLocationUuid());
+
+			StockOperation operation = dao().getStockOperationByUuid(saved.getUuid());
+			assertNotNull(operation.getAtLocation());
+			assertEquals(operation.getDestination().getLocation().getId(), operation.getAtLocation().getId());
+		}
+		finally {
+			ValidateUtil.setDisableValidation(validationDisabled);
+		}
 	}
 
 	@Test
