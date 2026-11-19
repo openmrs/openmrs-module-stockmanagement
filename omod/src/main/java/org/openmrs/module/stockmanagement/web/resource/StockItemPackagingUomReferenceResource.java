@@ -13,7 +13,6 @@ import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUomReference
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUomReference;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
-import org.openmrs.module.webservices.rest.web.annotation.PropertySetter;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.DefaultRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.FullRepresentation;
@@ -45,6 +44,11 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 	@Override
 	protected void delete(StockItemPackagingUomReferenceDTO delegate, String reason, RequestContext context)
 	        throws ResponseException {
+		// void_reason is VARCHAR(255): an over-long reason would overflow at flush and come back
+		// as the generic 500, so refuse it with a 400 like the sibling resources do
+		if (reason != null && reason.length() > 250) {
+			throw new IllegalRequestException("Parameter reason can not exceed 250 characters");
+		}
 		try {
 			getStockManagementService().voidStockItemPackagingUomReference(delegate.getUuid(), reason,
 			    Context.getAuthenticatedUser().getUserId());
@@ -189,15 +193,6 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		}
 
 		return description;
-	}
-
-	@PropertySetter("referenceCode")
-	public void setReferenceCode(StockItemPackagingUomReferenceDTO instance, String value) {
-		if (value == null) {
-			instance.setReferenceCode(null);
-		} else {
-			instance.setReferenceCode(value);
-		}
 	}
 
 	@Override

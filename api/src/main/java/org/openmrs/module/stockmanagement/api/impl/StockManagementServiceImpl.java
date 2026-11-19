@@ -3557,12 +3557,15 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         // Mirrors the database unique constraint on (stock_source_id, stock_reference_code);
         // voided rows are excluded because voiding suffixes their stored code, so only active
         // references collide. The query must not auto-flush the pending edits or the database
-        // constraint fires before this friendly duplicate check runs
+        // constraint fires before this friendly duplicate check runs. Dormant references (a
+        // voided packaging UOM or source) still hold the unique key, so they must collide too —
+        // the message names the reference that holds the code, which the resolve and search
+        // queries stop finding
         List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(
             stockItemPackagingUomReference.getReferenceSource(), stockItemPackagingUomReference.getStockReferenceCode());
         if (!matches.isEmpty() && !matches.get(0).getId().equals(stockItemPackagingUomReference.getId())) {
             throw new APIException("Stock item packaging UOM reference code " + stockItemPackagingUomReference.getStockReferenceCode()
-                    + " already exists for the given stock source");
+                    + " already exists for the given stock source (reference " + matches.get(0).getUuid() + ")");
         }
 
         return dao.saveStockItemPackagingUomReference(stockItemPackagingUomReference);
@@ -3596,8 +3599,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         if (stockSource == null || stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
             throw new APIException("Stock source and stock reference code are required");
         }
-        List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(stockSource,
-            stockReferenceCode.trim());
+        List<StockItemPackagingUomReference> matches = getResolvableReferences(stockSource, stockReferenceCode.trim());
         if (matches.isEmpty()) {
             return null;
         }
@@ -3605,12 +3607,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             throw new APIException("Multiple stock item packaging UOM references found for stock reference code "
                     + stockReferenceCode + " and the given stock source");
         }
-        StockItemPackagingUomReference match = matches.get(0);
-        //a voided packaging UOM or source must not resolve: its references stay stored but dormant
-        if (match.getStockItemPackagingUOM().getVoided() || Boolean.TRUE.equals(match.getReferenceSource().getVoided())) {
-            return null;
-        }
-        return match.getStockItemPackagingUOM();
+        return matches.get(0).getStockItemPackagingUOM();
     }
 
     @Override
@@ -3623,6 +3620,16 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         if (stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
             throw new APIException("Stock reference code is required");
         }
-        return dao.getStockItemPackagingUomReferenceBySourceAndCode(stockSource, stockReferenceCode.trim());
+        return getResolvableReferences(stockSource, stockReferenceCode.trim());
+    }
+
+    //a voided packaging UOM or source must not resolve: its references stay stored but dormant,
+    //and a client must not be handed a stockItemPackagingUomUuid that the UOM resource answers
+    //404 for
+    private List<StockItemPackagingUomReference> getResolvableReferences(StockSource stockSource, String stockReferenceCode) {
+        return dao.getStockItemPackagingUomReferenceBySourceAndCode(stockSource, stockReferenceCode).stream()
+                .filter(r -> !Boolean.TRUE.equals(r.getStockItemPackagingUOM().getVoided())
+                        && !Boolean.TRUE.equals(r.getReferenceSource().getVoided()))
+                .collect(Collectors.toList());
     }
 }

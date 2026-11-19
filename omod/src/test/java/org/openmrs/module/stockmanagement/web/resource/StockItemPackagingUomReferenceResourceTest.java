@@ -382,6 +382,34 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 	}
 
 	@Test
+	public void delete_shouldRejectAnOverLongVoidReason() {
+		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
+
+		// void_reason is VARCHAR(255): over 250 characters the void would overflow at flush and
+		// come back as the generic 500, so the resource refuses it with a 400
+		char[] overLongReason = new char[251];
+		Arrays.fill(overLongReason, 'x');
+		try {
+			resource.delete(saved, new String(overLongReason), searchContext(new MockHttpServletRequest()));
+			fail("Expected an IllegalRequestException to be thrown");
+		}
+		catch (IllegalRequestException e) {
+			assertEquals("Parameter reason can not exceed 250 characters", e.getMessage());
+		}
+		catch (ResponseException e) {
+			fail("Expected an IllegalRequestException, got " + e.getClass().getSimpleName());
+		}
+
+		// 250 characters still voids: the reason fits void_reason
+		char[] longestReason = new char[250];
+		Arrays.fill(longestReason, 'x');
+		resource.delete(saved, new String(longestReason), searchContext(new MockHttpServletRequest()));
+		Context.flushSession();
+		Context.clearSession();
+		assertTrue(resource.getByUniqueId(saved.getUuid()).isVoided());
+	}
+
+	@Test
 	public void delete_shouldVoidTheReference() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
 

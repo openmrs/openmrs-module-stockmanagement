@@ -1585,7 +1585,10 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
             stockManagementService.saveStockItemPackagingUomReference(duplicate);
             fail("Expected an APIException to be thrown");
         } catch (APIException e) {
+            // the search stops finding dormant references, so the message names the reference
+            // that holds the code
             assertThat(e.getMessage(), containsString("already exists"));
+            assertThat(e.getMessage(), containsString(savedReference.getUuid()));
         }
     }
 
@@ -1958,6 +1961,39 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         } catch (APIException e) {
             assertThat(e.getMessage(), containsString("voided stock source"));
         }
+    }
+
+    @Test
+    public void getStockItemPackagingUomByReference_shouldNotResolveAReferenceOfAVoidedSource() {
+        StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+        StockSource stockSource = savedReference.getReferenceSource();
+        stockSource.setVoided(true);
+        dao().saveStockSource(stockSource);
+        Context.flushSession();
+        Context.clearSession();
+
+        // the source half of the dormancy filter: the reference row stays active, but resolving
+        // its code must not hand back anything for a voided source
+        StockItemPackagingUOM resolved = stockManagementService.getStockItemPackagingUomByReference(stockSource,
+            "M221680001EP30T");
+        assertNull(resolved);
+    }
+
+    @Test
+    public void getStockItemPackagingUomReferencesBySourceAndCode_shouldExcludeReferencesOfAVoidedPackagingUom() {
+        StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+        dao().voidStockItemPackagingUOM(savedReference.getStockItemPackagingUOM().getUuid(), "test void",
+            savedReference.getCreator().getUserId());
+        Context.flushSession();
+        Context.clearSession();
+
+        // the REST search uses the same resolvable filter as the resolve, so a client is never
+        // handed a stockItemPackagingUomUuid that stockitempackaginguom answers 404 for
+        List<StockItemPackagingUomReference> references = stockManagementService
+                .getStockItemPackagingUomReferencesBySourceAndCode(savedReference.getReferenceSource().getUuid(),
+                    "M221680001EP30T");
+        assertNotNull(references);
+        assertTrue(references.isEmpty());
     }
 
     @Test
