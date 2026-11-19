@@ -558,7 +558,7 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, requireAll = true)
-	void voidStockItemPackagingUomReference(String uuid, String reason, Integer userId);
+	void voidStockItemPackagingUomReference(String uuid, String reason, int userId);
 
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
@@ -566,7 +566,7 @@ public interface StockManagementService extends OpenmrsService {
 
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid);
+	List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid, boolean includeVoided);
 
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)

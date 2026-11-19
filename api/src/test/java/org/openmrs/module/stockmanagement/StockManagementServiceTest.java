@@ -1638,7 +1638,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
         StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
 
         List<StockItemPackagingUomReference> references = stockManagementService
-                .getStockItemPackagingUomReferencesByPackagingUom(savedReference.getStockItemPackagingUOM().getUuid());
+                .getStockItemPackagingUomReferencesByPackagingUom(savedReference.getStockItemPackagingUOM().getUuid(), false);
         assertNotNull(references);
         assertEquals(1, references.size());
         assertEquals(savedReference.getUuid(), references.get(0).getUuid());
@@ -1844,6 +1844,119 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
             fail("Expected an APIException to be thrown");
         } catch (APIException e) {
             assertThat(e.getMessage(), containsString("too long"));
+        }
+
+        // the failed void must not have left the managed entity half-voided (voided set, code
+        // unsuffixed): re-reading after a flush shows the reference as it was
+        Context.flushSession();
+        Context.clearSession();
+        StockItemPackagingUomReference untouched = stockManagementService
+                .getStockItemPackagingUomReferenceByUuid(saved.getUuid());
+        assertFalse(untouched.getVoided());
+        assertEquals(new String(legacyCode), untouched.getStockReferenceCode());
+    }
+
+    @Test
+    public void saveStockItemPackagingUomReference_shouldRejectAPackagingUomVoidedInTheDatabase() {
+        stockManagementService.setDao(dao());
+        StockItem stockItem = eu().newStockItem(dao(), false);
+        dao().saveStockItem(stockItem);
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+        packagingUom.setVoided(false);
+        dao().saveStockItemPackagingUOM(packagingUom);
+        dao().voidStockItemPackagingUOM(packagingUom.getUuid(), "test void",
+            Context.getAuthenticatedUser().getUserId());
+        // the bulk-HQL void bypasses the session cache: clear it so the save path reads the row
+        Context.flushSession();
+        Context.clearSession();
+
+        // a stale detached copy still claims non-voided: the guard must test the fetched row
+        StockItemPackagingUOM staleCopy = new StockItemPackagingUOM();
+        staleCopy.setId(packagingUom.getId());
+        staleCopy.setUuid(packagingUom.getUuid());
+        staleCopy.setVoided(false);
+
+        StockSource stockSource = createNonVoidedStockSource();
+        StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+        reference.setStockItemPackagingUOM(staleCopy);
+        reference.setReferenceSource(stockSource);
+        reference.setStockReferenceCode("M221680001EP30T");
+        try {
+            stockManagementService.saveStockItemPackagingUomReference(reference);
+            fail("Expected an APIException to be thrown");
+        } catch (APIException e) {
+            assertThat(e.getMessage(), containsString("voided stock item packaging UOM"));
+        }
+    }
+
+    @Test
+    public void saveStockItemPackagingUomReference_shouldRejectAStockSourceThatDoesNotExist() {
+        stockManagementService.setDao(dao());
+        StockItem stockItem = eu().newStockItem(dao(), false);
+        dao().saveStockItem(stockItem);
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+        packagingUom.setVoided(false);
+        dao().saveStockItemPackagingUOM(packagingUom);
+
+        // a fabricated source with a valid-looking id: the uuid existence check must catch it
+        // before it dies at flush on the foreign key
+        StockSource fabricated = new StockSource();
+        fabricated.setId(999999);
+        fabricated.setUuid("non-existent-source-uuid");
+
+        StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+        reference.setStockItemPackagingUOM(packagingUom);
+        reference.setReferenceSource(fabricated);
+        reference.setStockReferenceCode("M221680001EP30T");
+        try {
+            stockManagementService.saveStockItemPackagingUomReference(reference);
+            fail("Expected an APIException to be thrown");
+        } catch (APIException e) {
+            assertThat(e.getMessage(), containsString("Stock source is required and must exist"));
+        }
+    }
+
+    @Test
+    public void getStockItemPackagingUomByReference_shouldNotResolveAReferenceOfAVoidedPackagingUom() {
+        StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+        dao().voidStockItemPackagingUOM(savedReference.getStockItemPackagingUOM().getUuid(), "test void",
+            savedReference.getCreator().getUserId());
+        Context.flushSession();
+        Context.clearSession();
+
+        // the reference row stays active, but its packaging UOM is voided: resolving the code
+        // must not hand back a voided packaging entity
+        StockItemPackagingUOM resolved = stockManagementService.getStockItemPackagingUomByReference(
+            savedReference.getReferenceSource(), "M221680001EP30T");
+        assertNull(resolved);
+    }
+
+    @Test
+    public void saveStockItemPackagingUomReference_shouldRejectAVoidedStockSource() {
+        stockManagementService.setDao(dao());
+        StockItem stockItem = eu().newStockItem(dao(), false);
+        dao().saveStockItem(stockItem);
+        StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+        packagingUom.setVoided(false);
+        dao().saveStockItemPackagingUOM(packagingUom);
+
+        StockSource stockSource = createNonVoidedStockSource();
+        stockSource.setVoided(true);
+        dao().saveStockSource(stockSource);
+        Context.flushSession();
+        Context.clearSession();
+
+        // the caller's copy still shows the source as active: the guard must test the fetched row
+        stockSource.setVoided(false);
+        StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+        reference.setStockItemPackagingUOM(packagingUom);
+        reference.setReferenceSource(stockSource);
+        reference.setStockReferenceCode("M221680001EP30T");
+        try {
+            stockManagementService.saveStockItemPackagingUomReference(reference);
+            fail("Expected an APIException to be thrown");
+        } catch (APIException e) {
+            assertThat(e.getMessage(), containsString("voided stock source"));
         }
     }
 

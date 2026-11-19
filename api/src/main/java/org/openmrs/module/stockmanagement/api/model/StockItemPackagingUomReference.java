@@ -14,6 +14,28 @@ import java.io.Serializable;
         columnNames = { "stock_source_id", "stock_reference_code" }))
 public class StockItemPackagingUomReference extends org.openmrs.BaseChangeableOpenmrsData implements Serializable {
 
+	//the single source of truth for the void-suffix format: the DAO builds the suffixed code with
+	//it and the service's code-length guard derives its limit from it, so the two cannot drift
+	public static final int CODE_MAX_LENGTH = 255;
+	private static final String VOIDED_SUFFIX_FORMAT = " (voided %d)";
+
+	/**
+	 * @return the stored code with the void suffix appended, which frees the original code for
+	 * reuse on the same source (the (stock_source_id, stock_reference_code) unique constraint
+	 * covers voided rows too)
+	 */
+	public static String voidedCode(String stockReferenceCode, Integer id) {
+		return stockReferenceCode + String.format(VOIDED_SUFFIX_FORMAT, id);
+	}
+
+	/**
+	 * @return the longest stock reference code that can still hold the void suffix, i.e. the
+	 * longest code a reference may be saved with so it stays voidable
+	 */
+	public static int maxSaveableCodeLength() {
+		return CODE_MAX_LENGTH - String.format(VOIDED_SUFFIX_FORMAT, Integer.MAX_VALUE).length();
+	}
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "stock_item_packaging_uom_reference_id")
@@ -27,7 +49,7 @@ public class StockItemPackagingUomReference extends org.openmrs.BaseChangeableOp
 	@ManyToOne(fetch = FetchType.EAGER)
 	private StockItemPackagingUOM stockItemPackagingUOM;
 
-	@Column(name = "stock_reference_code", length = 255)
+	@Column(name = "stock_reference_code", length = CODE_MAX_LENGTH)
 	private String stockReferenceCode;
 
 	@Column(name = "name", length = 255)

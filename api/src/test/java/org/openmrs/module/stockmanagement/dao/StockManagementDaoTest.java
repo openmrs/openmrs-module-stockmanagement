@@ -722,7 +722,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 
 		//When
 		List<StockItemPackagingUomReference> references = dao()
-		        .getStockItemPackagingUomReferenceByPackagingUom(reference.getStockItemPackagingUOM());
+		        .getStockItemPackagingUomReferenceByPackagingUom(reference.getStockItemPackagingUOM(), false);
 
 		//Then
 		assertThat(references.size(), is(1));

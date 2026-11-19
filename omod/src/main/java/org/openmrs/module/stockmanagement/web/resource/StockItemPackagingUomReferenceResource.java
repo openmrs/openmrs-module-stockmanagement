@@ -21,9 +21,12 @@ import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
+import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +34,8 @@ import java.util.List;
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockitempackaginguomreference", supportedClass = StockItemPackagingUomReferenceDTO.class, supportedOpenmrsVersions = {
         "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockItemPackagingUomReferenceResource extends ResourceBase<StockItemPackagingUomReferenceDTO> {
+
+	private static final Log log = LogFactory.getLog(StockItemPackagingUomReferenceResource.class);
 
 	@Override
 	public StockItemPackagingUomReferenceDTO getByUniqueId(String uniqueId) {
@@ -48,8 +53,15 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			throw e;
 		}
 		catch (APIException e) {
-			// the REST module answers service rejections with a 500 otherwise
-			throw new IllegalRequestException(e.getMessage());
+			// the REST module answers service rejections with a 500 otherwise; the cause stays
+			// in the log, since wrapErrorResponse appends each cause's message to the response
+			log.error("Failed to void stock item packaging UOM reference. uuid=" + delegate.getUuid(), e);
+			throw new IllegalRequestException(safeMessage(e, "Unable to void stock item packaging UOM reference"));
+		}
+		catch (Exception e) {
+			// unexpected failure: generic message to the client, original exception in the log
+			log.error("Failed to void stock item packaging UOM reference. uuid=" + delegate.getUuid(), e);
+			throw new GenericRestException("Unable to void stock item packaging UOM reference");
 		}
 	}
 
@@ -58,9 +70,11 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		String stockItemPackagingUomUuid = context.getParameter("stockItemPackagingUomUuid");
 		if (StringUtils.isNotBlank(stockItemPackagingUomUuid)) {
 			List<StockItemPackagingUomReferenceDTO> referenceDTOS = new ArrayList<>();
-			// an unknown packaging UOM uuid yields an empty result rather than a not-found error
+			// an unknown packaging UOM uuid yields an empty result rather than a not-found error;
+			// includeAll matches the sibling resources so voided references stay listable for audit
 			for (StockItemPackagingUomReference reference : getStockManagementService()
-			        .getStockItemPackagingUomReferencesByPackagingUom(stockItemPackagingUomUuid)) {
+			        .getStockItemPackagingUomReferencesByPackagingUom(stockItemPackagingUomUuid,
+			            Boolean.TRUE.equals(context.getIncludeAll()))) {
 				referenceDTOS.add(convertToDTO(reference));
 			}
 			return toAlreadyPaged(referenceDTOS, context);
@@ -102,8 +116,20 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			throw e;
 		}
 		catch (APIException e) {
-			// the REST module answers service rejections with a 500 otherwise
-			throw new IllegalRequestException(e.getMessage());
+			// the REST module answers service rejections with a 500 otherwise; the cause stays
+			// in the log, since wrapErrorResponse appends each cause's message to the response
+			log.error("Failed to save stock item packaging UOM reference. uuid=" + delegate.getUuid()
+			        + ", packagingUomUuid=" + delegate.getStockItemPackagingUomUuid() + ", sourceUuid="
+			        + delegate.getStockSourceUuid() + ", referenceCode=" + delegate.getReferenceCode(), e);
+			throw new IllegalRequestException(safeMessage(e, "Unable to save stock item packaging UOM reference"));
+		}
+		catch (Exception e) {
+			// unexpected failure (e.g. the check-then-insert race lost on the unique constraint):
+			// generic message to the client, original exception in the log
+			log.error("Failed to save stock item packaging UOM reference. uuid=" + delegate.getUuid()
+			        + ", packagingUomUuid=" + delegate.getStockItemPackagingUomUuid() + ", sourceUuid="
+			        + delegate.getStockSourceUuid() + ", referenceCode=" + delegate.getReferenceCode(), e);
+			throw new GenericRestException("Unable to save stock item packaging UOM reference");
 		}
 		return getByUniqueId(reference.getUuid());
 	}

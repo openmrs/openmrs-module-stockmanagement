@@ -59,11 +59,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     private static final UUID DISPENSING_PROCESSING_LOCK = UUID.randomUUID();
     private static final Map<String, UUID> LOCATION_DISPENSING_OPERATION_LOCKS = new HashMap<>();
 
-    //the longest stock reference code a reference can carry: stock_reference_code is VARCHAR(255)
-    //and voiding appends " (voided <id>)" (9 characters, a closing paren and up to 10 digits)
-    private static final int MAX_VOIDABLE_STOCK_REFERENCE_CODE_LENGTH = 255
-            - (" (voided ".length() + String.valueOf(Integer.MAX_VALUE).length() + 1);
-
     public StockManagementServiceImpl() {
 
     }
@@ -3521,17 +3516,26 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         }
 
         StockItemPackagingUOM stockItemPackagingUOM = stockItemPackagingUomReference.getStockItemPackagingUOM();
-        if (stockItemPackagingUOM == null || stockItemPackagingUOM.getId() == null
-                || dao.getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid()) == null) {
+        StockItemPackagingUOM storedPackagingUOM = stockItemPackagingUOM == null ? null
+                : dao.getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid());
+        if (stockItemPackagingUOM == null || stockItemPackagingUOM.getId() == null || storedPackagingUOM == null) {
             throw new APIException("Stock item packaging UOM is required and must exist");
         }
-        if (stockItemPackagingUOM.getVoided()) {
+        //test the fetched row, not the caller's object: a detached copy may predate a void
+        if (storedPackagingUOM.getVoided()) {
             throw new APIException("References cannot be created for a voided stock item packaging UOM");
         }
 
-        if (stockItemPackagingUomReference.getReferenceSource() == null
-                || stockItemPackagingUomReference.getReferenceSource().getId() == null) {
+        StockSource referenceSource = stockItemPackagingUomReference.getReferenceSource();
+        StockSource storedSource = referenceSource == null ? null
+                : dao.getStockSourceByUuid(referenceSource.getUuid());
+        if (referenceSource == null || referenceSource.getId() == null || storedSource == null) {
             throw new APIException("Stock source is required and must exist");
+        }
+        //mirror the packaging UOM check on the fetched row: a reference of a voided source would
+        //never resolve, yet its code would keep occupying the unique key on that source
+        if (Boolean.TRUE.equals(storedSource.getVoided())) {
+            throw new APIException("References cannot be created for a voided stock source");
         }
 
         if (stockItemPackagingUomReference.getStockReferenceCode() == null
@@ -3541,13 +3545,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         stockItemPackagingUomReference
                 .setStockReferenceCode(stockItemPackagingUomReference.getStockReferenceCode().trim());
 
-        // voiding suffixes the stored code with " (voided <id>)" (9 characters, a closing paren
-        // and up to 10 digits for the id) to free the code for reuse, and stock_reference_code is
-        // VARCHAR(255): refuse codes that could no longer hold that suffix, so every active
-        // reference can still be voided
-        if (stockItemPackagingUomReference.getStockReferenceCode().length() > MAX_VOIDABLE_STOCK_REFERENCE_CODE_LENGTH) {
+        // voiding suffixes the stored code with the (voided <id>) format the entity owns, to free
+        // the code for reuse, and stock_reference_code is a bounded column: refuse codes that
+        // could no longer hold that suffix, so every active reference can still be voided
+        if (stockItemPackagingUomReference.getStockReferenceCode()
+                .length() > StockItemPackagingUomReference.maxSaveableCodeLength()) {
             throw new APIException("Stock reference code is too long: a code can be at most "
-                    + MAX_VOIDABLE_STOCK_REFERENCE_CODE_LENGTH + " characters so voiding can append its (voided <id>) suffix");
+                    + StockItemPackagingUomReference.maxSaveableCodeLength() + " characters so voiding can append its (voided <id>) suffix");
         }
 
         // Mirrors the database unique constraint on (stock_source_id, stock_reference_code);
@@ -3556,9 +3560,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
         // constraint fires before this friendly duplicate check runs
         List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(
             stockItemPackagingUomReference.getReferenceSource(), stockItemPackagingUomReference.getStockReferenceCode());
-        if (!matches.isEmpty()
-                && (matches.get(0).getId() == null
-                        || !matches.get(0).getId().equals(stockItemPackagingUomReference.getId()))) {
+        if (!matches.isEmpty() && !matches.get(0).getId().equals(stockItemPackagingUomReference.getId())) {
             throw new APIException("Stock item packaging UOM reference code " + stockItemPackagingUomReference.getStockReferenceCode()
                     + " already exists for the given stock source");
         }
@@ -3567,7 +3569,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     @Override
-    public void voidStockItemPackagingUomReference(String uuid, String reason, Integer userId) {
+    public void voidStockItemPackagingUomReference(String uuid, String reason, int userId) {
         if (uuid == null || uuid.trim().isEmpty()) {
             throw new APIException("Stock item packaging UOM reference uuid is required");
         }
@@ -3580,12 +3582,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
     }
 
     @Override
-    public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid) {
+    public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid,
+            boolean includeVoided) {
         StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(stockItemPackagingUomUuid);
         if (stockItemPackagingUOM == null) {
             return Collections.emptyList();
         }
-        return dao.getStockItemPackagingUomReferenceByPackagingUom(stockItemPackagingUOM);
+        return dao.getStockItemPackagingUomReferenceByPackagingUom(stockItemPackagingUOM, includeVoided);
     }
 
     @Override
@@ -3602,7 +3605,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
             throw new APIException("Multiple stock item packaging UOM references found for stock reference code "
                     + stockReferenceCode + " and the given stock source");
         }
-        return matches.get(0).getStockItemPackagingUOM();
+        StockItemPackagingUomReference match = matches.get(0);
+        //a voided packaging UOM or source must not resolve: its references stay stored but dormant
+        if (match.getStockItemPackagingUOM().getVoided() || Boolean.TRUE.equals(match.getReferenceSource().getVoided())) {
+            return null;
+        }
+        return match.getStockItemPackagingUOM();
     }
 
     @Override

@@ -5312,10 +5312,13 @@ public class StockManagementDao extends DaoBase {
 		        .add(Restrictions.eq("uuid", uuid)).uniqueResult();
 	}
 
-	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(StockItemPackagingUOM stockItemPackagingUOM) {
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(StockItemPackagingUOM stockItemPackagingUOM,
+	        boolean includeVoided) {
 		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
 		criteria.add(Restrictions.eq("stockItemPackagingUOM", stockItemPackagingUOM));
-		criteria.add(Restrictions.eq("voided", false));
+		if (!includeVoided) {
+			criteria.add(Restrictions.eq("voided", false));
+		}
 		return criteria.list();
 	}
 
@@ -5339,6 +5342,16 @@ public class StockManagementDao extends DaoBase {
 		if (reference.getVoided()) {
 			return;
 		}
+		//compute and validate the suffix BEFORE mutating the managed entity: a failed void must
+		//leave the reference untouched, not half-voided (voided set, code unsuffixed) in session
+		String suffixedCode = StockItemPackagingUomReference.voidedCode(reference.getStockReferenceCode(), reference.getId());
+		//a row saved before the service's code-length guard could carry a code the suffix would
+		//push past the column length; a clear message beats the raw data-truncation error
+		if (suffixedCode.length() > StockItemPackagingUomReference.CODE_MAX_LENGTH) {
+			throw new APIException(
+			        "The stock reference code is too long to be voided: appending the (voided <id>) suffix would exceed "
+			                + StockItemPackagingUomReference.CODE_MAX_LENGTH + " characters");
+		}
 		reference.setVoided(true);
 		reference.setDateVoided(new Date());
 		//voidedBy maps to a User association, so bind a User reference, not the raw user id
@@ -5346,13 +5359,6 @@ public class StockManagementDao extends DaoBase {
 		reference.setVoidReason(reason);
 		//the (stock_source_id, stock_reference_code) unique constraint covers voided rows too,
 		//so suffix the stored code to free the original code for reuse on the same source
-		String suffixedCode = reference.getStockReferenceCode() + " (voided " + reference.getId() + ")";
-		//a row saved before the service's code-length guard could carry a code the suffix would
-		//push past VARCHAR(255); a clear message beats the raw data-truncation error
-		if (suffixedCode.length() > 255) {
-			throw new APIException(
-			        "The stock reference code is too long to be voided: appending the (voided <id>) suffix would exceed 255 characters");
-		}
 		reference.setStockReferenceCode(suffixedCode);
 		dbSession.saveOrUpdate(reference);
 		//flush so a create or rename of the freed code in the same transaction sees the voided

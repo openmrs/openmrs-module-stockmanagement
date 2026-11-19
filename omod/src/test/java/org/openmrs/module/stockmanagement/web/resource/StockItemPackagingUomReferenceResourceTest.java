@@ -19,10 +19,12 @@ import org.junit.Test;
 import org.openmrs.Privilege;
 import org.openmrs.Role;
 import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUomReferenceDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
@@ -33,12 +35,17 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
 import org.openmrs.module.webservices.rest.web.response.ConversionException;
+import org.openmrs.module.webservices.rest.web.response.GenericRestException;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Context-sensitive test exercising {@link StockItemPackagingUomReferenceResource} against the
@@ -138,6 +145,45 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		RequestContext context = new RequestContext();
 		context.setRequest(request);
 		return context;
+	}
+
+	@Test
+	public void save_shouldTurnAValidationExceptionIntoABadRequest() {
+		// core's length checks throw ValidationException, an APIException: unlike
+		// StockOperationResource, this resource converts it via the APIException branch to
+		// IllegalRequestException, a 400 on every REST version; rethrowing it as-is was a 500
+		// on REST 3.0/3.1
+		StockManagementService service = mock(StockManagementService.class);
+		resource.setStockManagementService(service);
+		when(service.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
+		        .thenThrow(new ValidationException("name is too long"));
+
+		try {
+			resource.save(new StockItemPackagingUomReferenceDTO());
+			fail("Expected an IllegalRequestException to be thrown");
+		}
+		catch (IllegalRequestException e) {
+			assertEquals("name is too long", e.getMessage());
+		}
+	}
+
+	@Test
+	public void save_shouldReturnSafeGenericErrorWhenUnexpectedExceptionOccurs() {
+		// e.g. the check-then-insert race lost on the unique constraint: the client must get the
+		// safe generic message, never the raw exception or its cause
+		StockManagementService service = mock(StockManagementService.class);
+		resource.setStockManagementService(service);
+		when(service.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
+		        .thenThrow(new NullPointerException());
+
+		try {
+			resource.save(new StockItemPackagingUomReferenceDTO());
+			fail("Expected a GenericRestException to be thrown");
+		}
+		catch (GenericRestException e) {
+			assertEquals("Unable to save stock item packaging UOM reference", e.getMessage());
+			assertNull(e.getCause());
+		}
 	}
 
 	@Test
@@ -264,6 +310,33 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		List<StockItemPackagingUomReferenceDTO> references = result.getPageOfResults();
 		assertEquals(1, references.size());
 		assertEquals(saved.getUuid(), references.get(0).getUuid());
+	}
+
+	@Test
+	public void doSearch_shouldListVoidedReferencesWithIncludeAll() throws ResponseException {
+		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
+		resource.delete(saved, "test void", searchContext(new MockHttpServletRequest()));
+		Context.flushSession();
+		Context.clearSession();
+
+		// default search skips voided rows, includeAll matches the sibling resources' audit view
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setParameter("stockItemPackagingUomUuid", saved.getStockItemPackagingUomUuid());
+		AlreadyPaged<StockItemPackagingUomReferenceDTO> result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource
+		        .doSearch(searchContext(request));
+		assertTrue(result.getPageOfResults().isEmpty());
+
+		request = new MockHttpServletRequest();
+		request.setParameter("stockItemPackagingUomUuid", saved.getStockItemPackagingUomUuid());
+		request.setParameter("includeAll", "true");
+		// RestUtil.generateRequestContext is what turns the request param into includeAll on a
+		// real call; the bare test context needs it set directly
+		RequestContext includeAllContext = searchContext(request);
+		includeAllContext.setIncludeAll(Boolean.TRUE);
+		result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource.doSearch(includeAllContext);
+		List<StockItemPackagingUomReferenceDTO> references = result.getPageOfResults();
+		assertEquals(1, references.size());
+		assertTrue(references.get(0).isVoided());
 	}
 
 	@Test
