@@ -42,7 +42,7 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 
 	private StockManagementDao daoInstance;
 
-	private UserRoleScopeResource resource = new UserRoleScopeResource();
+	private final UserRoleScopeResource resource = new UserRoleScopeResource();
 
 	// the user a built scope DTO belongs to; set as a side effect of buildValidScopeDto
 	private User targetUser;
