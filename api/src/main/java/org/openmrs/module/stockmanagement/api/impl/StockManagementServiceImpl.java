@@ -1328,11 +1328,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                     StockBatch stockBatch = findStockBatch(stockItem, itemDto.getBatchNo(), itemDto.getExpiration());
                     if (stockBatch == null) {
                         Optional<StockBatch> newlyAddedStockBatch = newStockBatches
-                                .stream().filter(p -> p.getStockItem().getId().equals(stockItem.getId()) &&
-                                        itemDto.getBatchNo().equalsIgnoreCase(p.getBatchNo()) &&
-                                        ((stockItem.getHasExpiration() && p.getExpiration().equals(p.getExpiration()))
-                                                ||
-                                                (!stockItem.getHasExpiration() && p.getExpiration() == null)))
+                                .stream().filter(p -> isSameStockBatch(p, stockItem, itemDto.getBatchNo(), itemDto.getExpiration()))
                                 .findFirst();
                         if (newlyAddedStockBatch.isPresent()) {
                             stockBatchMapping.putIfAbsent(item.getUuid(), newlyAddedStockBatch.get());
@@ -1405,6 +1401,26 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 
     public StockBatch getStockBatchByUuid(String uuid) {
         return dao.getStockBatchByUuid(uuid);
+    }
+
+    /**
+     * Whether a batch created earlier in the same request is the batch a line refers to: same stock item, same batch
+     * number and, for items that expire, the same expiry date. Items that do not expire only match batches without one.
+     */
+    static boolean isSameStockBatch(StockBatch candidate, StockItem stockItem, String batchNo, Date expiration) {
+        if (candidate.getStockItem() == null || !candidate.getStockItem().getId().equals(stockItem.getId())) {
+            return false;
+        }
+        if (batchNo == null || !batchNo.equalsIgnoreCase(candidate.getBatchNo())) {
+            return false;
+        }
+        if (!stockItem.getHasExpiration()) {
+            return candidate.getExpiration() == null;
+        }
+        if (candidate.getExpiration() == null || expiration == null) {
+            return candidate.getExpiration() == null && expiration == null;
+        }
+        return DateUtils.isSameDay(candidate.getExpiration(), expiration);
     }
 
     public StockBatch findStockBatch(StockItem stockItem, String batchNo, Date expiration) {
@@ -3397,11 +3413,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         invalidRequestWithKey("stockmanagement.stockoperation.updatebatchnumbersalreadyinuse", existingItemDto.get().getStockBatch().getBatchNo());
                     }
                     Optional<StockBatch> newlyAddedStockBatch = newStockBatches
-                            .stream().filter(p -> p.getStockItem().getId().equals(stockItem.getId()) &&
-                                    batchNumber.getBatchNo().equalsIgnoreCase(p.getBatchNo()) &&
-                                    ((stockItem.getHasExpiration() && p.getExpiration().equals(p.getExpiration()))
-                                            ||
-                                            (!stockItem.getHasExpiration() && p.getExpiration() == null)))
+                            .stream().filter(p -> isSameStockBatch(p, stockItem, batchNumber.getBatchNo(), batchNumber.getExpiration()))
                             .findFirst();
                     if (newlyAddedStockBatch.isPresent()) {
                         stockBatchMapping.putIfAbsent(existingItemDto.get().getUuid(), newlyAddedStockBatch.get());
