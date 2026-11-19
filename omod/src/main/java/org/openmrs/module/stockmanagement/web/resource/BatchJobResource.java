@@ -13,6 +13,7 @@ import org.openmrs.module.stockmanagement.api.dto.BatchJobSearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.model.BatchJobStatus;
 import org.openmrs.module.stockmanagement.api.model.BatchJobType;
+import org.openmrs.module.stockmanagement.api.validator.BatchJobValidator;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -27,7 +28,6 @@ import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceD
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.validator.ValidateUtil;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,7 +158,8 @@ public class BatchJobResource extends ResourceBase<BatchJobDTO> {
 	
 	@Override
 	public BatchJobDTO save(BatchJobDTO delegate) {
-		ValidateUtil.validate(delegate);
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+		validateDelegate(new BatchJobValidator(), delegate, "batchJobDTO");
 		return getStockManagementService().saveBatchJob(delegate);
 	}
 	

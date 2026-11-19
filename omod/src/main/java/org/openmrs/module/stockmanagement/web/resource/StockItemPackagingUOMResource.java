@@ -9,6 +9,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.validator.StockItemPackagingUOMValidator;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.PropertySetter;
@@ -21,7 +22,6 @@ import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
-import org.openmrs.validator.ValidateUtil;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -70,7 +70,8 @@ public class StockItemPackagingUOMResource extends ResourceBase<StockItemPackagi
 	
 	@Override
 	public StockItemPackagingUOMDTO save(StockItemPackagingUOMDTO delegate) {
-		ValidateUtil.validate(delegate);
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+		validateDelegate(new StockItemPackagingUOMValidator(), delegate, "stockItemPackagingUOMDTO");
 		StockItemPackagingUOM stockItemPackagingUOM = getStockManagementService().saveStockItemPackagingUOM(delegate);
 		return getByUniqueId(stockItemPackagingUOM.getUuid());
 	}

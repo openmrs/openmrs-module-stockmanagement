@@ -1,5 +1,6 @@
 package org.openmrs.module.stockmanagement.web.resource;
 
+import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -7,10 +8,14 @@ import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingCrudResource;
+import org.springframework.validation.Errors;
+import org.springframework.validation.BeanPropertyBindingResult;
+import org.springframework.validation.Validator;
 import org.springframework.web.client.RestClientException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	
@@ -21,6 +26,13 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 			stockManagementService = Context.getService(StockManagementService.class);
 		}
 		return stockManagementService;
+	}
+	
+	/**
+	 * Exposes the service for tests; production code resolves it lazily from the context.
+	 */
+	protected void setStockManagementService(StockManagementService stockManagementService) {
+		this.stockManagementService = stockManagementService;
 	}
 	
 	protected void forbidden() {
@@ -36,6 +48,42 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 			throw new RestClientException(String.format(Context.getMessageSourceService().getMessage(messageKey), args));
 		else
 			throw new RestClientException(Context.getMessageSourceService().getMessage(messageKey));
+	}
+	
+	/**
+	 * Runs a DTO validator explicitly: webservices.rest 3.2+ removed the ValidateUtil.validate call
+	 * from DelegatingCrudResource.create, so the @Handler validators no longer run on REST saves.
+	 * ValidateUtil.validate would still find these validators, but it is skipped when the global
+	 * validation.disable property is set, which would also switch off StockOperationDTOValidator's
+	 * atLocationUuid derivation; calling the validator directly keeps both independent of it.
+	 * Throws core's ValidationException carrying the field-keyed errors when it rejects the
+	 * delegate, so webservices.rest 3.2+ answers with the same field-keyed 400 as 3.1 and earlier.
+	 */
+	protected void validateDelegate(Validator validator, Object delegate, String objectName) {
+		Errors errors = new BeanPropertyBindingResult(delegate, objectName);
+		validator.validate(delegate, errors);
+		if (errors.hasErrors()) {
+			// the module's validators pass the human-readable text as the error code, so fall back
+			// to it when no default message was resolved
+			String message = errors.getAllErrors().stream()
+			        .map(error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : error.getCode())
+			        .map(message1 -> message1 == null ? "Invalid request" : message1)
+			        .collect(Collectors.joining(", "));
+			throw new ValidationException(message, errors);
+		}
+	}
+	
+	/**
+	 * Returns the exception's message, falling back to the given default when it is null or blank
+	 * so that REST error responses never carry a null message.
+	 */
+	protected String safeMessage(Throwable exception, String defaultMessage) {
+		if (exception == null)
+			return defaultMessage;
+		String message = exception.getMessage();
+		if (message == null || message.trim().isEmpty())
+			return defaultMessage;
+		return message;
 	}
 	
 	protected void requirePriviledge(String priviledge) {
