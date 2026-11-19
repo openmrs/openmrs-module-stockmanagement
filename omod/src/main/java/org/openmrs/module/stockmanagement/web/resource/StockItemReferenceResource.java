@@ -18,6 +18,7 @@ import org.openmrs.module.webservices.rest.web.representation.RefRepresentation;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceDescription;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 
@@ -35,6 +36,11 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 	
 	@Override
 	protected void delete(StockItemReferenceDTO delegate, String reason, RequestContext context) throws ResponseException {
+		// void_reason is VARCHAR(255): an over-long reason would overflow at flush and come back
+		// as the generic 500, so refuse it with a 400 like the sibling resources do
+		if (reason != null && reason.length() > 250) {
+			throw new IllegalRequestException("Parameter reason can not exceed 250 characters");
+		}
 		getStockManagementService().voidStockItemReference(delegate.getUuid(), reason,
 		    Context.getAuthenticatedUser().getUserId());
 	}
