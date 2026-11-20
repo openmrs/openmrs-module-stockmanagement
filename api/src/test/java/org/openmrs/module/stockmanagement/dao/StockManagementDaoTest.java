@@ -1,9 +1,9 @@
-/**
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public License,
  * v. 2.0. If a copy of the MPL was not distributed with this file, You can
  * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
  * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
- * <p>
+ *
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
@@ -128,8 +128,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.flushSession();
 		
 		//Then
-		StockItemPackagingUOM savedStockItemPackagingUOM = dao().getStockItemPackagingUOMByUuid(
-		    stockItemPackagingUOM.getUuid());
+		StockItemPackagingUOM savedStockItemPackagingUOM = dao()
+		        .getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid());
 		assertThat(savedStockItemPackagingUOM, hasProperty("uuid", is(stockItemPackagingUOM.getUuid())));
 		assertThat(savedStockItemPackagingUOM, hasProperty("creator", is(stockItemPackagingUOM.getCreator())));
 		assertThat(savedStockItemPackagingUOM, hasProperty("dateCreated", is(stockItemPackagingUOM.getDateCreated())));
@@ -157,8 +157,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.flushSession();
 		
 		//Then
-		UserRoleScopeOperationType savedUserRoleScopeOperationType = dao().getUserRoleScopeOperationTypeByUuid(
-		    userRoleScopeOperationType.getUuid());
+		UserRoleScopeOperationType savedUserRoleScopeOperationType = dao()
+		        .getUserRoleScopeOperationTypeByUuid(userRoleScopeOperationType.getUuid());
 		assertThat(savedUserRoleScopeOperationType, hasProperty("uuid", is(userRoleScopeOperationType.getUuid())));
 		assertThat(savedUserRoleScopeOperationType, hasProperty("creator", is(userRoleScopeOperationType.getCreator())));
 		assertThat(savedUserRoleScopeOperationType,
@@ -317,8 +317,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.flushSession();
 		
 		//Then
-		UserRoleScopeLocation savedUserRoleScopeLocation = dao().getUserRoleScopeLocationByUuid(
-		    userRoleScopeLocation.getUuid());
+		UserRoleScopeLocation savedUserRoleScopeLocation = dao()
+		        .getUserRoleScopeLocationByUuid(userRoleScopeLocation.getUuid());
 		assertThat(savedUserRoleScopeLocation, hasProperty("uuid", is(userRoleScopeLocation.getUuid())));
 		assertThat(savedUserRoleScopeLocation, hasProperty("creator", is(userRoleScopeLocation.getCreator())));
 		assertThat(savedUserRoleScopeLocation, hasProperty("dateCreated", is(userRoleScopeLocation.getDateCreated())));

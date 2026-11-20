@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.StringUtils;
@@ -121,8 +130,8 @@ public class PrescribedDrugsReport extends ReportGenerator {
 			if (!StringUtils.isBlank(stockItemCategoryUuid)) {
 				Concept concept = Context.getConceptService().getConceptByUuid(stockItemCategoryUuid);
 				if (concept == null) {
-					stockManagementService
-					        .failBatchJob(batchJob.getUuid(), "Report stock item category parameter not found");
+					stockManagementService.failBatchJob(batchJob.getUuid(),
+					    "Report stock item category parameter not found");
 					return;
 				}
 				filter.setStockItemCategoryConceptId(concept.getConceptId());
@@ -248,26 +257,28 @@ public class PrescribedDrugsReport extends ReportGenerator {
 		}
 		columns[columnIndex++] = String.format("%1$s %2$s", row.getOrdererFamilyName(), row.getOrdererGivenName());
 		if (isFullfullmentReport()) {
-			columns[columnIndex++] = row.getDispenserFamilyName() != null ? String.format("%1$s %2$s",
-			    row.getDispenserFamilyName(), row.getDispenserGivenName()) : null;
+			columns[columnIndex++] = row.getDispenserFamilyName() != null
+			        ? String.format("%1$s %2$s", row.getDispenserFamilyName(), row.getDispenserGivenName())
+			        : null;
 		}
 		columns[columnIndex++] = row.getPatientIdentifier();
-		columns[columnIndex++] = row.getStockItemDrugName() == null ? row.getStockItemConceptName() : row
-		        .getStockItemDrugName();
+		columns[columnIndex++] = row.getStockItemDrugName() == null ? row.getStockItemConceptName()
+		        : row.getStockItemDrugName();
 		columns[columnIndex++] = row.getStockItemDrugName() == null ? "" : row.getStockItemConceptName();
 		columns[columnIndex++] = emptyIfNull(row.getCommonName());
 		columns[columnIndex++] = emptyIfNull(row.getAcronym());
 		columns[columnIndex++] = emptyIfNull(row.getStockItemCategoryName());
 		columns[columnIndex++] = row.getQuantity() != null ? row.getQuantity().toPlainString() : null;
 		columns[columnIndex++] = row.getQuantityUnitsConceptName();
-		columns[columnIndex++] = row.getStockItemPackagingUOMFactor() != null ? row.getStockItemPackagingUOMFactor()
-		        .toPlainString() : null;
+		columns[columnIndex++] = row.getStockItemPackagingUOMFactor() != null
+		        ? row.getStockItemPackagingUOMFactor().toPlainString()
+		        : null;
 		if (isFullfullmentReport()) {
-			columns[columnIndex++] = row.getQuantityDispensed() == null ? null : row.getQuantityDispensed()
-			        .multiply(negativeOne).toPlainString();
+			columns[columnIndex++] = row.getQuantityDispensed() == null ? null
+			        : row.getQuantityDispensed().multiply(negativeOne).toPlainString();
 			columns[columnIndex++] = row.getQuantityDispensedStockItemPackagingUOMName();
-			columns[columnIndex++] = row.getQuantityDispensedStockItemPackagingUOMFactor() == null ? null : row
-			        .getQuantityDispensedStockItemPackagingUOMFactor().toPlainString();
+			columns[columnIndex++] = row.getQuantityDispensedStockItemPackagingUOMFactor() == null ? null
+			        : row.getQuantityDispensedStockItemPackagingUOMFactor().toPlainString();
 			columns[columnIndex++] = row.getBatchNo();
 			columns[columnIndex++] = row.getBatchExpiryDate() != null ? DATE_FORMATTER.format(row.getBatchExpiryDate())
 			        : null;
@@ -283,15 +294,16 @@ public class PrescribedDrugsReport extends ReportGenerator {
 		columns[columnIndex++] = row.getDispenseAsWritten() == null ? null
 		        : (row.getDispenseAsWritten() ? messageSourceService.getMessage("stockmanagement.report.yes")
 		                : messageSourceService.getMessage("stockmanagement.report.no"));
-		columns[columnIndex++] = row.getAsNeeded() == null ? null : (row.getAsNeeded() ? messageSourceService
-		        .getMessage("stockmanagement.report.yes") : messageSourceService.getMessage("stockmanagement.report.no"));
+		columns[columnIndex++] = row.getAsNeeded() == null ? null
+		        : (row.getAsNeeded() ? messageSourceService.getMessage("stockmanagement.report.yes")
+		                : messageSourceService.getMessage("stockmanagement.report.no"));
 		columns[columnIndex++] = row.getAsNeededCondition();
 		columns[columnIndex++] = row.getDosingInstructions();
 		columns[columnIndex++] = row.getOrderNumber();
 		columns[columnIndex++] = row.getId().toString();
 		if (isFullfullmentReport()) {
-			columns[columnIndex++] = row.getStockItemTransactionId() == null ? null : row.getStockItemTransactionId()
-			        .toString();
+			columns[columnIndex++] = row.getStockItemTransactionId() == null ? null
+			        : row.getStockItemTransactionId().toString();
 		}
 		columns[columnIndex++] = row.getStockItemDrugId() == null ? "" : row.getStockItemDrugId().toString();
 		columns[columnIndex++] = row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId().toString();
