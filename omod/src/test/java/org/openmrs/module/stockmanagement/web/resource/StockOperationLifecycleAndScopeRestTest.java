@@ -49,6 +49,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -230,17 +231,21 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	public void restLifecycle_shouldCreateReceiptAndActionThroughJsonPayloadAndCreatableProperties() throws Exception {
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		String opDateStr = dateFormat.format(DateUtils.addDays(new Date(), -1));
+		String expDateStr = dateFormat.format(DateUtils.addDays(new Date(), 365));
+
 		// Exercise the REST request path via JSON payload deserialized into SimpleObject and passed to create()
 		String jsonPayload = "{\n"
 				+ "  \"operationTypeUuid\": \"" + receiptType.getUuid() + "\",\n"
-				+ "  \"operationDate\": \"2026-11-19\",\n"
+				+ "  \"operationDate\": \"" + opDateStr + "\",\n"
 				+ "  \"sourceUuid\": \"" + supplierParty.getUuid() + "\",\n"
 				+ "  \"destinationUuid\": \"" + childParty.getUuid() + "\",\n"
 				+ "  \"stockOperationItems\": [{\n"
 				+ "    \"stockItemUuid\": \"" + sampleStockItem.getUuid() + "\",\n"
 				+ "    \"stockItemPackagingUOMUuid\": \"" + samplePackagingUom.getUuid() + "\",\n"
 				+ "    \"batchNo\": \"REST-JSON-BATCH-1\",\n"
-				+ "    \"expiration\": \"2027-11-19\",\n"
+				+ "    \"expiration\": \"" + expDateStr + "\",\n"
 				+ "    \"quantity\": 25\n"
 				+ "  }]\n"
 				+ "}";
