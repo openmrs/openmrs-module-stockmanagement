@@ -12,7 +12,6 @@ package org.openmrs.module.stockmanagement.web.resource;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.StringProperty;
-import org.apache.commons.lang.StringUtils;
 import org.openmrs.Encounter;
 import org.openmrs.Order;
 import org.openmrs.Patient;
@@ -57,12 +56,7 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
 	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
-		String searchToken = context.getParameter("q");
-		if (StringUtils.isBlank(searchToken)) {
-			return null;
-		} else {
-			return null;
-		}
+		return null;
 	}
 	
 	@Override

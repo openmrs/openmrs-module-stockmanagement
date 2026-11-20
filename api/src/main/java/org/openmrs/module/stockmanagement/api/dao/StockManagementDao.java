@@ -1452,7 +1452,7 @@ public class StockManagementDao extends DaoBase {
 				for (StockOperationItemDTO stockOperationItemDTO : result.getData()) {
 					
 					if (filter.getIncludePackagingUnitName()) {
-						Optional<ConceptNameDTO> conceptNameDTO = null;
+						Optional<ConceptNameDTO> conceptNameDTO = Optional.empty();
 						if (stockOperationItemDTO.getPackagingUoMId() != null
 						        && stockOperationItemDTO.getStockItemPackagingUOMUuid() != null) {
 							conceptNameDTO = conceptNameDTOs.stream()
