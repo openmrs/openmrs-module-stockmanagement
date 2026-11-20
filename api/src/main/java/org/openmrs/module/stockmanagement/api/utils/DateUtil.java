@@ -21,8 +21,6 @@ import java.util.Date;
 
 public class DateUtil {
 	
-	private static final SimpleDateFormat ddMMMyyyyformatter = new SimpleDateFormat("dd-MMM-yyyy");
-	
 	public static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSSZ";
 	
 	public static Date today() {
@@ -38,7 +36,7 @@ public class DateUtil {
 		if (date == null) {
 			return null;
 		}
-		return ddMMMyyyyformatter.format(date);
+		return new SimpleDateFormat("dd-MMM-yyyy").format(date);
 	}
 	
 	public static Date parseDate(String dateValue) {
