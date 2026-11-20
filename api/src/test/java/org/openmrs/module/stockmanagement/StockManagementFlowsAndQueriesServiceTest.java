@@ -292,17 +292,37 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	@Test
 	public void getActiveUsersAssignedForScope_shouldFilterByRoleAndExcludeVoidedScopesOrRetiredUsers() {
 		User user = createTestUser("clerk_void_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		grantScope(user, managerRole, parentLocation, true, receiptType);
+		UserRoleScope scope = grantScope(user, managerRole, parentLocation, true, receiptType);
+		List<String> roles = Collections.singletonList(managerRole.getRole());
+
+		// Initially active user with active scope is returned
+		List<Integer> initialUsers = stockManagementService.getActiveUsersAssignedForScope(parentLocation.getId(), roles);
+		assertTrue("Initially active user with active scope must be included", initialUsers.contains(user.getId()));
 
 		// Different role should return empty
 		List<Integer> otherRoleUsers = stockManagementService.getActiveUsersAssignedForScope(parentLocation.getId(),
 				Collections.singletonList("NonExistentRole"));
 		assertFalse(otherRoleUsers.contains(user.getId()));
 
-		// Retiring the user removes them from active scope users
+		// Voiding the scope removes the active user from active scope users (exercises urs.voided = 0)
+		stockManagementService.voidUserRoleScopes(Collections.singletonList(scope.getUuid()), "Testing voiding scope");
+		Context.flushSession();
+		Context.clearSession();
+		List<Integer> usersAfterVoidScope = stockManagementService.getActiveUsersAssignedForScope(parentLocation.getId(), roles);
+		assertFalse("User with voided scope must be excluded even when user is active", usersAfterVoidScope.contains(user.getId()));
+
+		// Re-grant scope to verify retired user check
+		grantScope(user, managerRole, parentLocation, true, receiptType);
+		Context.flushSession();
+		Context.clearSession();
+		assertTrue("User with newly granted active scope must be included again",
+				stockManagementService.getActiveUsersAssignedForScope(parentLocation.getId(), roles).contains(user.getId()));
+
+		// Retiring the user removes them from active scope users even if scope is active
 		Context.getUserService().retireUser(user, "Testing retirement");
-		List<Integer> usersAfterRetire = stockManagementService.getActiveUsersAssignedForScope(parentLocation.getId(),
-				Collections.singletonList(managerRole.getRole()));
+		Context.flushSession();
+		Context.clearSession();
+		List<Integer> usersAfterRetire = stockManagementService.getActiveUsersAssignedForScope(parentLocation.getId(), roles);
 		assertFalse("Retired user must be excluded", usersAfterRetire.contains(user.getId()));
 	}
 
