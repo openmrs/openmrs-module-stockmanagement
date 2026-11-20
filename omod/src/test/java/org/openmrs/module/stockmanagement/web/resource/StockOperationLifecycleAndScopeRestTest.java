@@ -103,8 +103,6 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 
 	private Role managerRole;
 
-	private Role sysDevRole;
-
 	private User clerkUser;
 
 	private StockItem sampleStockItem;
@@ -199,18 +197,6 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 				PrivilegeConstants.GET_USERS,
 				PrivilegeConstants.GET_GLOBAL_PROPERTIES,
 				PrivilegeConstants.MANAGE_GLOBAL_PROPERTIES);
-
-		sysDevRole = Context.getUserService().getRole("System Developer");
-		if (sysDevRole != null) {
-			for (String privName : Privileges.ALL) {
-				Privilege priv = Context.getUserService().getPrivilege(privName);
-				if (priv == null) {
-					priv = Context.getUserService().savePrivilege(new Privilege(privName, privName));
-				}
-				sysDevRole.addPrivilege(priv);
-			}
-			Context.getUserService().saveRole(sysDevRole);
-		}
 
 		sampleStockItem = createStockItem("Rest Paracetamol 500mg " + UUID.randomUUID().toString().substring(0, 8));
 		samplePackagingUom = createPackagingUOM(sampleStockItem, BigDecimal.ONE);
