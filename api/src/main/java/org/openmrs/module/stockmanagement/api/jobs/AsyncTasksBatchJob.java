@@ -21,6 +21,7 @@ import org.openmrs.module.stockmanagement.api.reporting.Report;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.FileUtil;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.utils.SchedulerTasks;
 import org.openmrs.scheduler.SchedulerException;
 import org.openmrs.scheduler.SchedulerService;
 import org.openmrs.scheduler.TaskDefinition;
@@ -32,8 +33,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class AsyncTasksBatchJob extends AbstractTask {
-	
-	private static final String TaskName = "Asynchronous Report Generation And Batch Jobs";
 	
 	private static AtomicBoolean isAlreadyRunning = new AtomicBoolean(false);
 	
@@ -215,7 +214,7 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	
 	protected void stopThisJob() {
 		SchedulerService schedulerService = Context.getSchedulerService();
-		TaskDefinition taskDefinition = schedulerService.getTaskByName(TaskName);
+		TaskDefinition taskDefinition = SchedulerTasks.getTaskByClass(schedulerService, AsyncTasksBatchJob.class);
 		if (taskDefinition != null) {
 			try {
 				schedulerService.shutdownTask(taskDefinition);
@@ -228,7 +227,7 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	
 	public static void queueBatchJob(BatchJob batchJob) {
 		SchedulerService schedulerService = Context.getSchedulerService();
-		TaskDefinition taskDefinition = schedulerService.getTaskByName(TaskName);
+		TaskDefinition taskDefinition = SchedulerTasks.getTaskByClass(schedulerService, AsyncTasksBatchJob.class);
 		if (taskDefinition != null) {
 			schedulerService.scheduleIfNotRunning(taskDefinition);
 		}
