@@ -1341,7 +1341,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                         Optional<StockBatch> newlyAddedStockBatch = newStockBatches
                                 .stream().filter(p -> p.getStockItem().getId().equals(stockItem.getId()) &&
                                         itemDto.getBatchNo().equalsIgnoreCase(p.getBatchNo()) &&
-                                        ((stockItem.getHasExpiration() && p.getExpiration().equals(p.getExpiration()))
+                                        ((stockItem.getHasExpiration() && p.getExpiration().equals(itemDto.getExpiration()))
                                                 ||
                                                 (!stockItem.getHasExpiration() && p.getExpiration() == null)))
                                 .findFirst();
@@ -3410,7 +3410,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
                     Optional<StockBatch> newlyAddedStockBatch = newStockBatches
                             .stream().filter(p -> p.getStockItem().getId().equals(stockItem.getId()) &&
                                     batchNumber.getBatchNo().equalsIgnoreCase(p.getBatchNo()) &&
-                                    ((stockItem.getHasExpiration() && p.getExpiration().equals(p.getExpiration()))
+                                    ((stockItem.getHasExpiration() && p.getExpiration().equals(batchNumber.getExpiration()))
                                             ||
                                             (!stockItem.getHasExpiration() && p.getExpiration() == null)))
                             .findFirst();
