@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement;
 
 import org.apache.commons.lang.time.DateUtils;
@@ -35,10 +44,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * populated and actionable.
  */
 public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTest {
-
+	
 	// mirrors the production Receipt type: hasSource=true with source_type Other, destination_type Location
 	private static final String TEST_RECEIPT_TYPE_UUID = "aaaaaaaa-bbbb-cccc-dddd-eeeeffff0000";
-
+	
 	private void createReceiptOperationType() {
 		StockOperationType receipt = new StockOperationType();
 		receipt.setName("Test Receipt");
@@ -52,16 +61,16 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		receipt.setAcronym("RCPT");
 		dao().saveStockOperationType(receipt);
 	}
-
+	
 	@Autowired
 	DbSessionFactory sessionFactory;
-
+	
 	private StockManagementDao daoInstance;
-
+	
 	private static EntityUtil entityUtil;
-
+	
 	private StockOperationDTOValidator validator;
-
+	
 	private StockManagementDao dao() {
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
@@ -69,16 +78,16 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		}
 		return daoInstance;
 	}
-
+	
 	private EntityUtil eu() {
 		if (entityUtil == null) {
 			entityUtil = new EntityUtil(Context.getConceptService().getDrug(3), Context.getUserService().getUser(501),
-			    Context.getLocationService().getLocation(1), Context.getUserService().getRole("Provider"),
-			    Context.getConceptService().getDrug(3).getConcept(), Context.getPatientService().getPatient(2));
+			        Context.getLocationService().getLocation(1), Context.getUserService().getRole("Provider"),
+			        Context.getConceptService().getDrug(3).getConcept(), Context.getPatientService().getPatient(2));
 		}
 		return entityUtil;
 	}
-
+	
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
@@ -86,33 +95,33 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		createReceiptOperationType();
 		validator = new StockOperationDTOValidator();
 	}
-
+	
 	private Errors validate(StockOperationDTO dto) {
 		Errors errors = new MapBindingResult(new HashMap<>(), "stockOperationDTO");
 		validator.validate(dto, errors);
 		return errors;
 	}
-
+	
 	/**
-	 * The validator passes the human-readable text as the error code, so resolve the message the
-	 * same way StockOperationResource does.
+	 * The validator passes the human-readable text as the error code, so resolve the message the same
+	 * way StockOperationResource does.
 	 */
 	private String messageOf(org.springframework.validation.ObjectError error) {
 		String message = error.getDefaultMessage() != null ? error.getDefaultMessage() : error.getCode();
 		return message == null ? null : message.trim();
 	}
-
+	
 	@Test
 	public void validate_shouldReportMissingOperationDate() {
 		StockOperationDTO dto = new StockOperationDTO();
 		dto.setOperationTypeUuid(TEST_RECEIPT_TYPE_UUID);
-
+		
 		Errors errors = validate(dto);
-
+		
 		assertNotNull(errors.getFieldError("operationDate"));
 		assertEquals("Operation date is required", messageOf(errors.getFieldError("operationDate")));
 	}
-
+	
 	private StockOperationDTO newReceiptDto() {
 		StockOperationDTO dto = new StockOperationDTO();
 		dto.setOperationTypeUuid(TEST_RECEIPT_TYPE_UUID);
@@ -128,7 +137,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		dao().saveParty(sourceParty);
 		dto.setSourceUuid(sourceParty.getUuid());
 		dto.setDestinationUuid(eu().getParty(dao()).getUuid());
-
+		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), true);
 		packagingUom.setVoided(false);
 		packagingUom.getStockItem().setVoided(false);
@@ -143,51 +152,51 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		dto.setStockOperationItems(new ArrayList<>(Arrays.asList(item)));
 		return dto;
 	}
-
+	
 	@Test
 	public void validate_shouldReportAnUnknownSourceWithAResolvedMessage() {
 		StockOperationDTO dto = newReceiptDto();
 		dto.setSourceUuid("unknown-party-uuid");
-
+		
 		Errors errors = validate(dto);
-
+		
 		assertNotNull(errors.getFieldError("sourceUuid"));
 		assertEquals("Source is invalid", messageOf(errors.getFieldError("sourceUuid")));
 	}
-
+	
 	@Test
 	public void validate_shouldReportAVoidedSourceWithAResolvedMessage() {
 		StockOperationDTO dto = newReceiptDto();
 		dao().getPartyByUuid(dto.getSourceUuid()).setVoided(true);
-
+		
 		Errors errors = validate(dto);
-
+		
 		assertNotNull(errors.getFieldError("sourceUuid"));
 		assertEquals("Source is invalid", messageOf(errors.getFieldError("sourceUuid")));
 	}
-
+	
 	@Test
 	public void validate_shouldReportAnUnknownDestinationWithAResolvedMessage() {
 		StockOperationDTO dto = newReceiptDto();
 		dto.setDestinationUuid("unknown-party-uuid");
-
+		
 		Errors errors = validate(dto);
-
+		
 		assertNotNull(errors.getFieldError("destinationUuid"));
 		assertEquals("Destination is invalid", messageOf(errors.getFieldError("destinationUuid")));
 	}
-
+	
 	@Test
 	public void validate_shouldReportAVoidedDestinationWithAResolvedMessage() {
 		StockOperationDTO dto = newReceiptDto();
 		dao().getPartyByUuid(dto.getDestinationUuid()).setVoided(true);
-
+		
 		Errors errors = validate(dto);
-
+		
 		assertNotNull(errors.getFieldError("destinationUuid"));
 		assertEquals("Destination is invalid", messageOf(errors.getFieldError("destinationUuid")));
 	}
-
+	
 	@Test
 	public void validate_shouldRejectUnknownOperationTypeWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
@@ -196,7 +205,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		assertTrue(errors.hasErrors());
 		assertNotNull(messageOf(errors.getAllErrors().get(0)));
 	}
-
+	
 	@Test
 	public void validate_shouldRejectMissingOperationTypeUuidWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
@@ -204,11 +213,12 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		Errors errors = validate(dto);
 		assertTrue(errors.hasErrors());
 		for (Object error : errors.getAllErrors()) {
-			assertNotNull(messageOf((org.springframework.validation.ObjectError) error), "Validation errors must never carry a null message");
+			assertNotNull(messageOf((org.springframework.validation.ObjectError) error),
+			    "Validation errors must never carry a null message");
 			assertFalse(messageOf((org.springframework.validation.ObjectError) error).isEmpty());
 		}
 	}
-
+	
 	@Test
 	public void validate_shouldRejectMissingDestinationWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
@@ -218,7 +228,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		assertEquals(1, errors.getErrorCount());
 		assertNotNull(messageOf(errors.getAllErrors().get(0)));
 	}
-
+	
 	@Test
 	public void validate_shouldRejectEmptyItemsWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
@@ -227,7 +237,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		assertTrue(errors.hasErrors());
 		assertNotNull(messageOf(errors.getAllErrors().get(0)));
 	}
-
+	
 	@Test
 	public void validate_shouldDeriveAtLocationUuidFromDestination() {
 		StockOperationDTO dto = newReceiptDto();
@@ -240,7 +250,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 			assertNotNull(messageOf((org.springframework.validation.ObjectError) error));
 		}
 	}
-
+	
 	@Test
 	public void validate_shouldRejectUnauthorizedUserWithNonNullMessage() {
 		// the in-memory database grants no stock management user role scopes to any user, so

@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import org.apache.commons.lang.StringUtils;
@@ -27,22 +36,24 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 public class StockOperationActionResourceTest extends BaseModuleWebContextSensitiveTest {
-
+	
 	private StockManagementService service;
+	
 	private StockOperationActionResource resource;
-
+	
 	@BeforeEach
 	public void setUp() throws Exception {
 		initializeInMemoryDatabase();
 		service = mock(StockManagementService.class);
 		resource = new StockOperationActionResource() {
+			
 			@Override
 			protected StockManagementService getStockManagementService() {
 				return service;
 			}
 		};
 	}
-
+	
 	@Test
 	public void shouldRejectBlankUuidForEveryActionBeforeLookingUpAnOperation() {
 		lenient().when(service.findStockOperations(any(StockOperationSearchFilter.class)))
@@ -61,7 +72,7 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 		}
 		verifyNoInteractions(service);
 	}
-
+	
 	@Test
 	public void shouldRejectMissingActionNameBeforeLookingUpAnOperation() {
 		try {
@@ -73,7 +84,7 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 		}
 		verifyNoInteractions(service);
 	}
-
+	
 	@Test
 	public void shouldReturnBadRequestUsingTheDeclaredRestVersion() throws Exception {
 		try {
@@ -89,7 +100,7 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 		}
 		verifyNoInteractions(service);
 	}
-
+	
 	@Test
 	public void shouldSubmitOnlyTheRequestedOperationWhenAnotherOperationIsNewer() {
 		StockOperationDTO older = new StockOperationDTO();
@@ -102,15 +113,15 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 			return new Result<>(Collections.singletonList(older), 1);
 		});
 		StockOperationAction action = action(StockOperationAction.Action.SUBMIT, older.getUuid());
-
+		
 		assertSame(action, resource.save(action));
-
+		
 		verify(service).submitStockOperation(older);
 		verify(service, never()).submitStockOperation(newer);
 		verify(service).findStockOperations(any(StockOperationSearchFilter.class));
 		verifyNoMoreInteractions(service);
 	}
-
+	
 	@Test
 	public void shouldNotActOnAnotherOperationWhenTheRequestedOperationDoesNotExist() {
 		when(service.findStockOperations(any(StockOperationSearchFilter.class)))
@@ -125,36 +136,36 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 		verify(service).findStockOperations(any(StockOperationSearchFilter.class));
 		verifyNoMoreInteractions(service);
 	}
-
+	
 	@Test
 	public void save_shouldRejectBlankReasonsBeforeLookingUpOperations() {
 		for (StockOperationAction.Action name : reasonActions()) {
 			for (String reason : new String[] { null, "", " \t " }) {
 				StockOperationAction action = newAction(name);
 				action.setReason(reason);
-
+				
 				ValidationException exception = assertThrows(ValidationException.class, () -> resource.save(action));
-
+				
 				assertNotNull(exception.getErrors().getFieldError("reason"));
 			}
 		}
 		verifyNoInteractions(service);
 	}
-
+	
 	@Test
 	public void save_shouldRejectOverlongReasonsBeforeLookingUpOperations() {
 		for (StockOperationAction.Action name : reasonActions()) {
 			StockOperationAction action = newAction(name);
 			action.setReason(StringUtils.repeat("a", 501));
-
+			
 			ValidationException exception = assertThrows(ValidationException.class, () -> resource.save(action));
-
+			
 			assertNotNull(exception.getErrors().getFieldError("reason"));
 			assertEquals("Reason should not exceed 500 characters", exception.getErrors().getFieldError("reason").getCode());
 		}
 		verifyNoInteractions(service);
 	}
-
+	
 	@Test
 	public void save_shouldAllowAReasonOf500Characters() {
 		StockOperationAction action = newAction(StockOperationAction.Action.CANCEL);
@@ -162,12 +173,12 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 		StockOperationDTO operation = new StockOperationDTO();
 		when(service.findStockOperations(any(StockOperationSearchFilter.class)))
 		        .thenReturn(new Result<>(Collections.singletonList(operation), 1));
-
+		
 		assertSame(action, resource.save(action));
-
+		
 		verify(service).cancelStockOperation(operation, action.getReason());
 	}
-
+	
 	@Test
 	public void save_shouldReturnBadRequestForBusinessFailuresWithASafeMessage() throws Exception {
 		StockOperationDTO operation = new StockOperationDTO();
@@ -176,13 +187,13 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 		for (String message : Arrays.asList("Insufficient stock", null, "", " ")) {
 			StockOperationAction action = newAction(StockOperationAction.Action.CANCEL);
 			action.setReason("Cancellation requested");
-			doThrow(new StockManagementException(message)).when(service)
-			        .cancelStockOperation(operation, action.getReason());
-
+			doThrow(new StockManagementException(message)).when(service).cancelStockOperation(operation, action.getReason());
+			
 			IllegalRequestException exception = assertThrows(IllegalRequestException.class, () -> resource.save(action));
-
-			assertEquals(message == null || message.trim().isEmpty()
-			        ? "Unable to process the stock operation action" : message, exception.getMessage());
+			
+			assertEquals(
+			    message == null || message.trim().isEmpty() ? "Unable to process the stock operation action" : message,
+			    exception.getMessage());
 			assertNull(exception.getCause());
 			exception.setStackTrace(new StackTraceElement[0]);
 			HttpServletResponse response = mock(HttpServletResponse.class);
@@ -190,26 +201,27 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 			verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		}
 	}
-
+	
 	@Test
 	public void validator_shouldRegisterForStockOperationActions() {
 		Handler handler = StockOperationActionValidator.class.getAnnotation(Handler.class);
-
+		
 		assertEquals(StockOperationAction.class, handler.supports()[0]);
 		assertTrue(new StockOperationActionValidator().supports(StockOperationAction.class));
 	}
-
+	
 	private StockOperationAction newAction(StockOperationAction.Action name) {
 		StockOperationAction action = new StockOperationAction();
 		action.setName(name);
 		action.setUuid("some-stock-operation-uuid");
 		return action;
 	}
-
+	
 	private StockOperationAction.Action[] reasonActions() {
-		return new StockOperationAction.Action[] { StockOperationAction.Action.REJECT,
-		        StockOperationAction.Action.RETURN, StockOperationAction.Action.CANCEL };
+		return new StockOperationAction.Action[] { StockOperationAction.Action.REJECT, StockOperationAction.Action.RETURN,
+		        StockOperationAction.Action.CANCEL };
 	}
+	
 	private StockOperationAction action(StockOperationAction.Action name, String uuid) {
 		StockOperationAction action = new StockOperationAction();
 		action.setName(name);

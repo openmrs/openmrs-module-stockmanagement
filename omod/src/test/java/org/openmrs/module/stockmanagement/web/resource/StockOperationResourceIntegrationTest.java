@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -39,23 +48,23 @@ import org.openmrs.api.ValidationException;
 
 /**
  * Context-sensitive test that saves through {@link StockOperationResource#save} end to end.
- * StockOperationResourceTest stubs the validator out, so it cannot prove that save() actually
- * runs StockOperationDTOValidator: webservices.rest 3.x no longer invokes it implicitly, and it
- * is what derives atLocationUuid (at_location_id is NOT NULL) and enforces the per-location
- * permission checks for clients that never send atLocationUuid.
+ * StockOperationResourceTest stubs the validator out, so it cannot prove that save() actually runs
+ * StockOperationDTOValidator: webservices.rest 3.x no longer invokes it implicitly, and it is what
+ * derives atLocationUuid (at_location_id is NOT NULL) and enforces the per-location permission
+ * checks for clients that never send atLocationUuid.
  */
 public class StockOperationResourceIntegrationTest extends BaseModuleWebContextSensitiveTest {
-
+	
 	// mirrors the production Receipt type: hasSource=true with source_type Other, destination_type Location
 	private static final String TEST_RECEIPT_TYPE_UUID = "aaaaaaaa-bbbb-cccc-dddd-eeeeffff0000";
-
+	
 	@Autowired
 	DbSessionFactory sessionFactory;
-
+	
 	private StockManagementDao daoInstance;
-
+	
 	private EntityUtil entityUtil;
-
+	
 	private StockManagementDao dao() {
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
@@ -63,23 +72,23 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		}
 		return daoInstance;
 	}
-
+	
 	private EntityUtil eu() {
 		if (entityUtil == null) {
 			entityUtil = new EntityUtil(Context.getConceptService().getDrug(3), Context.getUserService().getUser(501),
-			    Context.getLocationService().getLocation(1), Context.getUserService().getRole("Provider"),
-			    Context.getConceptService().getDrug(3).getConcept(), Context.getPatientService().getPatient(2));
+			        Context.getLocationService().getLocation(1), Context.getUserService().getRole("Provider"),
+			        Context.getConceptService().getDrug(3).getConcept(), Context.getPatientService().getPatient(2));
 		}
 		return entityUtil;
 	}
-
+	
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
 		createReceiptOperationType();
 	}
-
+	
 	private void createReceiptOperationType() {
 		StockOperationType receipt = new StockOperationType();
 		receipt.setName("Test Receipt");
@@ -93,29 +102,27 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		receipt.setAcronym("RCPT");
 		dao().saveStockOperationType(receipt);
 	}
-
+	
 	/**
-	 * Gives the authenticated user a user role scope at the given location for the given
-	 * operation type, backed by a role carrying the stock operations mutate privilege, the same
-	 * way the UI sets a clerk up through the userrolescope REST resource.
+	 * Gives the authenticated user a user role scope at the given location for the given operation
+	 * type, backed by a role carrying the stock operations mutate privilege, the same way the UI sets a
+	 * clerk up through the userrolescope REST resource.
 	 */
 	private void grantAuthenticatedUserScope(Location location, StockOperationType operationType) {
 		// re-fetch the authenticated user: the cached instance is detached from the open session
 		// and saveUser would fail with a NonUniqueObjectException
 		User user = Context.getUserService().getUserByUuid(Context.getAuthenticatedUser().getUuid());
-		Privilege privilege = Context.getUserService()
-		        .getPrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE);
+		Privilege privilege = Context.getUserService().getPrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE);
 		if (privilege == null) {
 			privilege = Context.getUserService().savePrivilege(new Privilege(
 			        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, "Able to create and update stock operations"));
 		}
 		// the save's read-back goes through findStockOperations, which requires the app view
 		// privilege on the scope role
-		Privilege appPrivilege = Context.getUserService()
-		        .getPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS);
+		Privilege appPrivilege = Context.getUserService().getPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS);
 		if (appPrivilege == null) {
-			appPrivilege = Context.getUserService().savePrivilege(new Privilege(
-			        Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS, "Able to view stock operations"));
+			appPrivilege = Context.getUserService().savePrivilege(
+			    new Privilege(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS, "Able to view stock operations"));
 		}
 		Role clerk = new Role();
 		clerk.setRole("Stock operation clerk");
@@ -130,7 +137,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		// the permission checks run against the user context's cached instance, so grant the role
 		// there too
 		Context.getAuthenticatedUser().setRoles(roles);
-
+		
 		UserRoleScope scope = new UserRoleScope();
 		scope.setUser(user);
 		scope.setRole(clerk);
@@ -140,7 +147,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		scope.setCreator(user);
 		scope.setDateCreated(new Date());
 		dao().saveUserRoleScope(scope);
-
+		
 		UserRoleScopeLocation scopeLocation = new UserRoleScopeLocation();
 		scopeLocation.setUserRoleScope(scope);
 		scopeLocation.setLocation(location);
@@ -149,7 +156,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		scopeLocation.setCreator(user);
 		scopeLocation.setDateCreated(new Date());
 		dao().saveUserRoleScopeLocation(scopeLocation);
-
+		
 		UserRoleScopeOperationType scopeOperationType = new UserRoleScopeOperationType();
 		scopeOperationType.setUserRoleScope(scope);
 		scopeOperationType.setStockOperationType(operationType);
@@ -158,7 +165,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		scopeOperationType.setDateCreated(new Date());
 		dao().saveUserRoleScopeOperationType(scopeOperationType);
 	}
-
+	
 	/**
 	 * A receipt the way the OWA and the SPA send it: no atLocationUuid at all.
 	 */
@@ -177,7 +184,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		dao().saveParty(sourceParty);
 		dto.setSourceUuid(sourceParty.getUuid());
 		dto.setDestinationUuid(eu().getParty(dao()).getUuid());
-
+		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), true);
 		packagingUom.setVoided(false);
 		packagingUom.getStockItem().setVoided(false);
@@ -192,21 +199,21 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		dto.setStockOperationItems(new ArrayList<>(Arrays.asList(item)));
 		return dto;
 	}
-
+	
 	@Test
 	public void save_shouldDeriveAtLocation_whenClientDoesNotSendAtLocationUuid() {
 		StockOperationType receiptType = dao().getStockOperationTypeByUuid(TEST_RECEIPT_TYPE_UUID);
 		grantAuthenticatedUserScope(eu().getLocation(), receiptType);
-
+		
 		StockOperationDTO saved = new StockOperationResource().save(newReceiptDtoWithoutAtLocationUuid());
 		assertNotNull(saved.getUuid());
-
+		
 		StockOperation operation = dao().getStockOperationByUuid(saved.getUuid());
 		assertNotNull(operation);
 		assertNotNull(operation.getAtLocation(), "at_location_id is NOT NULL: the validator must have derived it");
 		assertEquals(operation.getDestination().getLocation().getId(), operation.getAtLocation().getId());
 	}
-
+	
 	@Test
 	public void save_shouldValidateAnUpdate() {
 		StockOperationType receiptType = dao().getStockOperationTypeByUuid(TEST_RECEIPT_TYPE_UUID);
@@ -217,7 +224,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		// validation must run on updates too: the validator rejects operation dates in the future
 		assertThrows(ValidationException.class, () -> resource.save(saved));
 	}
-
+	
 	@Test
 	public void save_shouldRejectUserWithoutScopeAtTheLocation() {
 		// no user role scope at the destination location: the validator save() runs must reject
