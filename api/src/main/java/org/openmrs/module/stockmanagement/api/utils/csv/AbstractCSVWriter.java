@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.utils.csv;
 
 import java.io.IOException;
@@ -93,12 +102,12 @@ public abstract class AbstractCSVWriter {
 	
 	/**
 	 * Writes the next line to the file. This method is a fail-fast method that will throw the
-	 * IOException of the writer supplied to the CSVWriter (if the Writer does not handle the
-	 * exceptions itself like the PrintWriter class).
+	 * IOException of the writer supplied to the CSVWriter (if the Writer does not handle the exceptions
+	 * itself like the PrintWriter class).
 	 * 
 	 * @param nextLine a string array with each comma-separated element as a separate entry.
-	 * @param applyQuotesToAll true if all values are to be quoted. false applies quotes only to
-	 *            values which contain the separator, escape, quote or new line characters.
+	 * @param applyQuotesToAll true if all values are to be quoted. false applies quotes only to values
+	 *            which contain the separator, escape, quote or new line characters.
 	 * @param appendable Appendable used as buffer.
 	 * @throws IOException Exceptions thrown by the writer supplied to CSVWriter.
 	 */

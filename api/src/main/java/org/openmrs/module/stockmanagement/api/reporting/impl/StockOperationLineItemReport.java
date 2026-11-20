@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.StringUtils;
@@ -120,8 +129,8 @@ public abstract class StockOperationLineItemReport extends ReportGenerator {
 			if (!StringUtils.isBlank(stockItemCategoryUuid)) {
 				Concept concept = Context.getConceptService().getConceptByUuid(stockItemCategoryUuid);
 				if (concept == null) {
-					stockManagementService
-					        .failBatchJob(batchJob.getUuid(), "Report stock item category parameter not found");
+					stockManagementService.failBatchJob(batchJob.getUuid(),
+					    "Report stock item category parameter not found");
 					return;
 				}
 				filter.setStockItemCategoryConceptId(concept.getConceptId());
@@ -165,7 +174,8 @@ public abstract class StockOperationLineItemReport extends ReportGenerator {
 					pageIndex++;
 					StockOperationLineItem lastRecord = data.getData().get(data.getData().size() - 1);
 					updateExecutionState(batchJob, executionState, pageIndex, recordsProcessed,
-					    lastRecord.getStockOperationItemId(), lastRecord.getStockOperationId(), stockManagementService, null);
+					    lastRecord.getStockOperationItemId(), lastRecord.getStockOperationId(), stockManagementService,
+					    null);
 				} else if (pageIndex == 0) {
 					updateExecutionState(batchJob, executionState, pageIndex, recordsProcessed, null, null,
 					    stockManagementService, null);
@@ -207,7 +217,8 @@ public abstract class StockOperationLineItemReport extends ReportGenerator {
 		
 	}
 	
-	protected abstract void setLocationFilter(StockOperationLineItemFilter filter, Location location, Boolean childLocations);
+	protected abstract void setLocationFilter(StockOperationLineItemFilter filter, Location location,
+	        Boolean childLocations);
 	
 	protected abstract void setFilters(StockOperationLineItemFilter filter, Properties parameters);
 	

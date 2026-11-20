@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -30,8 +39,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperationbatchnumbers", supportedClass = StockOperationBatchNumbersDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/stockoperationbatchnumbers", supportedClass = StockOperationBatchNumbersDTO.class, supportedOpenmrsVersions = {
+                "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockOperationBatchNumbersResource extends ResourceBase<StockOperationBatchNumbersDTO> {
 	
 	@Override
@@ -72,9 +82,10 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 	
 	@PropertyGetter("batchNumbers")
 	public List<SimpleObject> getBatchNumbers(StockOperationBatchNumbersDTO instance) {
-		if(instance == null || instance.getBatchNumbers() == null) return null;
+		if (instance == null || instance.getBatchNumbers() == null)
+			return null;
 		List<SimpleObject> result = new ArrayList<>();
-		for(StockOperationBatchNumbersDTO.StockOperationItemBatchNumber batchNumber : instance.getBatchNumbers()){
+		for (StockOperationBatchNumbersDTO.StockOperationItemBatchNumber batchNumber : instance.getBatchNumbers()) {
 			SimpleObject simpleObject = new SimpleObject();
 			simpleObject.add("uuid", batchNumber.getUuid());
 			simpleObject.add("batchNo", batchNumber.getBatchNo());
@@ -94,7 +105,7 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 			instance.setBatchNumbers(new ArrayList<>());
 			return;
 		}
-
+		
 		instance.setBatchNumbers(new ArrayList<>());
 		for (Map<String, ?> item : items) {
 			StockOperationBatchNumbersDTO.StockOperationItemBatchNumber itemDTO = new StockOperationBatchNumbersDTO.StockOperationItemBatchNumber();
@@ -163,8 +174,9 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 		return modelImpl;
 	}
 	
-	private StockOperationBatchNumbersDTO mapToBatchNumbers(StockOperationDTO parent){
-		if(parent == null) return null;
+	private StockOperationBatchNumbersDTO mapToBatchNumbers(StockOperationDTO parent) {
+		if (parent == null)
+			return null;
 		StockOperationBatchNumbersDTO batchNumbersDTO = new StockOperationBatchNumbersDTO();
 		batchNumbersDTO.setUuid(parent.getUuid());
 		batchNumbersDTO.setId(parent.getId());
@@ -190,6 +202,6 @@ public class StockOperationBatchNumbersResource extends ResourceBase<StockOperat
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
 		List<StockOperationBatchNumbersDTO> result = new ArrayList<>();
-		return toAlreadyPaged(result,context);
+		return toAlreadyPaged(result, context);
 	}
 }

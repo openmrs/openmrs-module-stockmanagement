@@ -1,17 +1,26 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.Person;
 import org.openmrs.PersonName;
 import org.openmrs.Privilege;
@@ -27,7 +36,7 @@ import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeLocationDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeOperationTypeDTO;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.api.ValidationException;
-import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
+import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -36,17 +45,17 @@ import org.springframework.beans.factory.annotation.Autowired;
  * rejectIfEmptyOrWhitespace reads the fields from an empty target and rejects every scope.
  */
 public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest {
-
+	
 	@Autowired
 	DbSessionFactory sessionFactory;
-
+	
 	private StockManagementDao daoInstance;
-
+	
 	private UserRoleScopeResource resource = new UserRoleScopeResource();
-
+	
 	// the user a built scope DTO belongs to; set as a side effect of buildValidScopeDto
 	private User targetUser;
-
+	
 	private StockManagementDao dao() {
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
@@ -54,14 +63,14 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 		}
 		return daoInstance;
 	}
-
-	@Before
+	
+	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
 		grantAuthenticatedUserRoleScopesPrivileges();
 	}
-
+	
 	private void grantAuthenticatedUserRoleScopesPrivileges() {
 		Privilege mutate = Context.getUserService().getPrivilege(Privileges.TASK_STOCKMANAGEMENT_USERROLESCOPES_MUTATE);
 		if (mutate == null) {
@@ -70,9 +79,8 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 		}
 		Privilege app = Context.getUserService().getPrivilege(Privileges.APP_STOCKMANAGEMENT_USERROLESCOPES);
 		if (app == null) {
-			app = Context.getUserService()
-			        .savePrivilege(new Privilege(Privileges.APP_STOCKMANAGEMENT_USERROLESCOPES,
-			                "Able to view user role scopes"));
+			app = Context.getUserService().savePrivilege(
+			    new Privilege(Privileges.APP_STOCKMANAGEMENT_USERROLESCOPES, "Able to view user role scopes"));
 		}
 		Role administrator = new Role();
 		administrator.setRole("User role scope administrator");
@@ -87,33 +95,33 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 		roles.add(administrator);
 		Context.getAuthenticatedUser().setRoles(roles);
 	}
-
+	
 	private User createScopedUser() {
 		Person person = new Person();
 		person.setGender("F");
 		person.addName(new PersonName("Scope", null, "Target"));
 		person = Context.getPersonService().savePerson(person);
-
+		
 		User user = new User();
 		user.setPerson(person);
 		user.setUsername("scopescope");
 		user.addRole(Context.getUserService().getRole("Provider"));
 		return Context.getUserService().createUser(user, " ScopeTest123 ");
 	}
-
+	
 	private UserRoleScopeDTO buildValidScopeDto() {
 		// a scope managed by the authenticated admin must belong to a different user
 		targetUser = createScopedUser();
-
+		
 		StockOperationType operationType = dao().getAllStockOperationTypes().get(0);
-
+		
 		UserRoleScopeLocationDTO locationDto = new UserRoleScopeLocationDTO();
 		locationDto.setLocationUuid(Context.getLocationService().getLocation(1).getUuid());
 		locationDto.setEnableDescendants(false);
-
+		
 		UserRoleScopeOperationTypeDTO operationTypeDto = new UserRoleScopeOperationTypeDTO();
 		operationTypeDto.setOperationTypeUuid(operationType.getUuid());
-
+		
 		UserRoleScopeDTO dto = new UserRoleScopeDTO();
 		dto.setUserUuid(targetUser.getUuid());
 		dto.setRole("Provider");
@@ -127,11 +135,11 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 		dto.setOperationTypes(operationTypes);
 		return dto;
 	}
-
+	
 	@Test
 	public void save_shouldSaveAValidScope() {
 		UserRoleScopeDTO saved = resource.save(buildValidScopeDto());
-
+		
 		assertNotNull(saved);
 		assertNotNull(saved.getUuid());
 		assertEquals(targetUser.getUuid(), saved.getUserUuid());
@@ -141,16 +149,17 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 		assertNotNull(saved.getOperationTypes());
 		assertEquals(1, saved.getOperationTypes().size());
 	}
-
+	
 	@Test
 	public void save_shouldStillRejectAnInvalidScope() {
 		UserRoleScopeDTO dto = buildValidScopeDto();
 		dto.setRole(null);
-
+		
 		try {
 			resource.save(dto);
 			fail("Expected a ValidationException to be thrown");
-		} catch (ValidationException e) {
+		}
+		catch (ValidationException e) {
 			assertNotNull(e.getMessage());
 		}
 	}
