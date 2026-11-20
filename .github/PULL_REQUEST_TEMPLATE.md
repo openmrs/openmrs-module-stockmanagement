@@ -1,5 +1,5 @@
 <!--- Add a pull request title above in this format -->
-<!--- real example: 'O3-5111: Replace use of deprecated isVoided' -->
+<!--- real example: 'O3-6307: Modernise the build' -->
 <!--- 'O3-JiraIssueNumber: JiraIssueTitle' -->
 ## Description of what I changed
 <!--- Describe your changes in detail -->
