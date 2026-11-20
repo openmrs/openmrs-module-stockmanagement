@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.tasks;
 
 import org.apache.commons.logging.Log;
@@ -15,68 +24,74 @@ public class LocationTreeSynchronize implements StartupTask {
 	private Log log = LogFactory.getLog(this.getClass());
 	
 	@Override
-    public void execute() {
-        log.debug("Checking the synchronization status of the location tree table");
-        try {
-            StockManagementService stockManagementService = Context.getService(StockManagementService.class);
-            List<LocationTree> completeLocationTree = stockManagementService.getCompleteLocationTree();
-            List<Location> allLocations = Context.getLocationService().getAllLocations();
-            List<LocationTree> expectedTree = generateLocationTree(allLocations);
-            List<LocationTree> toInsertNodes = new ArrayList<>();
-            for (LocationTree locationTree : expectedTree) {
-                LocationTree found = null;
-                for (LocationTree dbLocationTree : completeLocationTree) {
-                    if (dbLocationTree.getChildLocationId().equals(locationTree.getChildLocationId()) && dbLocationTree.getParentLocationId().equals(locationTree.getParentLocationId()) && locationTree.getDepth() == dbLocationTree.getDepth()) {
-                        found = dbLocationTree;
-                        break;
-                    }
-                }
-                if (found != null) {
-                    completeLocationTree.remove(found);
-                } else {
-                    toInsertNodes.add(locationTree);
-                }
-            }
-
-            if (completeLocationTree.size() > 0) {
-                log.debug("Deleting invalid nodes");
-                stockManagementService.deleteLocationTreeNodes(completeLocationTree);
-            }
-
-            if (toInsertNodes.size() > 0) {
-                log.debug("Creating missing nodes");
-                stockManagementService.saveLocationTreeNodes(toInsertNodes);
-            }
-        }catch (Exception exception){
-            log.error("Error while synchronizing location tree", exception);
-        }
-    }
+	public void execute() {
+		log.debug("Checking the synchronization status of the location tree table");
+		try {
+			StockManagementService stockManagementService = Context.getService(StockManagementService.class);
+			List<LocationTree> completeLocationTree = stockManagementService.getCompleteLocationTree();
+			List<Location> allLocations = Context.getLocationService().getAllLocations();
+			List<LocationTree> expectedTree = generateLocationTree(allLocations);
+			List<LocationTree> toInsertNodes = new ArrayList<>();
+			for (LocationTree locationTree : expectedTree) {
+				LocationTree found = null;
+				for (LocationTree dbLocationTree : completeLocationTree) {
+					if (dbLocationTree.getChildLocationId().equals(locationTree.getChildLocationId())
+					        && dbLocationTree.getParentLocationId().equals(locationTree.getParentLocationId())
+					        && locationTree.getDepth() == dbLocationTree.getDepth()) {
+						found = dbLocationTree;
+						break;
+					}
+				}
+				if (found != null) {
+					completeLocationTree.remove(found);
+				} else {
+					toInsertNodes.add(locationTree);
+				}
+			}
+			
+			if (completeLocationTree.size() > 0) {
+				log.debug("Deleting invalid nodes");
+				stockManagementService.deleteLocationTreeNodes(completeLocationTree);
+			}
+			
+			if (toInsertNodes.size() > 0) {
+				log.debug("Creating missing nodes");
+				stockManagementService.saveLocationTreeNodes(toInsertNodes);
+			}
+		}
+		catch (Exception exception) {
+			log.error("Error while synchronizing location tree", exception);
+		}
+	}
 	
-	private List<LocationTree> generateLocationTree(List<Location> locations){
-        List<LocationTree> locationTree = new ArrayList<>();
-        for (Location location : locations) {
-            LocationTree node = new LocationTree();
-            node.setParentLocationId(location.getLocationId());
-            node.setChildLocationId(location.getLocationId());
-            node.setDepth(0);
-            locationTree.add(node);
-            addChildNodes(location, location, locations, locationTree, node.getDepth(), 1000);
-        }
-        return locationTree;
-    }
+	private List<LocationTree> generateLocationTree(List<Location> locations) {
+		List<LocationTree> locationTree = new ArrayList<>();
+		for (Location location : locations) {
+			LocationTree node = new LocationTree();
+			node.setParentLocationId(location.getLocationId());
+			node.setChildLocationId(location.getLocationId());
+			node.setDepth(0);
+			locationTree.add(node);
+			addChildNodes(location, location, locations, locationTree, node.getDepth(), 1000);
+		}
+		return locationTree;
+	}
 	
-	private void addChildNodes(Location currentNode, Location rootNode, List<Location> allLocations, List<LocationTree> tree, int currentDepth, int maxDepth){
-        allLocations.stream().filter(p -> p.getParentLocation() != null && p.getParentLocation().getLocationId().equals(currentNode.getLocationId()))
-                .forEach(childNode ->{
-                    LocationTree node = new LocationTree();
-                    node.setParentLocationId(rootNode.getLocationId());
-                    node.setChildLocationId(childNode.getLocationId());
-                    node.setDepth(currentDepth + 1);
-                    tree.add(node);
-                    if(node.getDepth() == maxDepth) return;
-                    addChildNodes(childNode, rootNode, allLocations, tree, node.getDepth(), maxDepth);
-                });
-    }
+	private void addChildNodes(Location currentNode, Location rootNode, List<Location> allLocations, List<LocationTree> tree,
+	        int currentDepth, int maxDepth) {
+		allLocations.stream().filter(
+		    p -> p.getParentLocation() != null && p.getParentLocation().getLocationId().equals(currentNode.getLocationId()))
+		        .forEach(childNode -> {
+			        LocationTree node = new LocationTree();
+			        node.setParentLocationId(rootNode.getLocationId());
+			        node.setChildLocationId(childNode.getLocationId());
+			        node.setDepth(currentDepth + 1);
+			        tree.add(node);
+			        if (node.getDepth() == maxDepth)
+				        return;
+			        addChildNodes(childNode, rootNode, allLocations, tree, node.getDepth(), maxDepth);
+		        });
+	}
 	
 	@Override
 	public int getPriority() {

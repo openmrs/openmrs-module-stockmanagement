@@ -1,8 +1,17 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.InputStream;
 import java.sql.Connection;
@@ -10,9 +19,9 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -25,10 +34,11 @@ public class LiquibaseChangeSetTest extends BaseModuleContextSensitiveTest {
 	
 	private static final String COUNT_MAIN_STORE_SCOPES = "SELECT COUNT(*) FROM stockmgmt_operation_type_location_scope s "
 	        + "JOIN stockmgmt_stock_operation_type t ON t.stock_operation_type_id = s.stock_operation_type_id "
-	        + "WHERE t.uuid = '" + ADJUSTMENT_UUID + "' AND s.location_tag = 'Main Store' AND s.is_source = true AND s.is_destination = false "
+	        + "WHERE t.uuid = '" + ADJUSTMENT_UUID
+	        + "' AND s.location_tag = 'Main Store' AND s.is_source = true AND s.is_destination = false "
 	        + "AND s.voided = false";
 	
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		execute("INSERT INTO stockmgmt_stock_operation_type(name, operation_type, description, has_source, source_type, "
 		        + "has_destination, available_when_reserved, acronym, creator, date_created, voided, uuid) "
@@ -39,7 +49,7 @@ public class LiquibaseChangeSetTest extends BaseModuleContextSensitiveTest {
 	@Test
 	public void adjustmentMainStoreScopeChangeSet_shouldAddTheScopeOnlyWhenItIsMissing() throws Exception {
 		Element changeSet = getChangeSet(ADJUSTMENT_MAIN_STORE_CHANGESET);
-		assertNotNull("Changeset " + ADJUSTMENT_MAIN_STORE_CHANGESET + " should exist", changeSet);
+		assertNotNull(changeSet, "Changeset " + ADJUSTMENT_MAIN_STORE_CHANGESET + " should exist");
 		String precondition = text(changeSet, "sqlCheck");
 		String insert = text(changeSet, "sql");
 		
@@ -51,20 +61,20 @@ public class LiquibaseChangeSetTest extends BaseModuleContextSensitiveTest {
 		assertEquals(1, count(precondition));
 		
 		execute(insert);
-		assertEquals("Running the insert again should not add a second scope", 1, count(COUNT_MAIN_STORE_SCOPES));
+		assertEquals(1, count(COUNT_MAIN_STORE_SCOPES), "Running the insert again should not add a second scope");
 	}
 	
 	@Test
 	public void adjustmentMainStoreScopeChangeSet_shouldUseTheAdjustmentOperationTypeUuid() throws Exception {
 		Element changeSet = getChangeSet(ADJUSTMENT_MAIN_STORE_CHANGESET);
-		assertNotNull("Changeset " + ADJUSTMENT_MAIN_STORE_CHANGESET + " should exist", changeSet);
+		assertNotNull(changeSet, "Changeset " + ADJUSTMENT_MAIN_STORE_CHANGESET + " should exist");
 		assertTrue(text(changeSet, "sql").contains("'" + ADJUSTMENT_UUID + "'"));
 		assertTrue(text(changeSet, "sqlCheck").contains("'" + ADJUSTMENT_UUID + "'"));
 	}
 	
 	private Element getChangeSet(String id) throws Exception {
 		try (InputStream in = getClass().getClassLoader().getResourceAsStream("liquibase.xml")) {
-			assertNotNull("liquibase.xml should be on the classpath", in);
+			assertNotNull(in, "liquibase.xml should be on the classpath");
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 			Document document = factory.newDocumentBuilder().parse(in);

@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -9,6 +18,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dto.*;
+import org.openmrs.module.stockmanagement.api.validator.StockRuleValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -28,8 +38,9 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import java.math.BigDecimal;
 import java.util.*;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockrule", supportedClass = StockRuleDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/stockrule", supportedClass = StockRuleDTO.class, supportedOpenmrsVersions = { "1.9.*", "1.10.*", "1.11.*",
+                "1.12.*", "2.*" })
 public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 	
 	private HashSet<PrivilegeScope> privilegeScopes = null;
@@ -52,7 +63,8 @@ public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 		String ids = context.getParameter("ids");
 		if (ids != null && StringUtils.isNotEmpty(ids)) {
 			for (String id : ids.split(",")) {
-				if (id.isEmpty()) continue;
+				if (id.isEmpty())
+					continue;
 				if (id.length() > 38) {
 					throw new IllegalRequestException("Id not recognized");
 				}
@@ -104,6 +116,8 @@ public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 	
 	@Override
 	public StockRuleDTO save(StockRuleDTO delegate) {
+		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+		validateDelegate(new StockRuleValidator(), delegate, "stockRuleDTO");
 		return getStockManagementService().saveStockRule(delegate);
 	}
 	
@@ -222,12 +236,14 @@ public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 	public SimpleObject getPermission(StockRuleDTO stockRuleDTO) {
 		SimpleObject simpleObject = new SimpleObject();
 		simpleObject.add("canView", true);
-
-		if(privilegeScopes == null){
-			privilegeScopes  = getStockManagementService().getPrivilegeScopes(Context.getAuthenticatedUser(), null, null, Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE));
+		
+		if (privilegeScopes == null) {
+			privilegeScopes = getStockManagementService().getPrivilegeScopes(Context.getAuthenticatedUser(), null, null,
+			    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE));
 		}
-
-		boolean canEdit = !stockRuleDTO.getVoided() && privilegeScopes.stream().anyMatch(p-> stockRuleDTO.getLocationUuid().equals(p.getLocationUuid()));
+		
+		boolean canEdit = !stockRuleDTO.getVoided()
+		        && privilegeScopes.stream().anyMatch(p -> stockRuleDTO.getLocationUuid().equals(p.getLocationUuid()));
 		simpleObject.add("canEdit", canEdit);
 		return simpleObject;
 	}

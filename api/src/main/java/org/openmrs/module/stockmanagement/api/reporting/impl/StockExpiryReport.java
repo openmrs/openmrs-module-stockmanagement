@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.StringUtils;
@@ -39,207 +48,218 @@ public class StockExpiryReport extends ReportGenerator {
 	protected BatchJob batchJob = null;
 	
 	@Override
-    public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
-        this.batchJob = batchJob;
-        stockManagementService = Context.getService(StockManagementService.class);
-        Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
-
-        if (!restoreExecutionState(batchJob, stockManagementService, log)) {
-            return;
-        }
-
-        if (shouldStopExecution.apply(batchJob)) {
-            return;
-        }
-
-        Properties parameters = null;
-
-        try {
-            parameters = GlobalProperties.fromString(batchJob.getParameters());
-        }
-        catch (IOException e) {
-            stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
-            log.error(e);
-            return;
-        }
-
-        Date startDate = getStartDate(parameters);
-        Date endDate = getEndDate(parameters);
-        String locationUuid = getLocation(parameters);
-        Boolean childLocations = getChildLocations(parameters);
-        String stockItemCategoryUuid = getStockItemCategory(parameters);
-
-        CSVWriter csvWriter = null;
-        Writer writer = null;
-
-        //try(Writer writer = Files.newBufferedWriter(new File(file.toString() + "_errors").toPath())) {
-        try {
-            boolean hasMoreRecords = true;
-            StockExpiryFilter filter = new StockExpiryFilter();
-            filter.setStartDate(startDate);
-            if(endDate != null) {
-                filter.setEndDate(DateUtil.endOfDay(endDate));
-            }
-            List<Integer> partyIds = null;
-            if (!StringUtils.isBlank(locationUuid)) {
-                Location location = Context.getLocationService().getLocationByUuid(locationUuid);
-                if (location == null) {
-                    stockManagementService.failBatchJob(batchJob.getUuid(), "Report location parameter not found");
-                    return;
-                }
-                filter.setAtLocationId(location.getLocationId());
-                filter.setChildLocations(childLocations);
-                if(childLocations != null && childLocations){
-                    partyIds = stockManagementService.getCompletePartyList(location.getLocationId()).stream().map(p->p.getId()).collect(Collectors.toList());
-                }else{
-                    Party party = stockManagementService.getPartyByLocation(location);
-                    if(party == null){
-                        stockManagementService.failBatchJob(batchJob.getUuid(), "Report location party parameter not found");
-                        return;
-                    }
-                    partyIds = new ArrayList<>();
-                    partyIds.add(party.getId());
-                }
-            }
-
-            if (!StringUtils.isBlank(stockItemCategoryUuid)) {
-                Concept concept = Context.getConceptService().getConceptByUuid(stockItemCategoryUuid);
-                if (concept == null) {
-                    stockManagementService.failBatchJob(batchJob.getUuid(), "Report stock item category parameter not found");
-                    return;
-                }
-                filter.setStockItemCategoryConceptId(concept.getConceptId());
-            }
-
-            filter.setLimit(pageSize);
-
-            boolean hasAppendedHeaders = false;
-            while (hasMoreRecords) {
-                if (shouldStopExecution.apply(batchJob)) {
-                    return;
-                }
-                filter.setStartIndex(pageIndex);
-                filter.setStockBatchIdMin(lastRecordProcessed);
-                Result<StockBatchLineItem> data = stockManagementService.getExpiringStockBatchList(filter);
-
-                if (shouldStopExecution.apply(batchJob)) {
-                    return;
-                }
-
-                if (!hasAppendedHeaders) {
-                    if (writer == null) {
-                        writer = Files.newBufferedWriter(resultsFile.toPath(), StandardCharsets.UTF_8,
-                                StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-                    }
-                    if (csvWriter == null) {
-                        csvWriter = createCsvWriter(writer);
-                    }
-                    if (!hasRestoredExecutionState) {
-                        writeHeaders(csvWriter);
-                    }
-                    hasAppendedHeaders = true;
-                }
-
-                if(!data.getData().isEmpty()){
-                    Map<Integer, List<StockBatchLineItem>> stockItemGroups = data.getData().stream().collect(Collectors.groupingBy(p -> p.getStockItemId()));
-                    int startIndex = 0;
-                    StockItemInventorySearchFilter inventorySearchFilter=new StockItemInventorySearchFilter();
-                    inventorySearchFilter.setRequireNonExpiredStockBatches(false);
-                    inventorySearchFilter.setUnRestrictedPartyIds(partyIds);
-                    inventorySearchFilter.setDoSetQuantityUoM(true);
-                    inventorySearchFilter.setDoSetPartyNameField(true);
-                    inventorySearchFilter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-
-                    boolean hasMoreUpdatesToDo;
-                    do {
-                        inventorySearchFilter.setItemGroupFilters(new ArrayList<>());
-                        List<Map.Entry<Integer, List<StockBatchLineItem>>>  stockItemGroupsPage =  stockItemGroups.entrySet().stream().skip(startIndex * 100).limit(100).collect(Collectors.toList());
-                        if (stockItemGroupsPage.isEmpty()) {
-                            break;
-                        }
-
-                        for(Map.Entry<Integer, List<StockBatchLineItem>> p : stockItemGroupsPage){
-                            StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
-                            itemGroupFilter.setStockItemId(p.getKey());
-                            itemGroupFilter.setStockBatchIds(p.getValue().stream().map(x -> x.getStockBatchId()).collect(Collectors.toList()));
-                            inventorySearchFilter.getItemGroupFilters().add(itemGroupFilter);
-                        }
-
-                        Map<Integer, List<StockItemInventory>> inventoryResult = stockManagementService.getStockInventory(inventorySearchFilter, null).getData()
-                                .stream().collect(Collectors.groupingBy(p->p.getStockBatchId()));
-                        for(Map.Entry<Integer, List<StockBatchLineItem>> p : stockItemGroupsPage){
-                            for(StockBatchLineItem stockBatchLineItem : p.getValue()){
-                                List<StockItemInventory> stockItemInventory = inventoryResult.get(stockBatchLineItem.getStockBatchId());
-                                if(stockItemInventory == null){
-                                    continue;
-                                }
-                                for(StockItemInventory locationBatchInventory : stockItemInventory){
-                                    if(locationBatchInventory.getQuantity().compareTo(BigDecimal.ZERO) <= 0){
-                                        continue;
-                                    }
-                                    writeRow(csvWriter,stockBatchLineItem, locationBatchInventory);
-                                }
-                            }
-                        }
-
-                        hasMoreUpdatesToDo = stockItemGroupsPage.size() >= 100;
-                        startIndex++;
-                    } while (hasMoreUpdatesToDo);
-
-                    csvWriter.flush();
-                    recordsProcessed += data.getData().size();
-                    pageIndex++;
-                    StockBatchLineItem lastRecord = data.getData().get(data.getData().size() - 1);
-                    updateExecutionState(batchJob, executionState, pageIndex, recordsProcessed, lastRecord.getStockBatchId(), null, stockManagementService, null);
-                }
-                else if (pageIndex == 0) {
-                    updateExecutionState(batchJob, executionState, pageIndex, recordsProcessed, null, null, stockManagementService, null);
-                }
-
-                hasMoreRecords = data.getData().size() >= pageSize;
-            }
-
-            csvWriter.close();
-            long fileSizeInBytes = Files.size(resultsFile.toPath());
-            completeBatchJob(batchJob, fileSizeInBytes, "csv", fileSizeInBytes <= (1024 * 1024), stockManagementService);
-        }
-        catch (IOException e) {
-            stockManagementService.failBatchJob(batchJob.getUuid(), "Input/Output error: " + e.getMessage());
-            log.error(e.getMessage(),e);
-        }
-        finally {
-            if (csvWriter != null) {
-                try {
-                    try {
-                        csvWriter.flush();
-                    }
-                    catch (Exception e) {}
-                    csvWriter.close();
-                }
-                catch (Exception csvWriterException) {}
-            }
-            if (writer != null) {
-                try {
-                    try {
-                        writer.flush();
-                    }
-                    catch (Exception e) {}
-                    writer.close();
-                }
-                catch (Exception we) {}
-            }
-        }
-    }
+	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
+		this.batchJob = batchJob;
+		stockManagementService = Context.getService(StockManagementService.class);
+		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
+		
+		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
+			return;
+		}
+		
+		if (shouldStopExecution.apply(batchJob)) {
+			return;
+		}
+		
+		Properties parameters = null;
+		
+		try {
+			parameters = GlobalProperties.fromString(batchJob.getParameters());
+		}
+		catch (IOException e) {
+			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
+			log.error(e);
+			return;
+		}
+		
+		Date startDate = getStartDate(parameters);
+		Date endDate = getEndDate(parameters);
+		String locationUuid = getLocation(parameters);
+		Boolean childLocations = getChildLocations(parameters);
+		String stockItemCategoryUuid = getStockItemCategory(parameters);
+		
+		CSVWriter csvWriter = null;
+		Writer writer = null;
+		
+		//try(Writer writer = Files.newBufferedWriter(new File(file.toString() + "_errors").toPath())) {
+		try {
+			boolean hasMoreRecords = true;
+			StockExpiryFilter filter = new StockExpiryFilter();
+			filter.setStartDate(startDate);
+			if (endDate != null) {
+				filter.setEndDate(DateUtil.endOfDay(endDate));
+			}
+			List<Integer> partyIds = null;
+			if (!StringUtils.isBlank(locationUuid)) {
+				Location location = Context.getLocationService().getLocationByUuid(locationUuid);
+				if (location == null) {
+					stockManagementService.failBatchJob(batchJob.getUuid(), "Report location parameter not found");
+					return;
+				}
+				filter.setAtLocationId(location.getLocationId());
+				filter.setChildLocations(childLocations);
+				if (childLocations != null && childLocations) {
+					partyIds = stockManagementService.getCompletePartyList(location.getLocationId()).stream()
+					        .map(p -> p.getId()).collect(Collectors.toList());
+				} else {
+					Party party = stockManagementService.getPartyByLocation(location);
+					if (party == null) {
+						stockManagementService.failBatchJob(batchJob.getUuid(), "Report location party parameter not found");
+						return;
+					}
+					partyIds = new ArrayList<>();
+					partyIds.add(party.getId());
+				}
+			}
+			
+			if (!StringUtils.isBlank(stockItemCategoryUuid)) {
+				Concept concept = Context.getConceptService().getConceptByUuid(stockItemCategoryUuid);
+				if (concept == null) {
+					stockManagementService.failBatchJob(batchJob.getUuid(),
+					    "Report stock item category parameter not found");
+					return;
+				}
+				filter.setStockItemCategoryConceptId(concept.getConceptId());
+			}
+			
+			filter.setLimit(pageSize);
+			
+			boolean hasAppendedHeaders = false;
+			while (hasMoreRecords) {
+				if (shouldStopExecution.apply(batchJob)) {
+					return;
+				}
+				filter.setStartIndex(pageIndex);
+				filter.setStockBatchIdMin(lastRecordProcessed);
+				Result<StockBatchLineItem> data = stockManagementService.getExpiringStockBatchList(filter);
+				
+				if (shouldStopExecution.apply(batchJob)) {
+					return;
+				}
+				
+				if (!hasAppendedHeaders) {
+					if (writer == null) {
+						writer = Files.newBufferedWriter(resultsFile.toPath(), StandardCharsets.UTF_8,
+						    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+					}
+					if (csvWriter == null) {
+						csvWriter = createCsvWriter(writer);
+					}
+					if (!hasRestoredExecutionState) {
+						writeHeaders(csvWriter);
+					}
+					hasAppendedHeaders = true;
+				}
+				
+				if (!data.getData().isEmpty()) {
+					Map<Integer, List<StockBatchLineItem>> stockItemGroups = data.getData().stream()
+					        .collect(Collectors.groupingBy(p -> p.getStockItemId()));
+					int startIndex = 0;
+					StockItemInventorySearchFilter inventorySearchFilter = new StockItemInventorySearchFilter();
+					inventorySearchFilter.setRequireNonExpiredStockBatches(false);
+					inventorySearchFilter.setUnRestrictedPartyIds(partyIds);
+					inventorySearchFilter.setDoSetQuantityUoM(true);
+					inventorySearchFilter.setDoSetPartyNameField(true);
+					inventorySearchFilter
+					        .setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+					
+					boolean hasMoreUpdatesToDo;
+					do {
+						inventorySearchFilter.setItemGroupFilters(new ArrayList<>());
+						List<Map.Entry<Integer, List<StockBatchLineItem>>> stockItemGroupsPage = stockItemGroups.entrySet()
+						        .stream().skip(startIndex * 100).limit(100).collect(Collectors.toList());
+						if (stockItemGroupsPage.isEmpty()) {
+							break;
+						}
+						
+						for (Map.Entry<Integer, List<StockBatchLineItem>> p : stockItemGroupsPage) {
+							StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
+							itemGroupFilter.setStockItemId(p.getKey());
+							itemGroupFilter.setStockBatchIds(
+							    p.getValue().stream().map(x -> x.getStockBatchId()).collect(Collectors.toList()));
+							inventorySearchFilter.getItemGroupFilters().add(itemGroupFilter);
+						}
+						
+						Map<Integer, List<StockItemInventory>> inventoryResult = stockManagementService
+						        .getStockInventory(inventorySearchFilter, null).getData().stream()
+						        .collect(Collectors.groupingBy(p -> p.getStockBatchId()));
+						for (Map.Entry<Integer, List<StockBatchLineItem>> p : stockItemGroupsPage) {
+							for (StockBatchLineItem stockBatchLineItem : p.getValue()) {
+								List<StockItemInventory> stockItemInventory = inventoryResult
+								        .get(stockBatchLineItem.getStockBatchId());
+								if (stockItemInventory == null) {
+									continue;
+								}
+								for (StockItemInventory locationBatchInventory : stockItemInventory) {
+									if (locationBatchInventory.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+										continue;
+									}
+									writeRow(csvWriter, stockBatchLineItem, locationBatchInventory);
+								}
+							}
+						}
+						
+						hasMoreUpdatesToDo = stockItemGroupsPage.size() >= 100;
+						startIndex++;
+					} while (hasMoreUpdatesToDo);
+					
+					csvWriter.flush();
+					recordsProcessed += data.getData().size();
+					pageIndex++;
+					StockBatchLineItem lastRecord = data.getData().get(data.getData().size() - 1);
+					updateExecutionState(batchJob, executionState, pageIndex, recordsProcessed, lastRecord.getStockBatchId(),
+					    null, stockManagementService, null);
+				} else if (pageIndex == 0) {
+					updateExecutionState(batchJob, executionState, pageIndex, recordsProcessed, null, null,
+					    stockManagementService, null);
+				}
+				
+				hasMoreRecords = data.getData().size() >= pageSize;
+			}
+			
+			csvWriter.close();
+			long fileSizeInBytes = Files.size(resultsFile.toPath());
+			completeBatchJob(batchJob, fileSizeInBytes, "csv", fileSizeInBytes <= (1024 * 1024), stockManagementService);
+		}
+		catch (IOException e) {
+			stockManagementService.failBatchJob(batchJob.getUuid(), "Input/Output error: " + e.getMessage());
+			log.error(e.getMessage(), e);
+		}
+		finally {
+			if (csvWriter != null) {
+				try {
+					try {
+						csvWriter.flush();
+					}
+					catch (Exception e) {}
+					csvWriter.close();
+				}
+				catch (Exception csvWriterException) {}
+			}
+			if (writer != null) {
+				try {
+					try {
+						writer.flush();
+					}
+					catch (Exception e) {}
+					writer.close();
+				}
+				catch (Exception we) {}
+			}
+		}
+	}
 	
 	protected void writeRow(CSVWriter csvWriter, StockBatchLineItem row, StockItemInventory inventory) {
 		writeLineToCsv(csvWriter,
 		    row.getStockItemDrugName() == null ? row.getStockItemConceptName() : row.getStockItemDrugName(),
 		    row.getStockItemDrugName() == null ? "" : row.getStockItemConceptName(), emptyIfNull(row.getCommonName()),
 		    emptyIfNull(row.getAcronym()), emptyIfNull(row.getStockItemCategoryName()),
-		    emptyIfNull(inventory.getPartyName()), emptyIfNull(row.getBatchNo()), TIMESTAMP_FORMATTER.format(row
-		            .getDateCreated()), row.getExpiration() != null ? DATE_FORMATTER.format(row.getExpiration()) : "",
-		    inventory.getQuantity().toPlainString(), inventory.getQuantityUoM(), inventory.getQuantityFactor()
-		            .toPlainString(), row.getStockItemDrugId() == null ? "" : row.getStockItemDrugId().toString(),
+		    emptyIfNull(inventory.getPartyName()), emptyIfNull(row.getBatchNo()),
+		    TIMESTAMP_FORMATTER.format(row.getDateCreated()),
+		    row.getExpiration() != null ? DATE_FORMATTER.format(row.getExpiration()) : "",
+		    inventory.getQuantity().toPlainString(), inventory.getQuantityUoM(),
+		    inventory.getQuantityFactor().toPlainString(),
+		    row.getStockItemDrugId() == null ? "" : row.getStockItemDrugId().toString(),
 		    row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId().toString());
 	}
 	
