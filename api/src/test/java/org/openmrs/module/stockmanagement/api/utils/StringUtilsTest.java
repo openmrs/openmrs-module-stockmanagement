@@ -39,4 +39,13 @@ public class StringUtilsTest {
 		}
 		assertTrue(StringUtils.isValidEmail(localPart + "@example.com"));
 	}
+	
+	@Test
+	public void isValidEmail_shouldNotOverflowTheStackOnAVeryLongDomain() {
+		StringBuilder domain = new StringBuilder();
+		for (int i = 0; i < 100000; i++) {
+			domain.append("a.");
+		}
+		assertTrue(StringUtils.isValidEmail("a@" + domain + "com"));
+	}
 }
