@@ -1,7 +1,16 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.InputStream;
 import java.sql.Connection;
@@ -9,9 +18,9 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import javax.xml.parsers.DocumentBuilderFactory;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -24,7 +33,7 @@ public class SubStoreScopeChangeSetTest extends BaseModuleContextSensitiveTest {
 	
 	private static final String RECEIPT_UUID = "bbbbbbbb-1111-1111-1111-111111111111";
 	
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		insertOperationType("Transfer Out", "transferout", "TRO", TRANSFER_UUID);
 		insertOperationType("Receipt", "receipt", "REC", RECEIPT_UUID);
@@ -38,7 +47,7 @@ public class SubStoreScopeChangeSetTest extends BaseModuleContextSensitiveTest {
 	@Test
 	public void subStoreScopeChangeSet_shouldCopyTheScopesOfTheExistingStockLocationTags() throws Exception {
 		Element changeSet = getChangeSet(CHANGESET);
-		assertNotNull("Changeset " + CHANGESET + " should exist", changeSet);
+		assertNotNull(changeSet, "Changeset " + CHANGESET + " should exist");
 		String precondition = text(changeSet, "sqlCheck");
 		assertEquals(0, count(precondition));
 		
@@ -48,7 +57,7 @@ public class SubStoreScopeChangeSetTest extends BaseModuleContextSensitiveTest {
 		assertEquals(1, count(subStoreScopes(TRANSFER_UUID, " AND s.is_source = true AND s.is_destination = false")));
 		assertEquals(1, count(subStoreScopes(TRANSFER_UUID, " AND s.is_source = false AND s.is_destination = true")));
 		assertEquals(2, count(subStoreScopes(TRANSFER_UUID, " AND s.voided = false")));
-		assertEquals("Voided scopes and other tags should not be copied", 0, count(subStoreScopes(RECEIPT_UUID, "")));
+		assertEquals(0, count(subStoreScopes(RECEIPT_UUID, "")), "Voided scopes and other tags should not be copied");
 		assertEquals(2, count(precondition));
 	}
 	
@@ -75,7 +84,7 @@ public class SubStoreScopeChangeSetTest extends BaseModuleContextSensitiveTest {
 	
 	private Element getChangeSet(String id) throws Exception {
 		try (InputStream in = getClass().getClassLoader().getResourceAsStream("liquibase.xml")) {
-			assertNotNull("liquibase.xml should be on the classpath", in);
+			assertNotNull(in, "liquibase.xml should be on the classpath");
 			DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 			factory.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
 			Document document = factory.newDocumentBuilder().parse(in);
