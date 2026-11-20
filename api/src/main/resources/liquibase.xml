@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
 
     This Source Code Form is subject to the terms of the Mozilla Public License,
@@ -9,7 +10,6 @@
     graphic logo is a trademark of OpenMRS Inc.
 
 -->
-﻿<?xml version="1.0" encoding="UTF-8"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9&#xD;&#xA;                  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
   <!--
     	See http://wiki.openmrs.org/display/docs/Module+liquibase+File for 
