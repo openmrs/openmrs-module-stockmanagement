@@ -9,7 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
-import org.openmrs.module.stockmanagement.api.utils.Action2;
+import java.util.function.BiConsumer;
 import org.openmrs.module.stockmanagement.api.model.ReservedTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
@@ -61,10 +61,10 @@ public class StockTakeOperationTypeProcessor extends StockOperationTypeProcessor
 	
 	@Override
 	public void onPending(final StockOperation operation) {
-		executeCopyReserved(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+		executeCopyReserved(operation, new BiConsumer<ReservedTransaction, StockItemTransaction>() {
 			
 			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
+			public void accept(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getSource());
 				tx.setQuantity(tx.getQuantity());
 				
@@ -74,10 +74,10 @@ public class StockTakeOperationTypeProcessor extends StockOperationTypeProcessor
 	
 	@Override
 	public void onCancelled(final StockOperation operation) {
-		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+		executeCopyReservedAndClear(operation, new BiConsumer<ReservedTransaction, StockItemTransaction>() {
 			
 			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
+			public void accept(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getSource());
 				
 				// Undo the previously applied transaction by setting
