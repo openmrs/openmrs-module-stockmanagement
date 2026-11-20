@@ -24,6 +24,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -1487,6 +1488,39 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		filter.setBatchJobIds(Arrays.asList(Integer.MAX_VALUE));
 		result = stockManagementService.findBatchJobs(filter, null);
 		assertTrue(result.getData().isEmpty());
+	}
+	
+	@Test
+	public void saveStockOperation_shouldGiveEachExpiryOfABatchNumberItsOwnBatch() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		stockItem.setVoided(false);
+		stockItem.setHasExpiration(true);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM uom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		uom.setVoided(false);
+		dao().saveStockItemPackagingUOM(uom);
+		List<Date> expiries = Arrays.asList(DateUtils.addYears(DateUtil.today(), 1),
+		    DateUtils.addYears(DateUtil.today(), 2));
+		StockOperationDTO receipt = new StockOperationDTO();
+		receipt.setOperationTypeUuid("fce0b4fc-9402-424a-aacb-f99599e51a9f");
+		receipt.setAtLocationUuid(eu().getLocation().getUuid());
+		receipt.setDestinationUuid(eu().getParty(dao()).getUuid());
+		receipt.setOperationDate(new Date());
+		receipt.setStockOperationItems(new ArrayList<>());
+		for (Date expiry : expiries) {
+			StockOperationItemDTO line = new StockOperationItemDTO();
+			line.setStockItemUuid(stockItem.getUuid());
+			line.setStockItemPackagingUOMUuid(uom.getUuid());
+			line.setBatchNo("B-01");
+			line.setExpiration(expiry);
+			line.setQuantity(BigDecimal.TEN);
+			receipt.getStockOperationItems().add(line);
+		}
+		StockManagementService service = Context.getService(StockManagementService.class);
+		StockOperation operation = service.saveStockOperation(receipt);
+		List<Date> batchExpiries = service.getStockOperationItemsByStockOperation(operation.getId()).stream()
+		        .map(item -> item.getStockBatch().getExpiration()).collect(Collectors.toList());
+		assertThat(batchExpiries, containsInAnyOrder(expiries.toArray()));
 	}
 	
 	@Test
