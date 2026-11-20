@@ -26,7 +26,7 @@ import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
-import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
+import com.opencsv.CSVWriter;
 
 import java.io.IOException;
 import java.io.Writer;

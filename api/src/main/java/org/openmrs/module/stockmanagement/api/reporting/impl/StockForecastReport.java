@@ -31,7 +31,7 @@ import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.api.utils.FileUtil;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
-import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
+import com.opencsv.CSVWriter;
 
 import java.io.*;
 import java.math.BigDecimal;
