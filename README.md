@@ -21,22 +21,22 @@ It is inspired by the [OpenHMIS Inventory Module](https://github.com/banda-healt
 
 ## Requirements
 
-Each maintained branch targets a different OpenMRS Platform. The versions below come from the root `pom.xml` of each branch, which is the source of truth.
+The versions below come from the root `pom.xml` of each maintained branch, which is the source of truth.
 
-| Branch     | Releases               | OpenMRS Platform | REST Web Services | Java                                                 |
-| ---------- | ---------------------- | ---------------- | ----------------- | ---------------------------------------------------- |
-| `master`   | 3.x (latest 3.0.0)     | 2.8.0            | 3.0.0             | Compiled for Java 8. CI also builds on 11, 17 and 21 |
-| `core-3.x` | 4.x (not yet released) | 3.0.0-SNAPSHOT   | 5.0.0-SNAPSHOT    | 21. CI also builds on 25                             |
+| Branch     | Version in `pom.xml`                  | OpenMRS Platform | REST Web Services | Java                                                 |
+| ---------- | ------------------------------------- | ---------------- | ----------------- | ---------------------------------------------------- |
+| `master`   | 4.0.0-SNAPSHOT                        | 2.8.0            | 3.0.0             | Compiled for Java 8. CI also builds on 11, 17 and 21 |
+| `3.x`      | 3.1.0-SNAPSHOT (latest release 3.0.0) | 2.8.0            | 3.0.0             | Compiled for Java 8                                  |
+| `core-3.x` | 4.0.0-SNAPSHOT                        | 3.0.0-SNAPSHOT   | 5.0.0-SNAPSHOT    | 21. CI also builds on 25                             |
 
-GitHub Actions builds these two branches and publishes their snapshots. It doesn't build the older branches:
+`3.x` takes fixes for 3.x releases. GitHub Actions builds `master` and `core-3.x` and publishes their snapshots. It doesn't build `3.x` or the older branches:
 
 - `2.x` (latest release 2.0.3) builds against Platform 2.4.3 and REST Web Services 2.32.0 with Java 8.
 - `1.X` (latest release 1.4.4) builds against Platform 2.3.1 with Java 8. It also requires 2.x Reference Application modules such as App Framework, UI Framework and Core Apps.
-- `core-2.8` has had no commits since May 2025. `master` builds against Platform 2.8.0 itself.
 
 [`omod/src/main/resources/config.xml`](omod/src/main/resources/config.xml) sets what the module needs at runtime:
 
-- **OpenMRS version**: 2.8.0 on `master`, which is the Platform version it builds against, and 3.0.0 on `core-3.x`.
+- **OpenMRS version**: 2.8.0 on `master` and `3.x`, which is the Platform version they build against, and 3.0.0 on `core-3.x`.
 - **Required modules**: [REST Web Services](https://github.com/openmrs/openmrs-module-webservices.rest), at the version the branch builds against or later.
 - **Aware of**: Legacy UI.
 
@@ -58,10 +58,10 @@ To install a module file by hand, [build it](#building), put the `.omod` in the 
 
 On start the module creates its tables, the nine stock operation types, its privileges and one scheduled task. It also creates a party for every location and fills the location tree it uses to resolve user role scopes.
 
-Up to 3.0.0 the module also created the three location tags below and tagged matching locations, created a Main Store and a Main Pharmacy location where none existed, and seeded the email templates, two more scheduled tasks and default values for ten global properties. `master` no longer does any of this since [#63](https://github.com/openmrs/openmrs-module-stockmanagement/pull/63), so an implementation has to supply them:
+Up to 3.0.0 the module also created the three location tags below and tagged matching locations, created a Main Store and a Main Pharmacy location where none existed, and seeded the email templates, two more scheduled tasks and default values for ten global properties. `master` and `3.x` no longer do any of this since [#63](https://github.com/openmrs/openmrs-module-stockmanagement/pull/63), so an implementation has to supply them:
 
 - **Location tags** named `Main Store`, `Main Pharmacy` and `Dispensary`. The module looks these up by name. Locations with any of the three tags hold stock, and locations tagged `Main Pharmacy` or `Dispensary` are dispensing locations. Each operation type also accepts only locations with certain tags. For example a Receipt can only go into a `Main Store` location, and a Stock Issue goes from `Main Store` to `Main Pharmacy` or `Dispensary`. `GET /ws/rest/v1/stockmanagement/stockoperationtype?v=default` lists these rules as `stockOperationTypeLocationScopes`.
-- **Email templates** named `STOCK_MGMT_OPERATION_ACTION`, `STOCK_MGMT_QTY_BELOW_THRESHOLD` and `STOCK_MGMT_BATCH_EXPIRING`. No email is sent for a template that is missing.
+- **Email templates** named `STOCK_MGMT_OPERATION_ACTION`, `STOCK_MGMT_QTY_BELOW_THRESHOLD` and `STOCK_MGMT_BATCH_EXPIRING`. No email is sent for a template that is missing. The `%CENTER_NAME%` placeholder in the templates comes from the global property `ugandaemr.healthCenterName`, which this module doesn't declare. When it's blank, the module uses the name of the top-level location with the most child locations.
 - **Scheduled tasks** for stock rules and batch expiry. See [Scheduled tasks](#scheduled-tasks).
 - **Feature-specific global properties** for notifications and reporting. See [Global properties](#global-properties).
 
@@ -129,7 +129,7 @@ Liquibase registers one task, which starts with OpenMRS:
 
 - **Asynchronous Report Generation And Batch Jobs** (`org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob`) runs every 60 seconds and generates queued reports. It stops itself when the queue stays empty and is started again when a report is queued. Report files are written to `stockmgmt/batchjob` in the application data directory.
 
-Two more task classes ship with the module. Up to 3.0.0 the module registered them with a daily interval, but not to start with OpenMRS, so they only ran once someone started them in the scheduler. `master` no longer registers them, so register them yourself if you want the notifications, for example on the Manage Scheduler page of the Legacy UI, and tick Start on startup so they run again after a restart. A database that ran 3.0.0 or earlier still has them as Stock Rules Evaluation Job and Stock Batch Expiry Job, so edit those instead of adding new ones. The two classes are:
+Two more task classes ship with the module. Up to 3.0.0 the module registered them with a daily interval, but not to start with OpenMRS, so they only ran once someone started them in the scheduler. `master` and `3.x` no longer register them, so register them yourself if you want the notifications, for example on the Manage Scheduler page of the Legacy UI, and tick Start on startup so they run again after a restart. A database that ran 3.0.0 or earlier still has them as Stock Rules Evaluation Job and Stock Batch Expiry Job, so edit those instead of adding new ones. The two classes are:
 
 - `org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob` checks stock rules and notifies users when a quantity is at or below its threshold. It does nothing while `stockmanagement.enableStockRuleJob` is `false`.
 - `org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob` notifies users about batches that are about to expire. It does nothing while `stockmanagement.enableStockBatchJob` is `false`. It notifies users who have an active user role scope with the `Inventory Manager` or `Inventory Clerk` role at the batch's location or at a Main Store location. When neither role exists, it uses every role that has `Task: stockmanagement.stockoperations.mutate` instead.
@@ -162,13 +162,15 @@ Five endpoints are plain controllers in [`web/controller`](omod/src/main/java/or
 
 ### Building
 
-You need Maven and a JDK that matches the branch: Java 8, 11, 17 or 21 for `master`, Java 21 or later for `core-3.x`.
+You need Maven and a JDK that matches the branch: Java 8, 11, 17 or 21 for `master` and `3.x`, Java 21 or later for `core-3.x`.
 
 ```bash
 mvn clean package
 ```
 
 This compiles the module, runs the tests and writes the module file to `omod/target/stockmanagement-<version>.omod`.
+
+On `master` the build also formats the Java code with Spotless and puts the OpenMRS licence header on source and resource files, replacing any other header, using the settings in the [OpenMRS module parent POM](https://github.com/openmrs/openmrs-contrib-maven-parent-module). Commit the changes it makes. In CI the build checks the formatting and headers instead of applying them, and fails if any file differs. The Spotless version depends on the JDK, and CI checks with each JDK it builds on. If a line formats differently on Java 8 than on Java 17 or later, rewrite it so both agree, for example by moving a nested call into a local variable.
 
 To skip the tests:
 
@@ -182,7 +184,7 @@ mvn clean package -DskipTests
 mvn test
 ```
 
-The tests are in `api/src/test` and `omod/src/test`.
+The tests are in `api/src/test` and `omod/src/test`. On `master` they use JUnit 5 and the `jupiter` base test classes from OpenMRS core.
 
 ### Deploying to a local backend
 
@@ -207,7 +209,7 @@ On a standalone server, replace the `.omod` in the `modules` folder of the appli
 ## Contributing
 
 - Tickets are in the [O3 project](https://openmrs.atlassian.net/browse/O3) in Jira.
-- Branch off `master`, or off `core-3.x` for changes that only apply to Platform 3. A fix that both lines need gets a pull request against each branch.
+- Branch off `master`, or off `core-3.x` for changes that only apply to Platform 3. A fix that both lines need gets a pull request against each branch, and one against `3.x` too if it should ship in a 3.x release.
 - Pull requests are usually squash-merged, so the PR title becomes the commit message. Title them `(type) O3-1234: Summary of the change`, for example `(fix) O3-6201: Reject stock actions without an operation UUID`.
 - Add or update tests for the behaviour you change. CI runs the build on every pull request to `master` and `core-3.x`.
 - Report security issues privately. See [SECURITY.md](SECURITY.md).
@@ -216,4 +218,4 @@ On a standalone server, replace the `.omod` in the `modules` folder of the appli
 
 Releases are made with the [Release workflow](.github/workflows/release.yml), which is started by hand from the Actions tab with three inputs: the release version, the next development version and the branch to release from. It runs the Maven release plugin, which tags the release as `stockmanagement-<version>` and publishes it to the OpenMRS Maven repository, and then creates a GitHub release with generated notes.
 
-To release from `core-3.x`, run the workflow from the `core-3.x` branch and set the branch input to `core-3.x`. The copy of the workflow on that branch sets Java 21, and the copy on `master` sets Java 8.
+To release from `3.x` or `core-3.x`, run the workflow from that branch and set the branch input to the same branch. The copy of the workflow on `core-3.x` sets Java 21, and the copies on `master` and `3.x` set Java 8.
