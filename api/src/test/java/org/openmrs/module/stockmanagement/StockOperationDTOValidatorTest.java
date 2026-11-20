@@ -1,8 +1,8 @@
 package org.openmrs.module.stockmanagement;
 
 import org.apache.commons.lang.time.DateUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
@@ -12,7 +12,7 @@ import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationItemDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.validator.StockOperationDTOValidator;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.Errors;
 import org.springframework.validation.MapBindingResult;
@@ -23,10 +23,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Integration tests for {@link StockOperationDTOValidator}, the validator that derives
@@ -79,7 +79,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		return entityUtil;
 	}
 
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
@@ -204,7 +204,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		Errors errors = validate(dto);
 		assertTrue(errors.hasErrors());
 		for (Object error : errors.getAllErrors()) {
-			assertNotNull("Validation errors must never carry a null message", messageOf((org.springframework.validation.ObjectError) error));
+			assertNotNull(messageOf((org.springframework.validation.ObjectError) error), "Validation errors must never carry a null message");
 			assertFalse(messageOf((org.springframework.validation.ObjectError) error).isEmpty());
 		}
 	}

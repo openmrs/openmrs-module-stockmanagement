@@ -1,9 +1,9 @@
 package org.openmrs.module.stockmanagement.web.resource;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -13,8 +13,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.lang.time.DateUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.Location;
 import org.openmrs.Privilege;
 import org.openmrs.Role;
@@ -32,7 +32,7 @@ import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.module.stockmanagement.api.model.UserRoleScope;
 import org.openmrs.module.stockmanagement.api.model.UserRoleScopeLocation;
 import org.openmrs.module.stockmanagement.api.model.UserRoleScopeOperationType;
-import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
+import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.api.ValidationException;
@@ -73,7 +73,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		return entityUtil;
 	}
 
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
@@ -203,7 +203,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 
 		StockOperation operation = dao().getStockOperationByUuid(saved.getUuid());
 		assertNotNull(operation);
-		assertNotNull("at_location_id is NOT NULL: the validator must have derived it", operation.getAtLocation());
+		assertNotNull(operation.getAtLocation(), "at_location_id is NOT NULL: the validator must have derived it");
 		assertEquals(operation.getDestination().getLocation().getId(), operation.getAtLocation().getId());
 	}
 

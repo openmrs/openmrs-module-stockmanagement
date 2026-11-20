@@ -1,15 +1,15 @@
 package org.openmrs.module.stockmanagement.web.resource;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
@@ -28,7 +28,7 @@ public class StockOperationResourceTest {
 
 	private StockManagementService service;
 
-	@Before
+	@BeforeEach
 	public void setup() {
 		// bypass validateStockOperation: it needs a live OpenMRS context (covered by the
 		// StockOperationDTOValidatorTest integration tests in the api module)
@@ -50,7 +50,7 @@ public class StockOperationResourceTest {
 
 		IllegalRequestException exception = assertThrows(IllegalRequestException.class,
 		    () -> resource.save(new StockOperationDTO()));
-		assertNotNull("REST errors must never carry a null message", exception.getMessage());
+		assertNotNull(exception.getMessage(), "REST errors must never carry a null message");
 		assertEquals("Unable to save stock operation", exception.getMessage());
 		// wrapErrorResponse appends each cause's message to the response: the cause must stay out
 		assertNull(exception.getCause());

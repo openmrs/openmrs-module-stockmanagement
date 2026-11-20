@@ -12,8 +12,8 @@ package org.openmrs.module.stockmanagement;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.hibernate.Query;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -33,7 +33,7 @@ import org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl;
 import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Array;
@@ -45,8 +45,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * This is a unit test, which verifies logic in StockManagementService. It doesn't extend
@@ -72,7 +73,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		return daoInstance;
 	}
 	
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
@@ -97,7 +98,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	//	@Mock
 	//	UserService userService;
 	
-	@Before
+	@BeforeEach
 	public void setupMocks() {
 		MockitoAnnotations.initMocks(this);
 	}
@@ -689,7 +690,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 
         assertEquals(5, stockItemDTOs.getData().size());
         Optional<StockItemDTO> stockItemOptional = stockItemDTOs.getData().stream().filter(p -> p.getDrugId().equals(2)).findFirst();
-        assertTrue("Drug Stock item is present", stockItemOptional.isPresent());
+        assertTrue(stockItemOptional.isPresent(), "Drug Stock item is present");
         StockItemDTO stockItem = stockItemOptional.get();
         assertTrue(stockItem.getHasExpiration());
         assertEquals(stockItem.getCommonName(), "TEST 2");
@@ -704,7 +705,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 
 
         stockItemOptional = stockItemDTOs.getData().stream().filter(p -> p.getConceptId().equals(5497)).findFirst();
-        assertTrue("Concenpt Stock item is present", stockItemOptional.isPresent());
+        assertTrue(stockItemOptional.isPresent(), "Concenpt Stock item is present");
         stockItem = stockItemOptional.get();
         assertFalse(stockItem.getHasExpiration());
         assertEquals(stockItem.getCommonName(), "TEST 2");

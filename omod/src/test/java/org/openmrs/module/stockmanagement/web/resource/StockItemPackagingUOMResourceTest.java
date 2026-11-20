@@ -1,14 +1,14 @@
 package org.openmrs.module.stockmanagement.web.resource;
 
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.math.BigDecimal;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.api.ValidationException;
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUOMDTO;
-import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
+import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 
 /**
  * Proves that {@link StockItemPackagingUOMResource#save} runs the StockItemPackagingUOMValidator
@@ -19,7 +19,7 @@ public class StockItemPackagingUOMResourceTest extends BaseModuleWebContextSensi
 
 	private final StockItemPackagingUOMResource resource = new StockItemPackagingUOMResource();
 
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 	}

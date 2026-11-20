@@ -5,9 +5,9 @@ import org.openmrs.annotation.Handler;
 import org.openmrs.api.ValidationException;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.validator.StockOperationActionValidator;
-import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
-import org.junit.Before;
-import org.junit.Test;
+import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
@@ -22,7 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -31,7 +31,7 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 	private StockManagementService service;
 	private StockOperationActionResource resource;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		initializeInMemoryDatabase();
 		service = mock(StockManagementService.class);
@@ -45,7 +45,7 @@ public class StockOperationActionResourceTest extends BaseModuleWebContextSensit
 
 	@Test
 	public void shouldRejectBlankUuidForEveryActionBeforeLookingUpAnOperation() {
-		when(service.findStockOperations(any(StockOperationSearchFilter.class)))
+		lenient().when(service.findStockOperations(any(StockOperationSearchFilter.class)))
 		        .thenReturn(new Result<>(Arrays.asList(new StockOperationDTO(), new StockOperationDTO()), 2));
 		for (StockOperationAction.Action name : StockOperationAction.Action.values()) {
 			for (String uuid : Arrays.asList(null, "", " ", "\t", "\r\n")) {
