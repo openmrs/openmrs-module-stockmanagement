@@ -36,15 +36,21 @@ import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
 import org.openmrs.module.stockmanagement.tasks.LocationTreeSynchronize;
 import org.openmrs.module.stockmanagement.tasks.PartySynchronize;
+import org.openmrs.module.webservices.rest.SimpleObject;
+import org.openmrs.module.webservices.rest.web.RequestContext;
+import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.api.ValidationException;
 import org.openmrs.util.PrivilegeConstants;
 import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -219,6 +225,81 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	// ---------------------------------------------------------------------------------------------
 	// REST Lifecycle Tests
 	// ---------------------------------------------------------------------------------------------
+
+	@Test
+	public void restLifecycle_shouldCreateReceiptAndActionThroughJsonPayloadAndCreatableProperties() throws Exception {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+
+		// Exercise the REST request path via JSON payload deserialized into SimpleObject and passed to create()
+		String jsonPayload = "{\n"
+				+ "  \"operationTypeUuid\": \"" + receiptType.getUuid() + "\",\n"
+				+ "  \"operationDate\": \"2026-11-19\",\n"
+				+ "  \"sourceUuid\": \"" + supplierParty.getUuid() + "\",\n"
+				+ "  \"destinationUuid\": \"" + childParty.getUuid() + "\",\n"
+				+ "  \"stockOperationItems\": [{\n"
+				+ "    \"stockItemUuid\": \"" + sampleStockItem.getUuid() + "\",\n"
+				+ "    \"stockItemPackagingUOMUuid\": \"" + samplePackagingUom.getUuid() + "\",\n"
+				+ "    \"batchNo\": \"REST-JSON-BATCH-1\",\n"
+				+ "    \"expiration\": \"2027-11-19\",\n"
+				+ "    \"quantity\": 25\n"
+				+ "  }]\n"
+				+ "}";
+
+		SimpleObject post = SimpleObject.parseJson(jsonPayload);
+		RequestContext requestContext = new RequestContext();
+		requestContext.setRequest(new MockHttpServletRequest());
+		requestContext.setResponse(new MockHttpServletResponse());
+
+		// Verify create() reads request fields and converts nested stockOperationItems via getCreatableProperties()
+		Object created = stockOperationResource.create(post, requestContext);
+		assertNotNull("create() must return representation", created);
+		assertTrue("create() must return SimpleObject", created instanceof SimpleObject);
+		SimpleObject createdObj = (SimpleObject) created;
+		String createdUuid = (String) createdObj.get("uuid");
+		assertNotNull("Created operation must have uuid in response", createdUuid);
+
+		Context.flushSession();
+		Context.clearSession();
+
+		StockOperationDTO retrieved = stockOperationResource.getByUniqueId(createdUuid);
+		assertNotNull(retrieved);
+		assertEquals(StockOperationStatus.NEW, retrieved.getStatus());
+
+		// Verify nested items were processed by the property setter and persisted
+		Collection<StockOperationItemDTO> items = stockOperationResource.getStockOperationItems(retrieved);
+		assertNotNull("Property getter getStockOperationItems must return line items", items);
+		assertEquals(1, items.size());
+		StockOperationItemDTO item = items.iterator().next();
+		assertEquals("REST-JSON-BATCH-1", item.getBatchNo());
+		assertEquals(0, BigDecimal.valueOf(25).compareTo(item.getQuantity()));
+
+		// Verify retrieve() via REST request path with Representation.FULL returns nested items
+		RequestContext fullContext = new RequestContext();
+		fullContext.setRequest(new MockHttpServletRequest());
+		fullContext.setResponse(new MockHttpServletResponse());
+		fullContext.setRepresentation(Representation.FULL);
+		Object retrievedFull = stockOperationResource.retrieve(createdUuid, fullContext);
+		assertTrue(retrievedFull instanceof SimpleObject);
+		List<?> restItems = (List<?>) ((SimpleObject) retrievedFull).get("stockOperationItems");
+		assertNotNull("Full representation must include stockOperationItems", restItems);
+		assertEquals(1, restItems.size());
+
+		// Exercise the action REST request path via JSON payload and create()
+		String submitActionJson = "{\n"
+				+ "  \"uuid\": \"" + createdUuid + "\",\n"
+				+ "  \"name\": \"SUBMIT\"\n"
+				+ "}";
+		SimpleObject actionPost = SimpleObject.parseJson(submitActionJson);
+		Object actionResult = stockOperationActionResource.create(actionPost, requestContext);
+		assertNotNull("Action create() must return representation", actionResult);
+
+		Context.flushSession();
+		Context.clearSession();
+
+		StockOperationDTO submitted = stockOperationResource.getByUniqueId(createdUuid);
+		assertEquals(StockOperationStatus.SUBMITTED, submitted.getStatus());
+		assertNotNull("submittedBy must be recorded", submitted.getSubmittedBy());
+	}
 
 	@Test
 	public void restLifecycle_shouldSaveSubmitAndApproveReceiptOperation() {
