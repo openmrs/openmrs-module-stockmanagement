@@ -56,7 +56,7 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
 	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
-		return null;
+		throw new ResourceDoesNotSupportOperationException();
 	}
 	
 	@Override
