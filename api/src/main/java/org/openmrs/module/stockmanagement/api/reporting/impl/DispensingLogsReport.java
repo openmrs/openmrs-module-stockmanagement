@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.StringUtils;
@@ -113,8 +122,8 @@ public class DispensingLogsReport extends ReportGenerator {
 			if (!StringUtils.isBlank(stockItemCategoryUuid)) {
 				Concept concept = Context.getConceptService().getConceptByUuid(stockItemCategoryUuid);
 				if (concept == null) {
-					stockManagementService
-					        .failBatchJob(batchJob.getUuid(), "Report stock item category parameter not found");
+					stockManagementService.failBatchJob(batchJob.getUuid(),
+					    "Report stock item category parameter not found");
 					return;
 				}
 				filter.setStockItemCategoryConceptId(concept.getConceptId());
@@ -197,15 +206,15 @@ public class DispensingLogsReport extends ReportGenerator {
 	}
 	
 	protected void writeRow(CSVWriter csvWriter, DispensingLineItem row) {
-		writeLineToCsv(csvWriter, row.getPartyName(), TIMESTAMP_FORMATTER.format(row.getDateCreated()), String.format(
-		    "%1$s %2$s", row.getCreatorFamilyName(), row.getCreatorGivenName()), row.getPatientIdentifier(),
+		writeLineToCsv(csvWriter, row.getPartyName(), TIMESTAMP_FORMATTER.format(row.getDateCreated()),
+		    String.format("%1$s %2$s", row.getCreatorFamilyName(), row.getCreatorGivenName()), row.getPatientIdentifier(),
 		    row.getStockItemDrugName() == null ? row.getStockItemConceptName() : row.getStockItemDrugName(),
 		    row.getStockItemDrugName() == null ? "" : row.getStockItemConceptName(), emptyIfNull(row.getCommonName()),
 		    emptyIfNull(row.getAcronym()), emptyIfNull(row.getStockItemCategoryName()), emptyIfNull(row.getBatchNo()),
 		    row.getExpiration() != null ? DATE_FORMATTER.format(row.getExpiration()) : "",
-		    row.getQuantity().multiply(negativeOne).toPlainString(), row.getStockItemPackagingUOMName(), row
-		            .getStockItemPackagingUOMFactor().toPlainString(), row.getOrderNumber() == null ? "" : row
-		            .getOrderNumber().toString(), row.getStockItemTransactionId().toString(),
+		    row.getQuantity().multiply(negativeOne).toPlainString(), row.getStockItemPackagingUOMName(),
+		    row.getStockItemPackagingUOMFactor().toPlainString(),
+		    row.getOrderNumber() == null ? "" : row.getOrderNumber().toString(), row.getStockItemTransactionId().toString(),
 		    row.getStockItemDrugId() == null ? "" : row.getStockItemDrugId().toString(),
 		    row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId().toString());
 	}

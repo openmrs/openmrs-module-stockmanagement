@@ -1,9 +1,9 @@
-/**
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public License,
  * v. 2.0. If a copy of the MPL was not distributed with this file, You can
  * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
  * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
- * <p>
+ *
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
@@ -265,7 +265,8 @@ public interface StockManagementService extends OpenmrsService {
 	        List<String> stockManagementPrivileges);
 	
 	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
+	        Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
 	Result<StockBatchDTO> findStockBatches(StockBatchSearchFilter filter);
 	
 	@Transactional
@@ -524,7 +525,8 @@ public interface StockManagementService extends OpenmrsService {
 	void deleteBatchJob(BatchJob batchJob);
 	
 	@Transactional(readOnly = true)
-	Map<Integer, Boolean> checkStockBatchHasTransactionsAfterOperation(Integer stockOperationId, List<Integer> stockBatchIds);
+	Map<Integer, Boolean> checkStockBatchHasTransactionsAfterOperation(Integer stockOperationId,
+	        List<Integer> stockBatchIds);
 	
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
