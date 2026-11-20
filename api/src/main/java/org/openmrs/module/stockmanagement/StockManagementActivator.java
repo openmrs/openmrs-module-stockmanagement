@@ -1,4 +1,4 @@
-/**
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public License,
  * v. 2.0. If a copy of the MPL was not distributed with this file, You can
  * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
@@ -30,21 +30,22 @@ public class StockManagementActivator extends BaseModuleActivator {
 	 */
 	public void started() {
 		log.info("Starting Stock Management");
-
-		try{
+		
+		try {
 			List<StartupTask> startUpTasks = new ArrayList<>();
 			startUpTasks.add(new LocationTreeSynchronize());
 			startUpTasks.add(new PartySynchronize());
 			startUpTasks.add(new ScheduledTaskRegistration());
 			startUpTasks.sort(Comparator.comparing(StartupTask::getPriority));
-
-			for(StartupTask task : startUpTasks){
+			
+			for (StartupTask task : startUpTasks) {
 				task.execute();
 			}
-		}catch (Exception exception){
+		}
+		catch (Exception exception) {
 			log.error(exception);
 		}
-
+		
 		log.info("Started Stock Management");
 	}
 	

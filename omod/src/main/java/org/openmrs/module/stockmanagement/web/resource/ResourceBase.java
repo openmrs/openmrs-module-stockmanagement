@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import org.openmrs.api.ValidationException;
@@ -55,9 +64,9 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	 * from DelegatingCrudResource.create, so the @Handler validators no longer run on REST saves.
 	 * ValidateUtil.validate would still find these validators, but it is skipped when the global
 	 * validation.disable property is set, which would also switch off StockOperationDTOValidator's
-	 * atLocationUuid derivation; calling the validator directly keeps both independent of it.
-	 * Throws core's ValidationException carrying the field-keyed errors when it rejects the
-	 * delegate, so webservices.rest 3.2+ answers with the same field-keyed 400 as 3.1 and earlier.
+	 * atLocationUuid derivation; calling the validator directly keeps both independent of it. Throws
+	 * core's ValidationException carrying the field-keyed errors when it rejects the delegate, so
+	 * webservices.rest 3.2+ answers with the same field-keyed 400 as 3.1 and earlier.
 	 */
 	protected void validateDelegate(Validator validator, Object delegate, String objectName) {
 		Errors errors = new BeanPropertyBindingResult(delegate, objectName);
@@ -67,15 +76,14 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 			// to it when no default message was resolved
 			String message = errors.getAllErrors().stream()
 			        .map(error -> error.getDefaultMessage() != null ? error.getDefaultMessage() : error.getCode())
-			        .map(message1 -> message1 == null ? "Invalid request" : message1)
-			        .collect(Collectors.joining(", "));
+			        .map(message1 -> message1 == null ? "Invalid request" : message1).collect(Collectors.joining(", "));
 			throw new ValidationException(message, errors);
 		}
 	}
 	
 	/**
-	 * Returns the exception's message, falling back to the given default when it is null or blank
-	 * so that REST error responses never carry a null message.
+	 * Returns the exception's message, falling back to the given default when it is null or blank so
+	 * that REST error responses never carry a null message.
 	 */
 	protected String safeMessage(Throwable exception, String defaultMessage) {
 		if (exception == null)

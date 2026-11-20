@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -25,8 +34,9 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 
 import java.util.*;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/orderitem", supportedClass = OrderItemDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/orderitem", supportedClass = OrderItemDTO.class, supportedOpenmrsVersions = { "1.9.*", "1.10.*", "1.11.*",
+                "1.12.*", "2.*" })
 public class OrderItemResource extends ResourceBase<OrderItemDTO> {
 	
 	@Override
@@ -45,97 +55,97 @@ public class OrderItemResource extends ResourceBase<OrderItemDTO> {
 	}
 	
 	@Override
-    protected PageableResult doSearch(RequestContext context) {
-        OrderItemSearchFilter filter = new OrderItemSearchFilter();
-        filter.setIncludeVoided(context.getIncludeAll());
-        filter.setStartIndex(context.getStartIndex());
-        filter.setLimit(context.getLimit());
-        String param = context.getParameter("q");
-        if (StringUtils.isNotBlank(param))
-            filter.setOrderNumber(param);
-        StockManagementService stockManagementService = getStockManagementService();
-        param = context.getParameter("encounterUuid");
-        if (StringUtils.isNotBlank(param)) {
-            String[] params = param.split(",", 10);
-            List<String> encounterUuids = new ArrayList<>();
-            for (String encounterUuid : params) {
-                if (!StringUtils.isBlank(encounterUuid)) {
-                    encounterUuids.add(encounterUuid);
-                }
-            }
-            if (encounterUuids.isEmpty()) {
-                return emptyResult(context);
-            }
-            filter.setEncounterUuids(encounterUuids);
-        }
-
-        param = context.getParameter("orderUuid");
-        if (StringUtils.isNotBlank(param)) {
-            String[] params = param.split(",", 10);
-            List<String> orderUuids = new ArrayList<>();
-            for (String orderUuid : params) {
-                if (!StringUtils.isBlank(orderUuid)) {
-                    orderUuids.add(orderUuid);
-                }
-            }
-            if (orderUuids.isEmpty()) {
-                return emptyResult(context);
-            }
-            filter.setOrderUuids(orderUuids);
-        }
-
-        param = context.getParameter("stockItemId");
-        if (StringUtils.isNotBlank(param)) {
-            String[] params = param.split(",", 10);
-            List<Integer> stockitemIds = new ArrayList<>();
-            for (String stockItemId : params) {
-                stockitemIds.add(Integer.parseInt(stockItemId));
-            }
-            if (stockitemIds.isEmpty()) {
-                return emptyResult(context);
-            }
-            filter.setStockItemIds(stockitemIds);
-        }
-
-        param = context.getParameter("createFromLocationUuid");
-        if (StringUtils.isNotBlank(param)) {
-            Location location = Context.getLocationService().getLocationByUuid(param);
-            if (location == null) {
-                return emptyResult(context);
-            }
-            filter.setCreatedFromLocationIds(Arrays.asList(location.getId()));
-        }
-
-        param = context.getParameter("fulfilmentLocationUuid");
-        if (StringUtils.isNotBlank(param)) {
-            Location location = Context.getLocationService().getLocationByUuid(param);
-            if (location == null) {
-                return emptyResult(context);
-            }
-            filter.setFulfilmentLocationIds(Arrays.asList(location.getId()));
-        }
-
-        param = context.getParameter("orderDateMin");
-        if (StringUtils.isNotBlank(param)) {
-            Date date = (Date) ConversionUtil.convert(param, Date.class);
-            if (date == null) {
-                return emptyResult(context);
-            }
-            filter.setOrderDateMin(date);
-        }
-
-        param = context.getParameter("orderDateMax");
-        if (StringUtils.isNotBlank(param)) {
-            Date date = (Date) ConversionUtil.convert(param, Date.class);
-            if (date == null) {
-                return emptyResult(context);
-            }
-            filter.setOrderDateMax(date);
-        }
-
-        Result<OrderItemDTO> result = getStockManagementService().findOrderItems(filter);
-        return toAlreadyPaged(result, context);
-    }
+	protected PageableResult doSearch(RequestContext context) {
+		OrderItemSearchFilter filter = new OrderItemSearchFilter();
+		filter.setIncludeVoided(context.getIncludeAll());
+		filter.setStartIndex(context.getStartIndex());
+		filter.setLimit(context.getLimit());
+		String param = context.getParameter("q");
+		if (StringUtils.isNotBlank(param))
+			filter.setOrderNumber(param);
+		StockManagementService stockManagementService = getStockManagementService();
+		param = context.getParameter("encounterUuid");
+		if (StringUtils.isNotBlank(param)) {
+			String[] params = param.split(",", 10);
+			List<String> encounterUuids = new ArrayList<>();
+			for (String encounterUuid : params) {
+				if (!StringUtils.isBlank(encounterUuid)) {
+					encounterUuids.add(encounterUuid);
+				}
+			}
+			if (encounterUuids.isEmpty()) {
+				return emptyResult(context);
+			}
+			filter.setEncounterUuids(encounterUuids);
+		}
+		
+		param = context.getParameter("orderUuid");
+		if (StringUtils.isNotBlank(param)) {
+			String[] params = param.split(",", 10);
+			List<String> orderUuids = new ArrayList<>();
+			for (String orderUuid : params) {
+				if (!StringUtils.isBlank(orderUuid)) {
+					orderUuids.add(orderUuid);
+				}
+			}
+			if (orderUuids.isEmpty()) {
+				return emptyResult(context);
+			}
+			filter.setOrderUuids(orderUuids);
+		}
+		
+		param = context.getParameter("stockItemId");
+		if (StringUtils.isNotBlank(param)) {
+			String[] params = param.split(",", 10);
+			List<Integer> stockitemIds = new ArrayList<>();
+			for (String stockItemId : params) {
+				stockitemIds.add(Integer.parseInt(stockItemId));
+			}
+			if (stockitemIds.isEmpty()) {
+				return emptyResult(context);
+			}
+			filter.setStockItemIds(stockitemIds);
+		}
+		
+		param = context.getParameter("createFromLocationUuid");
+		if (StringUtils.isNotBlank(param)) {
+			Location location = Context.getLocationService().getLocationByUuid(param);
+			if (location == null) {
+				return emptyResult(context);
+			}
+			filter.setCreatedFromLocationIds(Arrays.asList(location.getId()));
+		}
+		
+		param = context.getParameter("fulfilmentLocationUuid");
+		if (StringUtils.isNotBlank(param)) {
+			Location location = Context.getLocationService().getLocationByUuid(param);
+			if (location == null) {
+				return emptyResult(context);
+			}
+			filter.setFulfilmentLocationIds(Arrays.asList(location.getId()));
+		}
+		
+		param = context.getParameter("orderDateMin");
+		if (StringUtils.isNotBlank(param)) {
+			Date date = (Date) ConversionUtil.convert(param, Date.class);
+			if (date == null) {
+				return emptyResult(context);
+			}
+			filter.setOrderDateMin(date);
+		}
+		
+		param = context.getParameter("orderDateMax");
+		if (StringUtils.isNotBlank(param)) {
+			Date date = (Date) ConversionUtil.convert(param, Date.class);
+			if (date == null) {
+				return emptyResult(context);
+			}
+			filter.setOrderDateMax(date);
+		}
+		
+		Result<OrderItemDTO> result = getStockManagementService().findOrderItems(filter);
+		return toAlreadyPaged(result, context);
+	}
 	
 	@Override
 	protected PageableResult doGetAll(RequestContext context) throws ResponseException {
@@ -230,8 +240,7 @@ public class OrderItemResource extends ResourceBase<OrderItemDTO> {
 			        .property("stockItemPackagingUOMUuid", new StringProperty())
 			        .property("stockItemPackagingUOMName", new StringProperty())
 			        .property("createdFromName", new StringProperty()).property("createdFrom", new IntegerProperty())
-			        .property("createdFromUuid", new StringProperty())
-			        .property("createdFromPartyUuid", new StringProperty())
+			        .property("createdFromUuid", new StringProperty()).property("createdFromPartyUuid", new StringProperty())
 			        .property("fulfilmentLocationName", new StringProperty())
 			        .property("fulfilmentLocationUuid", new StringProperty())
 			        .property("fulfilmentPartyUuid", new StringProperty()).property("creator", new IntegerProperty())

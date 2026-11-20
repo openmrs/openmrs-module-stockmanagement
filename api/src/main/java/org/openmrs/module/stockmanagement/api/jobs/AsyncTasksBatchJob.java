@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.jobs;
 
 import org.apache.commons.lang.StringUtils;
@@ -98,8 +107,10 @@ public class AsyncTasksBatchJob extends AbstractTask {
 			catch (Exception exception) {
 				log.error(exception.getMessage(), exception);
 				try {
-					stockManagementService.failBatchJob(batchJob.getUuid(), String.format(Context.getMessageSourceService()
-					        .getMessage("stockmanagement.batchjob.reportunexpectederror"), exception.getMessage()));
+					stockManagementService.failBatchJob(batchJob.getUuid(),
+					    String.format(
+					        Context.getMessageSourceService().getMessage("stockmanagement.batchjob.reportunexpectederror"),
+					        exception.getMessage()));
 				}
 				catch (Exception silentException) {
 					log.error(silentException.getMessage(), silentException);
@@ -129,51 +140,49 @@ public class AsyncTasksBatchJob extends AbstractTask {
 		Properties properties = null;
 		try {
 			properties = GlobalProperties.fromString(batchJob.getParameters());
-		} catch (Exception e) {
+		}
+		catch (Exception e) {
 			log.error(e.getMessage(), e);
 			stockManagementService.failBatchJob(batchJob.getUuid(),
-					Context.getMessageSourceService().getMessage("stockmanagement.batchjob.parameterformatnotvalid"));
+			    Context.getMessageSourceService().getMessage("stockmanagement.batchjob.parameterformatnotvalid"));
 			return;
 		}
-
+		
 		if (allReports == null) {
 			allReports = stockManagementService.getReports();
 		}
-
+		
 		String reportSystemName = properties.getProperty("param.report");
 		if (StringUtils.isBlank(reportSystemName)) {
 			stockManagementService.failBatchJob(batchJob.getUuid(),
-					String.format(
-							Context.getMessageSourceService().getMessage("stockmanagement.batchjob.fieldvaluenotexist"),
-							"report system name"));
+			    String.format(Context.getMessageSourceService().getMessage("stockmanagement.batchjob.fieldvaluenotexist"),
+			        "report system name"));
 			return;
 		}
-
+		
 		Optional<Report> report = allReports.stream().filter(p -> reportSystemName.equals(p.getSystemName())).findAny();
 		if (!report.isPresent()) {
 			stockManagementService.failBatchJob(batchJob.getUuid(),
-					String.format(
-							Context.getMessageSourceService().getMessage("stockmanagement.batchjob.fieldvaluenotexist"),
-							"report by system name"));
+			    String.format(Context.getMessageSourceService().getMessage("stockmanagement.batchjob.fieldvaluenotexist"),
+			        "report by system name"));
 			return;
 		}
-
+		
 		ReportGenerator reportGenerator = null;
 		try {
 			reportGenerator = (ReportGenerator) report.get().getReportGeneratorClass().newInstance();
-		} catch (Exception exception) {
+		}
+		catch (Exception exception) {
 			log.error(exception.getMessage(), exception);
-			stockManagementService
-					.failBatchJob(batchJob.getUuid(),
-							String.format(
-									Context.getMessageSourceService()
-											.getMessage("stockmanagement.batchjob.failedtocreatereportgenerator"),
-									exception.getMessage()));
+			stockManagementService.failBatchJob(batchJob.getUuid(),
+			    String.format(
+			        Context.getMessageSourceService().getMessage("stockmanagement.batchjob.failedtocreatereportgenerator"),
+			        exception.getMessage()));
 			return;
 		}
-
+		
 		stockManagementService.updateBatchJobRunning(batchJob.getUuid());
-
+		
 		reportGenerator.generateReport(batchJob, p -> {
 			String batchJobToStop = null;
 			if (shutDown) {

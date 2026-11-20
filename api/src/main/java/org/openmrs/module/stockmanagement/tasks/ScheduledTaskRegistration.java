@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.tasks;
 
 import org.apache.commons.logging.Log;
@@ -16,17 +25,16 @@ import org.openmrs.util.PrivilegeConstants;
 import java.util.Date;
 
 public class ScheduledTaskRegistration implements StartupTask {
-
+	
 	private Log log = LogFactory.getLog(this.getClass());
-
+	
 	@Override
 	public void execute() {
 		Context.addProxyPrivilege(PrivilegeConstants.MANAGE_SCHEDULER);
 		try {
 			SchedulerService schedulerService = Context.getSchedulerService();
-			registerIfMissing(schedulerService, AsyncTasksBatchJob.class,
-			    "Asynchronous Report Generation And Batch Jobs", "Runs report generation and batch jobs asynchronously",
-			    "73eb1d31-6e5e-11ed-9a5b-00155db5005a", 60L);
+			registerIfMissing(schedulerService, AsyncTasksBatchJob.class, "Asynchronous Report Generation And Batch Jobs",
+			    "Runs report generation and batch jobs asynchronously", "73eb1d31-6e5e-11ed-9a5b-00155db5005a", 60L);
 			registerIfMissing(schedulerService, StockRuleEvaluationJob.class, "Stock Rules Evaluation Job",
 			    "Checks the stock rules against the item quantity and notifies when quantity is at or below threshold",
 			    "5a0b041a-5796-11ed-a495-00155dc81c72", 86400L);
@@ -38,13 +46,13 @@ public class ScheduledTaskRegistration implements StartupTask {
 			Context.removeProxyPrivilege(PrivilegeConstants.MANAGE_SCHEDULER);
 		}
 	}
-
+	
 	private void registerIfMissing(SchedulerService schedulerService, Class<? extends Task> taskClass, String name,
 	        String description, String legacyUuid, long repeatInterval) {
 		if (SchedulerTasks.getTaskByClass(schedulerService, taskClass) != null) {
 			return;
 		}
-
+		
 		TaskDefinition taskDefinition = new TaskDefinition();
 		taskDefinition.setName(name);
 		taskDefinition.setDescription(description);
@@ -56,7 +64,7 @@ public class ScheduledTaskRegistration implements StartupTask {
 		if (schedulerService.getTaskByUuid(legacyUuid) == null) {
 			taskDefinition.setUuid(legacyUuid);
 		}
-
+		
 		schedulerService.saveTaskDefinition(taskDefinition);
 		try {
 			schedulerService.scheduleTask(taskDefinition);
@@ -65,7 +73,7 @@ public class ScheduledTaskRegistration implements StartupTask {
 			log.error("Error while scheduling " + taskClass.getName(), exception);
 		}
 	}
-
+	
 	@Override
 	public int getPriority() {
 		return 100;
