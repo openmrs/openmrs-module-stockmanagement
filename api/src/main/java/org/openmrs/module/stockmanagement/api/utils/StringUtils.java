@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 public class StringUtils {
 	
 	static Pattern emailPattern = Pattern
-	        .compile("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$");
+	        .compile("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*+@(?:[a-zA-Z0-9-]+\\.)++[a-zA-Z]{2,7}$");
 	
 	public static boolean isValidEmail(String email) {
 		if (email == null)
