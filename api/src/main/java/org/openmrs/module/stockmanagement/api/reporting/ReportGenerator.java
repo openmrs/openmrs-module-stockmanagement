@@ -24,6 +24,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -32,6 +33,8 @@ import java.util.Properties;
 import java.util.function.Function;
 
 public abstract class ReportGenerator {
+	
+	private static final String INTEGER_FORMAT = "#,###,###,##0";
 	
 	private volatile boolean stopExecution = false;
 	
@@ -69,7 +72,7 @@ public abstract class ReportGenerator {
 	
 	public void setRecordsProcessed(Properties properties, Integer recordsProcessed) {
 		setParameter(properties, "RecordsProcessed", "Records Processed", recordsProcessed.toString(),
-		    NumberFormatUtil.integerDisplayFormat(recordsProcessed));
+		    new DecimalFormat(INTEGER_FORMAT).format(recordsProcessed));
 	}
 	
 	public Integer getRecordsProcessed(Properties properties) {
@@ -85,7 +88,7 @@ public abstract class ReportGenerator {
 	
 	public void setCurrentPageIndex(Properties properties, Integer currentPageIndex) {
 		setParameter(properties, "CurrentPageIndex", "Current Page", currentPageIndex.toString(),
-		    NumberFormatUtil.integerDisplayFormat(currentPageIndex + 1));
+		    new DecimalFormat(INTEGER_FORMAT).format(currentPageIndex + 1));
 	}
 	
 	public Integer getCurrentPageIndex(Properties properties) {
@@ -101,12 +104,12 @@ public abstract class ReportGenerator {
 	
 	public void setLastRecordProcessed(Properties properties, Integer lastRecordProcessed) {
 		setParameter(properties, "LastRecordProcessed", "Last Record Processed", lastRecordProcessed.toString(),
-		    NumberFormatUtil.integerDisplayFormat(lastRecordProcessed));
+		    new DecimalFormat(INTEGER_FORMAT).format(lastRecordProcessed));
 	}
 	
 	public void setExecutionStep(Properties properties, Integer lastRecordProcessed) {
 		setParameter(properties, "ExecutionStep", "Execution Step", executionStep.toString(),
-		    NumberFormatUtil.integerDisplayFormat(executionStep));
+		    new DecimalFormat(INTEGER_FORMAT).format(executionStep));
 	}
 	
 	public Integer getExecutionStep(Properties properties) {
@@ -133,7 +136,7 @@ public abstract class ReportGenerator {
 	
 	public void setLastStockOperationProcessed(Properties properties, Integer lastStockOperationProcessed) {
 		setParameter(properties, "LastStockOperationProcessed", "Last Stock Operation Processed",
-		    lastStockOperationProcessed.toString(), NumberFormatUtil.integerDisplayFormat(lastStockOperationProcessed));
+		    lastStockOperationProcessed.toString(), new DecimalFormat(INTEGER_FORMAT).format(lastStockOperationProcessed));
 	}
 	
 	public Integer getLastStockOperationProcessed(Properties properties) {

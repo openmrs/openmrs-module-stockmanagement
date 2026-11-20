@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.jobs;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang.*;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.logging.Log;
@@ -26,7 +27,6 @@ import org.openmrs.module.stockmanagement.api.Roles;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.utils.*;
-import org.openmrs.module.stockmanagement.api.utils.StringUtils;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
 import org.openmrs.scheduler.tasks.AbstractTask;
@@ -34,12 +34,15 @@ import org.openmrs.util.OpenmrsConstants;
 
 import javax.mail.Session;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StockBatchExpiryJob extends AbstractTask {
+	
+	private static final String QUANTITY_FORMAT = "#,###,###,##0.##";
 	
 	private static AtomicBoolean isAlreadyRunning = new AtomicBoolean(false);
 	
@@ -125,7 +128,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 		log.debug("Processing alerts");
 		Map<Pair<Integer, Integer>, List<StockItemInventory>> partyStockItemMap = stockBatchBalance.entrySet().stream()
 		        .map(p -> p.getValue()).flatMap(Collection::stream)
-		        .collect(Collectors.groupingBy(p -> new Pair<Integer, Integer>(p.getPartyId(), p.getStockItemId())));
+		        .collect(Collectors.groupingBy(p -> Pair.of(p.getPartyId(), p.getStockItemId())));
 		Map<Integer, User> users = new HashMap<>();
 		Map<Integer, List<Pair<Integer, Integer>>> userLocationsToNotify = processAlerts(stockBatchBalance,
 		    stockBatchNumbers, usersToNotify, mainStoreLocationIds, locationMap, partyDTOLocationMap, locationPartyDTOMap,
@@ -149,20 +152,20 @@ public class StockBatchExpiryJob extends AbstractTask {
 	        Map<Integer, Boolean> batchNumbersNotified, StockManagementService stockManagementService) {
 		Map<Integer, List<Pair<Integer, Integer>>> userLocationsToNotify = locationUsersToNotify.entrySet().stream()
 		        .map(p -> {
-			        return p.getValue().stream().map(x -> new Pair<Integer, Integer>(x, p.getKey()));
-		        }).flatMap(Function.identity()).collect(Collectors.groupingBy(p -> p.getValue1()));
+			        return p.getValue().stream().map(x -> Pair.of(x, p.getKey()));
+		        }).flatMap(Function.identity()).collect(Collectors.groupingBy(p -> p.getLeft()));
 		ensureStockItemNamesLoaded(partyStockItemMap, stockItemNames, stockManagementService);
 		Map<Integer, Alert> alertMap = new HashMap<>();
 		for (Map.Entry<Integer, List<Pair<Integer, Integer>>> userLocationToNotify : userLocationsToNotify.entrySet()) {
 			List<Integer> partyIds = userLocationToNotify.getValue().stream().map(p -> {
-				PartyDTO partyDTO = locationPartyDTOMap.get(p.getValue2());
+				PartyDTO partyDTO = locationPartyDTOMap.get(p.getRight());
 				return partyDTO != null ? partyDTO.getId() : null;
 			}).filter(p -> p != null).collect(Collectors.toList());
 			List<Map.Entry<Pair<Integer, Integer>, List<StockItemInventory>>> userPartyStockItemMap = partyStockItemMap
-			        .entrySet().stream().filter(p -> partyIds.contains(p.getKey().getValue1())).collect(Collectors.toList());
+			        .entrySet().stream().filter(p -> partyIds.contains(p.getKey().getLeft())).collect(Collectors.toList());
 			if (userPartyStockItemMap.isEmpty()) {
 				// Check if user has permissions to main store. They automatically get access to every other location
-				if (userLocationToNotify.getValue().stream().anyMatch(p -> mainStoreLocationIds.contains(p.getValue2()))) {
+				if (userLocationToNotify.getValue().stream().anyMatch(p -> mainStoreLocationIds.contains(p.getRight()))) {
 					userPartyStockItemMap = partyStockItemMap.entrySet().stream().collect(Collectors.toList());
 				} else {
 					continue;
@@ -181,7 +184,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 			for (Map.Entry<Pair<Integer, Integer>, List<StockItemInventory>> partyStockItems : userPartyStockItemMap) {
 				if (maxAlerts == 0)
 					break;
-				PartyDTO partyDTO = partyLocationDTOMap.get(partyStockItems.getKey().getValue1());
+				PartyDTO partyDTO = partyLocationDTOMap.get(partyStockItems.getKey().getLeft());
 				if (partyDTO == null)
 					continue;
 				for (StockItemInventory stockItemInventory : partyStockItems.getValue()) {
@@ -195,7 +198,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 							continue;
 						String alertLine = String.format("Batch %1$s for %2$s at %3$s with %4$s %5$s expires on %6$s",
 						    stockBatchDTO.getBatchNo(), stockItemNames.getOrDefault(stockItemInventory.getStockItemId(), ""),
-						    partyDTO.getName(), NumberFormatUtil.qtyDisplayFormat(stockItemInventory.getQuantity()),
+						    partyDTO.getName(), new DecimalFormat(QUANTITY_FORMAT).format(stockItemInventory.getQuantity()),
 						    stockItemInventory.getQuantityUoM(), DateUtil.formatDDMMMyyyy(stockBatchDTO.getExpiration()));
 						
 						alert = new Alert(alertLine, user);
@@ -248,7 +251,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 		boolean sentAtleastOneEmail = false;
 		
 		List<Integer> usersWithMainStorePermissions = userLocationsToNotify.entrySet().stream()
-		        .filter(p -> p.getValue().stream().anyMatch(x -> mainStoreLocationIds.contains(x.getValue2())))
+		        .filter(p -> p.getValue().stream().anyMatch(x -> mainStoreLocationIds.contains(x.getRight())))
 		        .map(p -> p.getKey()).distinct().collect(Collectors.toList());
 		
 		boolean hasProcessedMainStore = false;
@@ -297,12 +300,12 @@ public class StockBatchExpiryJob extends AbstractTask {
 			}
 			
 			List<Integer> partyIds = isProcessingAllLocations ? null : userIdLocationMapping.getValue().stream().map(p -> {
-				PartyDTO partyDTO = locationPartyDTOMap.get(p.getValue2());
+				PartyDTO partyDTO = locationPartyDTOMap.get(p.getRight());
 				return partyDTO != null ? partyDTO.getId() : null;
 			}).filter(p -> p != null).collect(Collectors.toList());
 			Collection<Map.Entry<Pair<Integer, Integer>, List<StockItemInventory>>> userPartyStockItemMap = isProcessingAllLocations
 			        ? partyStockItemMap.entrySet()
-			        : partyStockItemMap.entrySet().stream().filter(p -> partyIds.contains(p.getKey().getValue1()))
+			        : partyStockItemMap.entrySet().stream().filter(p -> partyIds.contains(p.getKey().getLeft()))
 			                .collect(Collectors.toList());
 			if (userPartyStockItemMap.isEmpty()) {
 				continue;
@@ -314,7 +317,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 			int locationCount = 0;
 			// Locations inventory
 			for (Map.Entry<Integer, List<Map.Entry<Pair<Integer, Integer>, List<StockItemInventory>>>> partyItems : userPartyStockItemMap
-			        .stream().collect(Collectors.groupingBy(p -> p.getKey().getValue1())).entrySet()) {
+			        .stream().collect(Collectors.groupingBy(p -> p.getKey().getLeft())).entrySet()) {
 				if (itemCount == 100) {
 					hasMore = true;
 					break;
@@ -336,7 +339,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 					stringBuilder.append("<tr>");
 					stringBuilder.append(String.format(
 					    "<td  rowspan='%1$s' colspan='3'  valign='top' style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-bottom:solid 1px grey;border-right:solid 1px grey;'>%2$s</td>",
-					    stockItem.getValue().size(), stockItemNames.getOrDefault(stockItem.getKey().getValue2(), "")));
+					    stockItem.getValue().size(), stockItemNames.getOrDefault(stockItem.getKey().getRight(), "")));
 					
 					boolean isAfterRow = false;
 					for (StockItemInventory batchNumber : stockItem.getValue()) {
@@ -357,7 +360,8 @@ public class StockBatchExpiryJob extends AbstractTask {
 						    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;&nbsp;&nbsp;</td>");
 						stringBuilder.append(String.format(
 						    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-bottom:solid 1px grey;border-right:solid 1px grey;text-align:right;'>%1$s %2$s</td>",
-						    NumberFormatUtil.qtyDisplayFormat(batchNumber.getQuantity()), batchNumber.getQuantityUoM()));
+						    new DecimalFormat(QUANTITY_FORMAT).format(batchNumber.getQuantity()),
+						    batchNumber.getQuantityUoM()));
 						stringBuilder.append(
 						    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;&nbsp;&nbsp;</td>");
 						stringBuilder.append(String.format(
@@ -401,7 +405,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 	
 	private void ensureStockItemNamesLoaded(Map<Pair<Integer, Integer>, List<StockItemInventory>> partyStockItemMap,
 	        Map<Integer, String> stockItemNames, StockManagementService stockManagementService) {
-		List<Integer> stockItemNamesToFetch = partyStockItemMap.keySet().stream().map(p -> p.getValue2()).distinct()
+		List<Integer> stockItemNamesToFetch = partyStockItemMap.keySet().stream().map(p -> p.getRight()).distinct()
 		        .filter(p -> !stockItemNames.containsKey(p)).collect(Collectors.toList());
 		if (!stockItemNamesToFetch.isEmpty()) {
 			stockItemNames.putAll(stockManagementService.getStockItemNames(stockItemNamesToFetch));

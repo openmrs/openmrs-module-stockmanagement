@@ -9,7 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
-import org.openmrs.module.stockmanagement.api.utils.Action2;
+import java.util.function.BiConsumer;
 import org.openmrs.module.stockmanagement.api.model.ReservedTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
@@ -70,10 +70,10 @@ public class InitialOperationTypeProcessorProcessor extends StockOperationTypePr
 	
 	@Override
 	public void onCompleted(final StockOperation operation) {
-		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+		executeCopyReservedAndClear(operation, new BiConsumer<ReservedTransaction, StockItemTransaction>() {
 			
 			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
+			public void accept(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getSource());
 			}
 		});

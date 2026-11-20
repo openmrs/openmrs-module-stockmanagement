@@ -15,7 +15,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
-import org.openmrs.module.stockmanagement.api.utils.Action2;
+import java.util.function.BiConsumer;
 import org.openmrs.module.stockmanagement.api.model.*;
 
 import java.util.Set;
@@ -76,7 +76,7 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 	}
 	
 	protected Set<StockItemTransaction> executeCopyReserved(StockOperation operation,
-	        Action2<ReservedTransaction, StockItemTransaction> action) {
+	        BiConsumer<ReservedTransaction, StockItemTransaction> action) {
 		Set<StockItemTransaction> transactions = new TreeSet<StockItemTransaction>();
 		// Loop through the reserved transactions
 		for (ReservedTransaction inTransit : operation.getReservedTransactions()) {
@@ -85,7 +85,7 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 			StockItemTransaction tx = new StockItemTransaction(inTransit);
 			
 			// Apply the action
-			action.apply(inTransit, tx);
+			action.accept(inTransit, tx);
 			
 			// Add the operation transaction to the operation
 			operation.addStockItemTransaction(tx);
@@ -98,7 +98,7 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 	}
 	
 	protected Set<StockItemTransaction> executeCopyReservedAndClear(StockOperation operation,
-	        Action2<ReservedTransaction, StockItemTransaction> action) {
+	        BiConsumer<ReservedTransaction, StockItemTransaction> action) {
 		Set<StockItemTransaction> result = executeCopyReserved(operation, action);
 		// Clear out the transactions for the operation
 		clearReservedTransactions(operation);
