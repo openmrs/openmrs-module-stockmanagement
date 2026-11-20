@@ -19,6 +19,8 @@ import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.PrivilegeScope;
+import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
+import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationItemDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
@@ -92,8 +94,6 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	private StockOperationType stockIssueType;
 
 	private Role managerRole;
-
-	private Role sysDevRole;
 
 	private User clerkUser;
 
@@ -188,27 +188,6 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 				PrivilegeConstants.GET_USERS,
 				PrivilegeConstants.GET_GLOBAL_PROPERTIES,
 				PrivilegeConstants.MANAGE_GLOBAL_PROPERTIES);
-
-		// Ensure System Developer role has stock management privileges
-		sysDevRole = Context.getUserService().getRole("System Developer");
-		if (sysDevRole != null) {
-			for (String privName : Arrays.asList(
-					Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
-					Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
-					Privileges.APP_STOCKMANAGEMENT_USERROLESCOPES,
-					Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE,
-					Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
-					Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS,
-					Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE,
-					Privileges.TASK_STOCKMANAGEMENT_USERROLESCOPES_MUTATE)) {
-				Privilege priv = Context.getUserService().getPrivilege(privName);
-				if (priv == null) {
-					priv = Context.getUserService().savePrivilege(new Privilege(privName, privName));
-				}
-				sysDevRole.addPrivilege(priv);
-			}
-			Context.getUserService().saveRole(sysDevRole);
-		}
 
 		sampleStockItem = createStockItem("Paracetamol 500mg " + UUID.randomUUID().toString().substring(0, 8));
 		samplePackagingUom = createPackagingUOM(sampleStockItem, BigDecimal.ONE);
@@ -370,6 +349,20 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	}
 
 	@Test
+	public void userHasStockManagementPrivilege_shouldDenyPermissionOnceTheScopesAreVoided() {
+		User user = createTestUser("perm_void_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		UserRoleScope inherited = grantScope(user, managerRole, parentLocation, true, receiptType);
+		UserRoleScope direct = grantScope(user, managerRole, childLocation, false, receiptType);
+		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
+				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		stockManagementService.voidUserRoleScopes(Arrays.asList(inherited.getUuid(), direct.getUuid()), "Testing");
+		Context.flushSession();
+		Context.clearSession();
+		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
+				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+	}
+
+	@Test
 	public void getPrivilegeScopes_shouldReturnFlattenedPrivilegeScopesAcrossHierarchy() {
 		User user = createTestUser("flatten_user_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
 		grantScope(user, managerRole, parentLocation, true, receiptType);
@@ -391,10 +384,16 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	public void stockBalance_shouldAggregateBalancesIncludingChildLocations() {
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 
-		// Receive stock at parent (10), child (20), grandchild (30)
+		// Receive stock at parent (10), child (20), grandchild (3 packs of 10), plus an expired batch at child
+		StockItemPackagingUOM packOfTen = createPackagingUOM(sampleStockItem, BigDecimal.TEN);
 		createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(10), "BATCH-P");
 		createAndCompleteReceipt(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(20), "BATCH-C");
-		createAndCompleteReceipt(grandchildParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(30), "BATCH-G");
+		createAndCompleteReceipt(grandchildParty, sampleStockItem, packOfTen, BigDecimal.valueOf(3), "BATCH-G");
+		StockOperationDTO expired = createAndCompleteReceipt(childParty, sampleStockItem, samplePackagingUom,
+				BigDecimal.valueOf(5), "BATCH-X");
+		stockManagementService.getStockOperationByUuid(expired.getUuid()).getStockOperationItems().iterator().next()
+				.getStockBatch().setExpiration(DateUtils.addDays(new Date(), -1));
+		Context.flushSession();
 
 		// 1. Stock balance with descendants: parent includes child + grandchild (10 + 20 + 30 = 60), child includes grandchild (20 + 30 = 50)
 		StockRuleCurrentQuantity parentWithDesc = new StockRuleCurrentQuantity(sampleStockItem.getId(), parentLocation.getId(), null, true);
@@ -507,6 +506,17 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertEquals(StockOperationStatus.COMPLETED, completed.getStatus());
 		assertNotNull("completedBy must be recorded", completed.getCompletedBy());
 		assertNotNull("completedDate must be recorded", completed.getCompletedDate());
+
+		assertEquals("Parent should keep 40 after issuing 10", 0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals("Child should receive the 10 issued", 0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
+	}
+
+	private BigDecimal balanceAt(Party party) {
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
+				Collections.singletonList(party.getId()), sampleStockItem.getId(), null)));
+		return stockManagementService.getStockInventory(filter, null).getData().stream()
+				.map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 
 	@Test
@@ -643,6 +653,32 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 			fail("User B without scope at child location must be denied");
 		} catch (StockManagementException e) {
 			assertNotNull("Exception should be thrown for missing permission", e.getMessage());
+		}
+	}
+
+	@Test
+	public void stockOperationLifecycle_shouldNotApproveWhereTheScopedRoleLacksApprove() {
+		Role submitterRole = createRoleWithPrivileges("Stock Operations Submitter",
+				Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
+				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE);
+		User user = createTestUser("two_roles_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		user.addRole(submitterRole);
+		Context.getUserService().saveUser(user);
+		grantScope(user, managerRole, grandchildLocation, false, receiptType);
+		grantScope(user, submitterRole, childLocation, false, receiptType);
+		Context.authenticate(user.getUsername(), "TestPassword123!");
+		StockOperationDTO dto = newReceiptDto(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(4));
+		dto.setUuid(stockManagementService.saveStockOperation(dto).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(dto);
+		Context.flushSession();
+		Context.clearSession();
+		try {
+			stockManagementService.approveStockOperation(dto);
+			fail("The role scoped to the child location cannot approve");
+		} catch (StockManagementException e) {
+			assertEquals(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.nopermission"), e.getMessage());
 		}
 	}
 
