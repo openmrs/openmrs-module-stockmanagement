@@ -2771,9 +2771,10 @@ public class StockManagementDao extends DaoBase {
 			}
 			
 			if (filter.includingStrength() || filter.includingConceptRefIds()) {
-				Map<Integer, List<StockItemDTO>> stockItemConceptRefIds = getStockItemConceptRefs(
-				    result.getData().stream().map(p -> p.getStockItemId()).collect(Collectors.toList())).getData().stream()
-				        .collect(Collectors.groupingBy(StockItemDTO::getId));
+				List<Integer> inventoryStockItemIds = result.getData().stream().map(p -> p.getStockItemId())
+				        .collect(Collectors.toList());
+				Map<Integer, List<StockItemDTO>> stockItemConceptRefIds = getStockItemConceptRefs(inventoryStockItemIds)
+				        .getData().stream().collect(Collectors.groupingBy(StockItemDTO::getId));
 				if (!stockItemConceptRefIds.isEmpty()) {
 					for (StockItemInventory stockItemInventory : result.getData()) {
 						List<StockItemDTO> refs = stockItemConceptRefIds.getOrDefault(stockItemInventory.getStockItemId(),
@@ -4020,8 +4021,8 @@ public class StockManagementDao extends DaoBase {
 		}
 		Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
 		if (!conceptNamesToFetch.isEmpty()) {
-			conceptNameDTOs = getConceptNamesByConceptIds(
-			    conceptNamesToFetch.stream().distinct().collect(Collectors.toList())).stream()
+			List<Integer> distinctConceptIds = conceptNamesToFetch.stream().distinct().collect(Collectors.toList());
+			conceptNameDTOs = getConceptNamesByConceptIds(distinctConceptIds).stream()
 			        .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
 		}
 		Map<Integer, String> stockItemNames = new HashMap<>();
@@ -4514,8 +4515,8 @@ public class StockManagementDao extends DaoBase {
 				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
 			}
 			
-			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(
-			    userIds.stream().distinct().collect(Collectors.toList())).stream()
+			List<Integer> distinctUserIds = userIds.stream().distinct().collect(Collectors.toList());
+			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(distinctUserIds).stream()
 			        .collect(Collectors.groupingBy(p -> p.getUserId()));
 			
 			for (StockOperationLineItem stockOperationItemDTO : result.getData()) {
@@ -4863,12 +4864,12 @@ public class StockManagementDao extends DaoBase {
 				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
 			}
 			
-			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(
-			    userIds.stream().distinct().collect(Collectors.toList())).stream()
+			List<Integer> distinctUserIds = userIds.stream().distinct().collect(Collectors.toList());
+			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(distinctUserIds).stream()
 			        .collect(Collectors.groupingBy(p -> p.getUserId()));
-			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(
-			    patientIds.stream().distinct().collect(Collectors.toList()), true).stream()
-			        .collect(Collectors.groupingBy(p -> p.getPatientId()));
+			List<Integer> distinctPatientIds = patientIds.stream().distinct().collect(Collectors.toList());
+			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(distinctPatientIds, true)
+			        .stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
 			
 			for (DispensingLineItem dispensingLineItem : result.getData()) {
 				
@@ -5173,12 +5174,12 @@ public class StockManagementDao extends DaoBase {
 				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
 			}
 			
-			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(
-			    userIds.stream().distinct().collect(Collectors.toList())).stream()
+			List<Integer> distinctUserIds = userIds.stream().distinct().collect(Collectors.toList());
+			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(distinctUserIds).stream()
 			        .collect(Collectors.groupingBy(p -> p.getUserId()));
-			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(
-			    patientIds.stream().distinct().collect(Collectors.toList()), true).stream()
-			        .collect(Collectors.groupingBy(p -> p.getPatientId()));
+			List<Integer> distinctPatientIds = patientIds.stream().distinct().collect(Collectors.toList());
+			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(distinctPatientIds, true)
+			        .stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
 			Map<String, String> locationNames = getLocationNamesByUuid(fullfillmentLocationUuids);
 			
 			for (PrescriptionLineItem prescriptionLineItem : result.getData()) {
