@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -27,8 +36,9 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import java.util.Date;
 import java.util.List;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockitemtransaction", supportedClass = StockItemTransactionDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/stockitemtransaction", supportedClass = StockItemTransactionDTO.class, supportedOpenmrsVersions = { "1.9.*",
+                "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockItemTransactionResource extends ResourceBase<StockItemTransactionDTO> {
 	
 	@Override
@@ -93,12 +103,12 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			}
 			filter.setTransactionDateMax(date);
 		}
-
+		
 		param = context.getParameter("isPatientTransaction");
 		if (StringUtils.isNotBlank(param)) {
-			if(param.trim().equalsIgnoreCase("true")) {
+			if (param.trim().equalsIgnoreCase("true")) {
 				filter.setIsPatientTransaction(true);
-			} else if(param.trim().equalsIgnoreCase("false")) {
+			} else if (param.trim().equalsIgnoreCase("false")) {
 				filter.setIsPatientTransaction(false);
 			}
 		}
@@ -173,9 +183,8 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 	
 	@PropertyGetter("isPatientTransaction")
 	public boolean getIsPatientTransaction(StockItemTransactionDTO stockItemTransactionDTO) {
-		return stockItemTransactionDTO != null
-		        && (stockItemTransactionDTO.getPatientId() != null || stockItemTransactionDTO.getOrderId() != null || stockItemTransactionDTO
-		                .getEncounterId() != null);
+		return stockItemTransactionDTO != null && (stockItemTransactionDTO.getPatientId() != null
+		        || stockItemTransactionDTO.getOrderId() != null || stockItemTransactionDTO.getEncounterId() != null);
 	}
 	
 	@Override
@@ -192,13 +201,10 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			        .property("stockOperationNumber", new StringProperty())
 			        .property("stockOperationTypeName", new StringProperty())
 			        .property("stockItemPackagingUOMUuid", new StringProperty())
-			        .property("packagingUomName", new StringProperty())
-			        .property("packagingUomFactor", new DecimalProperty())
+			        .property("packagingUomName", new StringProperty()).property("packagingUomFactor", new DecimalProperty())
 			        .property("operationSourcePartyName", new StringProperty())
 			        .property("operationDestinationPartyName", new StringProperty())
-					.property("patientId", new IntegerProperty())
-					.property("patientUuid", new StringProperty())
-					;
+			        .property("patientId", new IntegerProperty()).property("patientUuid", new StringProperty());
 		}
 		if (rep instanceof DefaultRepresentation) {}
 		

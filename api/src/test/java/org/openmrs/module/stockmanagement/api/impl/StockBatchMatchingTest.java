@@ -1,4 +1,4 @@
-/**
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public License,
  * v. 2.0. If a copy of the MPL was not distributed with this file, You can
  * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
@@ -9,16 +9,16 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Calendar;
 import java.util.Date;
 
 import org.apache.commons.lang.time.DateUtils;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.module.stockmanagement.api.model.StockBatch;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 
@@ -32,7 +32,7 @@ public class StockBatchMatchingTest {
 	
 	private StockItem nonExpiringItem;
 	
-	@Before
+	@BeforeEach
 	public void setUp() {
 		expiringItem = new StockItem();
 		expiringItem.setId(1);
@@ -58,28 +58,28 @@ public class StockBatchMatchingTest {
 	
 	@Test
 	public void isSameStockBatch_shouldNotMatchTheSameBatchNumberWithADifferentExpiry() {
-		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01",
-		    DECEMBER));
+		assertFalse(
+		    StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01", DECEMBER));
 	}
 	
 	@Test
 	public void isSameStockBatch_shouldNotFailWhenTheCandidateHasNoExpiry() {
-		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01",
-		    JUNE));
+		assertFalse(
+		    StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01", JUNE));
 	}
 	
 	@Test
 	public void isSameStockBatch_shouldNotMatchADifferentBatchNumberOrStockItem() {
-		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-02",
-		    JUNE));
-		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(nonExpiringItem, "B-01", null), expiringItem,
-		    "B-01", JUNE));
+		assertFalse(
+		    StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-02", JUNE));
+		assertFalse(
+		    StockManagementServiceImpl.isSameStockBatch(batch(nonExpiringItem, "B-01", null), expiringItem, "B-01", JUNE));
 	}
 	
 	@Test
 	public void isSameStockBatch_shouldMatchOnBatchNumberAloneForItemsThatDoNotExpire() {
-		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(nonExpiringItem, "B-01", null), nonExpiringItem,
-		    "B-01", JUNE));
+		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(nonExpiringItem, "B-01", null), nonExpiringItem, "B-01",
+		    JUNE));
 		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(nonExpiringItem, "B-01", JUNE), nonExpiringItem,
 		    "B-01", JUNE));
 	}
@@ -94,16 +94,16 @@ public class StockBatchMatchingTest {
 	
 	@Test
 	public void isSameStockBatch_shouldNotMatchOrFailWhenOnlyOneSideHasAnExpiry() {
-		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01",
-		    null));
-		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01",
-		    JUNE));
+		assertFalse(
+		    StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, "B-01", null));
+		assertFalse(
+		    StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01", JUNE));
 	}
 	
 	@Test
 	public void isSameStockBatch_shouldMatchAMissingExpiryWithAMissingExpiry() {
-		assertTrue(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01",
-		    null));
+		assertTrue(
+		    StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", null), expiringItem, "B-01", null));
 	}
 	
 	@Test
@@ -117,8 +117,8 @@ public class StockBatchMatchingTest {
 	
 	@Test
 	public void isSameStockBatch_shouldNotMatchOrFailWhenTheLineHasNoBatchNumber() {
-		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, null,
-		    JUNE));
+		assertFalse(
+		    StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, "B-01", JUNE), expiringItem, null, JUNE));
 		assertFalse(StockManagementServiceImpl.isSameStockBatch(batch(expiringItem, null, JUNE), expiringItem, null, JUNE));
 	}
 	

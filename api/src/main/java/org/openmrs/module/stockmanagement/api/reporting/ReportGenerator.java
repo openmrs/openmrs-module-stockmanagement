@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.reporting;
 
 import org.apache.commons.lang.*;
@@ -252,14 +261,14 @@ public abstract class ReportGenerator {
 		try {
 			String key = "param." + ReportParameter.Fullfillment.name() + ".value";
 			if (properties.containsKey(key)) {
-
+				
 				String value = properties.getProperty(key);
-				if(org.apache.commons.lang.StringUtils.isBlank(value)){
+				if (org.apache.commons.lang.StringUtils.isBlank(value)) {
 					return null;
 				}
 				String[] values = value.split(",");
-				List<Fullfillment> fullfillments=new ArrayList<>();
-				for(String token : values){
+				List<Fullfillment> fullfillments = new ArrayList<>();
+				for (String token : values) {
 					fullfillments.add(Fullfillment.valueOf(token));
 				}
 				return fullfillments;
@@ -317,8 +326,8 @@ public abstract class ReportGenerator {
 				}
 				catch (Exception exception) {
 					hasRestoredExecutionState = false;
-					stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to delete the existing report file "
-					        + resultsFile.toString());
+					stockManagementService.failBatchJob(batchJob.getUuid(),
+					    "Failed to delete the existing report file " + resultsFile.toString());
 					log.error(exception.getMessage(), exception);
 					return false;
 				}
