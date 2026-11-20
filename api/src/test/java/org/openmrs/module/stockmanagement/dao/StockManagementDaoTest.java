@@ -1,27 +1,28 @@
-/**
+/*
  * This Source Code Form is subject to the terms of the Mozilla Public License,
  * v. 2.0. If a copy of the MPL was not distributed with this file, You can
  * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
  * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
- * <p>
+ *
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
 package org.openmrs.module.stockmanagement.dao;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.*;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.openmrs.module.stockmanagement.api.model.*;
 
@@ -55,7 +56,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		return daoInstance;
 	}
 	
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
@@ -152,8 +153,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.flushSession();
 		Integer locationId = first.getParty().getLocation().getLocationId();
 		
-		StockRuleCurrentQuantity firstQuantity = new StockRuleCurrentQuantity(first.getStockItem().getId(), locationId,
-		        null, false);
+		StockRuleCurrentQuantity firstQuantity = new StockRuleCurrentQuantity(first.getStockItem().getId(), locationId, null,
+		        false);
 		StockRuleCurrentQuantity secondQuantity = new StockRuleCurrentQuantity(second.getStockItem().getId(), locationId,
 		        null, false);
 		
@@ -173,18 +174,20 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		StockBatch secondBatch = eu().newStockBatch(dao(), first.getStockItem());
 		secondBatch.setExpiration(DateUtils.addDays(new Date(), 30));
 		dao().saveStockBatch(secondBatch);
-		balanceTransaction(eu().newStockItemTransaction(dao(), first.getStockItem(), secondBatch,
-		    first.getStockItemPackagingUOM()), "4", "2", secondBatch.getExpiration());
+		balanceTransaction(
+		    eu().newStockItemTransaction(dao(), first.getStockItem(), secondBatch, first.getStockItemPackagingUOM()), "4",
+		    "2", secondBatch.getExpiration());
 		
 		StockBatch expiredBatch = eu().newStockBatch(dao(), first.getStockItem());
 		expiredBatch.setExpiration(DateUtils.addDays(new Date(), -30));
 		dao().saveStockBatch(expiredBatch);
-		balanceTransaction(eu().newStockItemTransaction(dao(), first.getStockItem(), expiredBatch,
-		    first.getStockItemPackagingUOM()), "100", "2", expiredBatch.getExpiration());
+		balanceTransaction(
+		    eu().newStockItemTransaction(dao(), first.getStockItem(), expiredBatch, first.getStockItemPackagingUOM()), "100",
+		    "2", expiredBatch.getExpiration());
 		Context.flushSession();
 		
-		StockRuleCurrentQuantity currentQuantity = new StockRuleCurrentQuantity(first.getStockItem().getId(), first
-		        .getParty().getLocation().getLocationId(), null, false);
+		StockRuleCurrentQuantity currentQuantity = new StockRuleCurrentQuantity(first.getStockItem().getId(),
+		        first.getParty().getLocation().getLocationId(), null, false);
 		
 		//When
 		dao().setStockItemCurrentBalanceWithoutDescendants(Collections.singletonList(currentQuantity));
@@ -201,8 +204,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		dao().saveStockItem(otherStockItem);
 		Context.flushSession();
 		
-		StockRuleCurrentQuantity currentQuantity = new StockRuleCurrentQuantity(otherStockItem.getId(), transaction
-		        .getParty().getLocation().getLocationId(), null, false);
+		StockRuleCurrentQuantity currentQuantity = new StockRuleCurrentQuantity(otherStockItem.getId(),
+		        transaction.getParty().getLocation().getLocationId(), null, false);
 		
 		//When
 		dao().setStockItemCurrentBalanceWithoutDescendants(Collections.singletonList(currentQuantity));
@@ -235,8 +238,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.flushSession();
 		
 		//Then
-		StockItemPackagingUOM savedStockItemPackagingUOM = dao().getStockItemPackagingUOMByUuid(
-		    stockItemPackagingUOM.getUuid());
+		StockItemPackagingUOM savedStockItemPackagingUOM = dao()
+		        .getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid());
 		assertThat(savedStockItemPackagingUOM, hasProperty("uuid", is(stockItemPackagingUOM.getUuid())));
 		assertThat(savedStockItemPackagingUOM, hasProperty("creator", is(stockItemPackagingUOM.getCreator())));
 		assertThat(savedStockItemPackagingUOM, hasProperty("dateCreated", is(stockItemPackagingUOM.getDateCreated())));
@@ -264,8 +267,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.flushSession();
 		
 		//Then
-		UserRoleScopeOperationType savedUserRoleScopeOperationType = dao().getUserRoleScopeOperationTypeByUuid(
-		    userRoleScopeOperationType.getUuid());
+		UserRoleScopeOperationType savedUserRoleScopeOperationType = dao()
+		        .getUserRoleScopeOperationTypeByUuid(userRoleScopeOperationType.getUuid());
 		assertThat(savedUserRoleScopeOperationType, hasProperty("uuid", is(userRoleScopeOperationType.getUuid())));
 		assertThat(savedUserRoleScopeOperationType, hasProperty("creator", is(userRoleScopeOperationType.getCreator())));
 		assertThat(savedUserRoleScopeOperationType,
@@ -424,8 +427,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.flushSession();
 		
 		//Then
-		UserRoleScopeLocation savedUserRoleScopeLocation = dao().getUserRoleScopeLocationByUuid(
-		    userRoleScopeLocation.getUuid());
+		UserRoleScopeLocation savedUserRoleScopeLocation = dao()
+		        .getUserRoleScopeLocationByUuid(userRoleScopeLocation.getUuid());
 		assertThat(savedUserRoleScopeLocation, hasProperty("uuid", is(userRoleScopeLocation.getUuid())));
 		assertThat(savedUserRoleScopeLocation, hasProperty("creator", is(userRoleScopeLocation.getCreator())));
 		assertThat(savedUserRoleScopeLocation, hasProperty("dateCreated", is(userRoleScopeLocation.getDateCreated())));

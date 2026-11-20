@@ -1,4 +1,15 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    This Source Code Form is subject to the terms of the Mozilla Public License,
+    v. 2.0. If a copy of the MPL was not distributed with this file, You can
+    obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+    the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+
+    Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+    graphic logo is a trademark of OpenMRS Inc.
+
+-->
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog/1.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog/1.9&#xD;&#xA;                  http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-1.9.xsd">
   <!--
     	See http://wiki.openmrs.org/display/docs/Module+liquibase+File for 
@@ -3010,98 +3021,6 @@ CREATE TRIGGER stockmgmt_location_after_delete
             DROP FUNCTION IF EXISTS stockmgmt_location_after_delete();
         </rollback>
   </changeSet>
-  <changeSet id="stockmanagement-1758855877841-233" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location_tag WHERE name = 'Main Pharmacy'</sqlCheck>
-    </preConditions>
-    <comment>Creating the Main Pharmacy location tag</comment>
-    <insert tableName="location_tag">
-      <column name="name">Main Pharmacy</column>
-      <column name="description">Main pharmacy location.</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">89a80c4d-2899-11ed-bdcb-507b9dea1806</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-234" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location_tag WHERE name = 'Dispensary'</sqlCheck>
-    </preConditions>
-    <comment>Creating the dispensary location tag</comment>
-    <insert tableName="location_tag">
-      <column name="name">Dispensary</column>
-      <column name="description">A dispensary.</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">fe7c970f-2aba-11ed-ba4a-507b9dea1806</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-235" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location_tag WHERE name = 'Main Store'</sqlCheck>
-    </preConditions>
-    <comment>Creating the Main Store location tag</comment>
-    <insert tableName="location_tag">
-      <column name="name">Main Store</column>
-      <column name="description">A location which is the main facility stock holding area.</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">e539ebca-2899-11ed-bdcb-507b9dea1806</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-236" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location where lower(name) like '%pharmacy%'</sqlCheck>
-    </preConditions>
-    <comment>Creating the Pharmacy location</comment>
-    <sql>
-      INSERT INTO location(name,description,creator,date_created,parent_location,uuid)
-      SELECT 'Main Pharmacy', null,1,NOW(), (SELECT parent_location from location group by parent_location order by COUNT(*) DESC LIMIT 1),'7f65d926-57d6-4402-ae10-a5b3bcbf7986'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-237" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM location where lower(name) like '%main store%'</sqlCheck>
-    </preConditions>
-    <comment>Creating the Main Store location</comment>
-    <sql>
-      INSERT INTO location(name,description,creator,date_created,parent_location,uuid)
-      SELECT 'Main Store', null,1,NOW(), (SELECT parent_location from location group by parent_location order by COUNT(*) DESC LIMIT 1),'19dbe2c0-289d-11ed-bdcb-507b9dea1806'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-238" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-          SELECT COUNT(*)
-          FROM location_tag_map
-          where location_id in (SELECT l.location_id FROM location l where lower(l.name) like '%pharmacy%') AND
-          location_tag_id = (SELECT lt.location_tag_id FROM location_tag lt WHERE lt.name = 'Main Pharmacy')</sqlCheck>
-    </preConditions>
-    <comment>Tagging Pharmacy location as store</comment>
-    <sql>
-        INSERT INTO location_tag_map(location_id,location_tag_id)
-        SELECT l.location_id,  (SELECT lt.location_tag_id FROM location_tag lt WHERE lt.name = 'Main Pharmacy')
-        FROM location l
-        where lower(l.name) like '%pharmacy%'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-239" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM location_tag_map
-        where location_id in (SELECT l.location_id FROM location l where lower(l.name) like '%main store%') AND
-        location_tag_id = (SELECT lt.location_tag_id FROM location_tag lt WHERE lt.name = 'Main Store')
-      </sqlCheck>
-    </preConditions>
-    <comment>Tagging Main Store location as main store</comment>
-    <sql>
-        INSERT INTO location_tag_map(location_id,location_tag_id)
-        SELECT l.location_id,  (SELECT lt.location_tag_id FROM location_tag lt WHERE lt.name = 'Main Store')
-        FROM location l
-        where l.name like '%Main Store%'
-    </sql>
-  </changeSet>
   <changeSet id="stockmanagement-1758855877841-240" author="dev">
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
@@ -4083,45 +4002,6 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <column name="expiry_notification_date" type="DATETIME"/>
     </addColumn>
   </changeSet>
-  <changeSet id="stockmanagement-1758855877841-304" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM notification_template WHERE uuid = '7a23df8e-53c7-11ed-b2e9-00155dc74b5a'</sqlCheck>
-    </preConditions>
-    <comment>Creating the stock quantity below threshold email template</comment>
-    <insert tableName="notification_template">
-      <column name="name">STOCK_MGMT_QTY_BELOW_THRESHOLD</column>
-      <column name="subject">Stock item quantity reached threshold</column>
-      <column name="uuid">7a23df8e-53c7-11ed-b2e9-00155dc74b5a</column>
-      <column name="template">&lt;html&gt;
-        &lt;body style="font-size:13px;color:#333333;font-family:arial,sans-serif;"&gt;
-        Dear &lt;b&gt;%RECPT_NAME%&lt;/b&gt;,
-        &lt;br/&gt;
-        &lt;br/&gt;
-        This is to notify you that the following stock items have their quantities at or below the set threshold.
-        &lt;br/&gt;
-        &lt;br/&gt;
-        &lt;table style='text-align:left;white-space:nowrap;border:solid 1px grey;font-size:13px;' cellpadding='2' cellspacing='0'&gt;
-        &lt;tr&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;'&gt;Location&lt;/td&gt;
-        &lt;td&gt;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;'&gt;Stock Item&lt;/td&gt;
-        &lt;td&gt;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;'&gt;Quantity Threshold&lt;/td&gt;
-        &lt;td&gt;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;Current Quantity&lt;/td&gt;
-        &lt;/tr&gt;
-        %STOCK_ITEMS%
-        &lt;/table&gt;
-        %MORE_INFO%
-        &lt;br&gt;
-        This email was sent from the automated system that cannot accept incoming email. Do not reply to this message.
-        &lt;br&gt;
-        &lt;br&gt;
-        &lt;b&gt;%CENTER_NAME%&lt;/b&gt;
-        &lt;/body&gt;
-        &lt;/html&gt;</column>
-    </insert>
-  </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-305">
     <preConditions onFail="MARK_RAN">
       <tableExists tableName="stockmgmt_stock_item"/>
@@ -4132,83 +4012,6 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <addColumn tableName="stockmgmt_stock_item">
       <column name="expiry_notice" type="INT"/>
     </addColumn>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-306" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="1">SELECT COUNT(*) FROM notification_template WHERE uuid = '7a23df8e-53c7-11ed-b2e9-00155dc74b5a'</sqlCheck>
-    </preConditions>
-    <comment>Updating the stock quantity below threshold email template</comment>
-    <update tableName="notification_template">
-      <column name="template">&lt;html&gt;
-        &lt;body style="font-size:13px;color:#333333;font-family:arial,sans-serif;"&gt;
-        Dear &lt;b&gt;%RECPT_NAME%&lt;/b&gt;,
-        &lt;br/&gt;
-        &lt;br/&gt;
-        This is to notify you that the following stock items have their quantities at or below the set threshold.
-        &lt;br/&gt;
-        &lt;br/&gt;
-        &lt;table style='text-align:left;white-space:nowrap;border:solid 1px grey;font-size:13px;' border='0' cellpadding='2' cellspacing='0'&gt;
-        &lt;tr&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;'&gt;Location&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;'&gt;Stock Item&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;'&gt;Quantity Threshold&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;Current Quantity&lt;/td&gt;
-        &lt;/tr&gt;
-        %STOCK_ITEMS%
-        &lt;/table&gt;
-        %MORE_INFO%
-        &lt;br&gt;
-        This email was sent from the automated system that cannot accept incoming email. Do not reply to this message.
-        &lt;br&gt;
-        &lt;br&gt;
-        &lt;b&gt;%CENTER_NAME%&lt;/b&gt;
-        &lt;/body&gt;
-        &lt;/html&gt;</column>
-      <where>name = 'STOCK_MGMT_QTY_BELOW_THRESHOLD'</where>
-    </update>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-307" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM notification_template WHERE uuid = 'ff9f1cb5-576a-11ed-a495-00155dc81c72'</sqlCheck>
-    </preConditions>
-    <comment>Creating the stock item expiry email template</comment>
-    <insert tableName="notification_template">
-      <column name="name">STOCK_MGMT_BATCH_EXPIRING</column>
-      <column name="subject">Stock item batch expiring</column>
-      <column name="uuid">ff9f1cb5-576a-11ed-a495-00155dc81c72</column>
-      <column name="template">&lt;html&gt;
-        &lt;body style='font-size:13px;color:#333333;font-family:arial,sans-serif;'&gt;
-        %RECPT_NAME%,
-        &lt;br/&gt;
-        &lt;br/&gt;
-        This is to notify you that the following stock items with batch information below are expiring soon.
-        &lt;br/&gt;
-        &lt;br/&gt;
-        &lt;table style='text-align:left;white-space:nowrap;border:solid 1px grey;font-size:13px;' cellpadding='2' cellspacing='0' border='0'&gt;
-        &lt;tr&gt;
-        &lt;td colspan="3" style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;'&gt;Stock Item&lt;/td&gt;
-
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;text-align:right;'&gt;Batch&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;border-right:solid 1px grey;text-align:right;'&gt;Quantity&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;'&gt;&amp;nbsp;&amp;nbsp;&amp;nbsp;&lt;/td&gt;
-        &lt;td style='padding: 0.5rem;font-weight:bold;border-bottom:solid 1px grey;text-align:right;'&gt;Expiry Date&lt;/td&gt;
-        &lt;/tr&gt;
-        %STOCK_ITEMS%
-        &lt;/table&gt;
-        %MORE_INFO%
-        &lt;br&gt;
-        This email was sent from the automated system that cannot accept incoming email. Do not reply to this message.
-        &lt;br&gt;
-        &lt;br&gt;
-        &lt;b&gt;%CENTER_NAME%&lt;/b&gt;
-        &lt;/body&gt;
-        &lt;/html&gt;</column>
-    </insert>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-308">
     <preConditions onFail="MARK_RAN">
@@ -4221,52 +4024,6 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <column name="expiry_notification_date" />
       <column name="voided" />
     </createIndex>
-  </changeSet>
-  <changeSet author="dev" id="stockmanagement-1758855877841-309">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*) FROM scheduler_task_config
-        WHERE schedulable_class = 'org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob'
-      </sqlCheck>
-    </preConditions>
-    <sql>DELETE FROM scheduler_task_config where uuid='5a0b041a-5796-11ed-a495-00155dc81c72'</sql>
-    <comment>Inserting Stock Rules Evaluation Job into 'schedule_task_config' table</comment>
-    <insert tableName="scheduler_task_config">
-      <column name="name" value="Stock Rules Evaluation Job" />
-      <column name="description" value="Checks the stock rules against the item quantity and notifies when quantity is at or below threshold" />
-      <column name="schedulable_class" value="org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob" />
-      <column name="start_time_pattern" value="MM/dd/yyyy HH:mm:ss" />
-      <column name="start_time" valueDate="2022-10-01T00:59:59" />
-      <column name="repeat_interval" value="86400" />
-      <column name="date_created" valueDate="CURRENT_TIMESTAMP" />
-      <column name="created_by" value="1" />
-      <column name="start_on_startup" value="0"/>
-      <column name="started" value="1"/>
-      <column name="uuid" value="5a0b041a-5796-11ed-a495-00155dc81c72" />
-    </insert>
-  </changeSet>
-  <changeSet author="dev" id="stockmanagement-1758855877841-310">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*) FROM scheduler_task_config
-        WHERE schedulable_class = 'org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob'
-      </sqlCheck>
-    </preConditions>
-    <sql>DELETE FROM scheduler_task_config where uuid='911fc382-5797-11ed-a495-00155dc81c72'</sql>
-    <comment>Inserting Stock Batch Expiry Job into 'schedule_task_config' table</comment>
-    <insert tableName="scheduler_task_config">
-      <column name="name" value="Stock Batch Expiry Job" />
-      <column name="description" value="Checks for stock items expiring soon and notifies inventory manager and clerk" />
-      <column name="schedulable_class" value="org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob" />
-      <column name="start_time_pattern" value="MM/dd/yyyy HH:mm:ss" />
-      <column name="start_time" valueDate="2022-10-01T00:00:00" />
-      <column name="repeat_interval" value="86400" />
-      <column name="date_created" valueDate="CURRENT_TIMESTAMP" />
-      <column name="created_by" value="1" />
-      <column name="start_on_startup" value="0"/>
-      <column name="started" value="1"/>
-      <column name="uuid" value="911fc382-5797-11ed-a495-00155dc81c72" />
-    </insert>
   </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-311">
     <validCheckSum>9:f0f081c00e44bd0dec8ae1b5b105ba2e</validCheckSum>
@@ -4305,38 +4062,6 @@ CREATE TRIGGER stockmgmt_location_after_delete
       <column name="notify_completed" valueBoolean="true" />
       <where>operation_type in ('receipt', 'transferout')</where>
     </update>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-312" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM notification_template WHERE uuid = '59edf349-5b76-11ed-8829-00155d8315fc'</sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation notification template</comment>
-    <insert tableName="notification_template">
-      <column name="name">STOCK_MGMT_OPERATION_ACTION</column>
-      <column name="subject">%LOCATION%: Stock Operation %OPERATION_TYPE% %OPERATION_REF% %OPERATION_ACTION%</column>
-      <column name="uuid">59edf349-5b76-11ed-8829-00155d8315fc</column>
-      <column name="template">&lt;html&gt;
-        &lt;body style='font-size:13px;color:#333333;font-family:arial,sans-serif;'&gt;
-        Hello,
-        &lt;br/&gt;
-        &lt;br/&gt;
-        This is to notify you that &lt;b&gt;%ACTION_BY%&lt;/b&gt; has %OPERATION_ACTION% the stock operation &lt;b&gt;%OPERATION_TYPE% %OPERATION_REF%&lt;/b&gt;.
-        &lt;br/&gt;
-        &lt;br/&gt;
-        &lt;table style='text-align:left;white-space:nowrap;border:0;font-size:13px;' cellpadding='2' cellspacing='0' border='0'&gt;
-        %OPERATION_BASIC_INFO%
-        &lt;/table&gt;
-        &lt;br/&gt;
-        Access the medical records system to view more details about the transaction.
-        &lt;br/&gt;
-        &lt;br/&gt;
-        This email was sent from the automated system that cannot accept incoming email. Do not reply to this message.
-        &lt;br&gt;
-        &lt;br&gt;
-        &lt;b&gt;%CENTER_NAME%&lt;/b&gt;
-        &lt;/body&gt;
-        &lt;/html&gt;</column>
-    </insert>
   </changeSet>
   <changeSet id="stockmanagement-1758855877841-313" author="dev">
     <validCheckSum>9:1ec0c3f5439985e29b859d2b514b0e4e</validCheckSum>

@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.openmrs.Location;
@@ -35,30 +44,28 @@ public class StockTransferInReport extends StockOperationLineItemReport {
 	
 	@Override
 	protected void writeRow(CSVWriter csvWriter, StockOperationLineItem row) {
-		writeLineToCsv(
-		    csvWriter,
-		    TIMESTAMP_FORMATTER.format(row.getDateCreated()),
-		    DATE_FORMATTER.format(row.getOperationDate()),
-		    row.getOperationTypeName(),
-		    row.getOperationNumber(),
+		writeLineToCsv(csvWriter, TIMESTAMP_FORMATTER.format(row.getDateCreated()),
+		    DATE_FORMATTER.format(row.getOperationDate()), row.getOperationTypeName(), row.getOperationNumber(),
 		    row.getRequisitionOperationNumber(),
 		    String.format("%1$s %2$s", row.getCreatorFamilyName(), row.getCreatorGivenName()),
-		    emptyIfNull(row.getResponsiblePerson() != null ? String.format("%1$s %2$s",
-		        row.getResponsiblePersonFamilyName(), row.getResponsiblePersonGivenName()) : row.getResponsiblePersonOther()),
-		    row.getCompletedDate() == null ? "" : TIMESTAMP_FORMATTER.format(row.getCompletedDate()), String.format(
-		        "%1$s %2$s", row.getCompletedByFamilyName(), row.getCompletedByGivenName()), emptyIfNull(row.getRemarks()),
-		    emptyIfNull(row.getSourceName()), emptyIfNull(row.getDestinationName()),
-		    row.getStockItemDrugName() == null ? row.getStockItemConceptName() : row.getStockItemDrugName(), row
-		            .getStockItemDrugName() == null ? "" : row.getStockItemConceptName(), emptyIfNull(row.getCommonName()),
-		    emptyIfNull(row.getAcronym()), emptyIfNull(row.getStockItemCategoryName()), emptyIfNull(row.getBatchNo()), row
-		            .getExpiration() != null ? DATE_FORMATTER.format(row.getExpiration()) : "",
-		    row.getQuantityRequested() == null ? null : row.getQuantityRequested().toPlainString(), row
-		            .getQuantityRequestedPackagingUOMName() == null ? null : row.getQuantityRequestedPackagingUOMName(), row
-		            .getQuantityRequestedPackagingUOMFactor() == null ? null : row.getQuantityRequestedPackagingUOMFactor()
-		            .toPlainString(), row.getQuantity().toPlainString(), row.getStockItemPackagingUOMName(), row
-		            .getStockItemPackagingUOMFactor().toPlainString(), row.getStockItemDrugId() == null ? "" : row
-		            .getStockItemDrugId().toString(), row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId()
-		            .toString());
+		    emptyIfNull(row.getResponsiblePerson() != null
+		            ? String.format("%1$s %2$s", row.getResponsiblePersonFamilyName(), row.getResponsiblePersonGivenName())
+		            : row.getResponsiblePersonOther()),
+		    row.getCompletedDate() == null ? "" : TIMESTAMP_FORMATTER.format(row.getCompletedDate()),
+		    String.format("%1$s %2$s", row.getCompletedByFamilyName(), row.getCompletedByGivenName()),
+		    emptyIfNull(row.getRemarks()), emptyIfNull(row.getSourceName()), emptyIfNull(row.getDestinationName()),
+		    row.getStockItemDrugName() == null ? row.getStockItemConceptName() : row.getStockItemDrugName(),
+		    row.getStockItemDrugName() == null ? "" : row.getStockItemConceptName(), emptyIfNull(row.getCommonName()),
+		    emptyIfNull(row.getAcronym()), emptyIfNull(row.getStockItemCategoryName()), emptyIfNull(row.getBatchNo()),
+		    row.getExpiration() != null ? DATE_FORMATTER.format(row.getExpiration()) : "",
+		    row.getQuantityRequested() == null ? null : row.getQuantityRequested().toPlainString(),
+		    row.getQuantityRequestedPackagingUOMName() == null ? null : row.getQuantityRequestedPackagingUOMName(),
+		    row.getQuantityRequestedPackagingUOMFactor() == null ? null
+		            : row.getQuantityRequestedPackagingUOMFactor().toPlainString(),
+		    row.getQuantity().toPlainString(), row.getStockItemPackagingUOMName(),
+		    row.getStockItemPackagingUOMFactor().toPlainString(),
+		    row.getStockItemDrugId() == null ? "" : row.getStockItemDrugId().toString(),
+		    row.getStockItemConceptId() == null ? "" : row.getStockItemConceptId().toString());
 	}
 	
 	@Override

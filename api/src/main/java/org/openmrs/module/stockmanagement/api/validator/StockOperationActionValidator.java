@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.validator;
 
 import org.apache.commons.lang.StringUtils;
@@ -5,11 +14,10 @@ import org.openmrs.annotation.Handler;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
-import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
-@Handler(supports = { StockOperationDTO.class }, order = 50)
+@Handler(supports = { StockOperationAction.class }, order = 50)
 public class StockOperationActionValidator implements Validator {
 	
 	@Override
@@ -26,18 +34,20 @@ public class StockOperationActionValidator implements Validator {
 		}
 		
 		if (Context.getAuthenticatedUser() == null) {
-			errors.reject(messageSourceService.getMessage("stockmanagement.stockoperation.authrequired"));
+			errors.reject(messageSourceService.getMessage("stockmanagement.authrequired"));
 			return;
 		}
 		
 		StockOperationAction object = (StockOperationAction) target;
 		if (object.getName() == null) {
-			errors.rejectValue("name", messageSourceService.getMessage("stockmanagement.stockoperation.action.namerequired"));
+			errors.rejectValue("name",
+			    messageSourceService.getMessage("stockmanagement.stockoperation.action.namerequired"));
 			return;
 		}
 		
-		if (object.getUuid() == null) {
-			errors.rejectValue("uuid", messageSourceService.getMessage("stockmanagement.stockoperation.action.namerequired"));
+		if (StringUtils.isBlank(object.getUuid())) {
+			errors.rejectValue("uuid",
+			    messageSourceService.getMessage("stockmanagement.stockoperation.action.uuidrequired"));
 			return;
 		}
 		

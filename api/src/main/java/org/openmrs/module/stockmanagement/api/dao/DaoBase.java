@@ -1,15 +1,11 @@
 /*
- * The contents of this file are subject to the OpenMRS Public License
- * Version 2.0 (the "License"); you may not use this file except in
- * compliance with the License. You may obtain a copy of the License at
- * http://license.openmrs.org
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
  *
- * Software distributed under the License is distributed on an "AS IS"
- * basis, WITHOUT WARRANTY OF ANY KIND, either express or implied. See the
- * License for the specific language governing rights and limitations
- * under the License.
- *
- * Copyright (C) OpenMRS, LLC.  All Rights Reserved.
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
  */
 package org.openmrs.module.stockmanagement.api.dao;
 
@@ -34,17 +30,17 @@ import java.util.Map;
 public class DaoBase {
 	
 	protected DbSessionFactory sessionFactory;
-
+	
 	protected SearchSessionFactory searchSessionFactory;
 	
 	public void setSessionFactory(DbSessionFactory sessionFactory) {
 		this.sessionFactory = sessionFactory;
 	}
-
+	
 	public void setSearchSessionFactory(SearchSessionFactory searchSessionFactory) {
 		this.searchSessionFactory = searchSessionFactory;
 	}
-
+	
 	public DbSession getSession() {
 		return sessionFactory.getCurrentSession();
 	}
@@ -103,8 +99,8 @@ public class DaoBase {
 	 * Loads the record count for the specified criteria into the specified paging object.
 	 * 
 	 * @param pagingInfo The {@link IPagingInfo} object to load with the record count.
-	 * @param criteria The {@link Criteria} to execute against the hibernate data source or
-	 *            {@code null} to create a new one.
+	 * @param criteria The {@link Criteria} to execute against the hibernate data source or {@code null}
+	 *            to create a new one.
 	 */
 	protected void loadPagingTotal(IPagingInfo pagingInfo, Criteria criteria) {
 		if (pagingInfo != null && pagingInfo.getPageIndex() != null && pagingInfo.getPageSize() != null
@@ -146,10 +142,9 @@ public class DaoBase {
 	 * Updates the specified {@link Criteria} object to retrieve the data specified by the
 	 * {@link IPagingInfo} object.
 	 * 
-	 * @param pagingInfo The {@link IPagingInfo} object that specifies which data should be
-	 *            retrieved.
-	 * @param criteria The {@link Criteria} to add the paging settings to, or {@code null} to create
-	 *            a new one.
+	 * @param pagingInfo The {@link IPagingInfo} object that specifies which data should be retrieved.
+	 * @param criteria The {@link Criteria} to add the paging settings to, or {@code null} to create a
+	 *            new one.
 	 * @return The {@link Criteria} object with the paging settings applied.
 	 */
 	protected Criteria createPagingCriteria(IPagingInfo pagingInfo, Criteria criteria) {

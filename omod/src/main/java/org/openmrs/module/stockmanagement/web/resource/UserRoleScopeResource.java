@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -9,6 +18,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.validator.UserRoleScopeDTOValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -27,36 +37,38 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/userrolescope", supportedClass = UserRoleScopeDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/userrolescope", supportedClass = UserRoleScopeDTO.class, supportedOpenmrsVersions = { "1.9.*", "1.10.*",
+                "1.11.*", "1.12.*", "2.*" })
 public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 	
 	@Override
 	public UserRoleScopeDTO getByUniqueId(String uniqueId) {
-		Result<UserRoleScopeDTO> result = getStockManagementService().findUserRoleScopes(
-		    new UserRoleScopeSearchFilter(uniqueId).withIncludeVoided(false));
+		Result<UserRoleScopeDTO> result = getStockManagementService()
+		        .findUserRoleScopes(new UserRoleScopeSearchFilter(uniqueId).withIncludeVoided(false));
 		return !result.getData().isEmpty() ? result.getData().get(0) : null;
 	}
 	
 	@Override
-    protected void delete(UserRoleScopeDTO delegate, String reason, RequestContext context) throws ResponseException {
-        if (reason != null && reason.length() > 250) {
-            throw new IllegalRequestException("Parameter reason can not exceed 250 characters");
-        }
-        List<String> userRoleScopesToDelete = new ArrayList<>();
-        userRoleScopesToDelete.add(delegate.getUuid());
-        String ids = context.getParameter("ids");
-        if (ids != null && StringUtils.isNotEmpty(ids)) {
-            for (String id : ids.split(",")) {
-                if (id.isEmpty()) continue;
-                if (id.length() > 38) {
-                    throw new IllegalRequestException("Id not recognized");
-                }
-                userRoleScopesToDelete.add(id);
-            }
-        }
-        getStockManagementService().voidUserRoleScopes(userRoleScopesToDelete, reason);
-    }
+	protected void delete(UserRoleScopeDTO delegate, String reason, RequestContext context) throws ResponseException {
+		if (reason != null && reason.length() > 250) {
+			throw new IllegalRequestException("Parameter reason can not exceed 250 characters");
+		}
+		List<String> userRoleScopesToDelete = new ArrayList<>();
+		userRoleScopesToDelete.add(delegate.getUuid());
+		String ids = context.getParameter("ids");
+		if (ids != null && StringUtils.isNotEmpty(ids)) {
+			for (String id : ids.split(",")) {
+				if (id.isEmpty())
+					continue;
+				if (id.length() > 38) {
+					throw new IllegalRequestException("Id not recognized");
+				}
+				userRoleScopesToDelete.add(id);
+			}
+		}
+		getStockManagementService().voidUserRoleScopes(userRoleScopesToDelete, reason);
+	}
 	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
@@ -74,8 +86,8 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 		}
 		
 		if (operationTypeUuid != null) {
-			StockOperationType stockOperationType = getStockManagementService().getStockOperationTypeByUuid(
-			    operationTypeUuid);
+			StockOperationType stockOperationType = getStockManagementService()
+			        .getStockOperationTypeByUuid(operationTypeUuid);
 			if (stockOperationType == null)
 				return emptyResult(context);
 			filter.setOperationType(stockOperationType);
@@ -103,6 +115,11 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 	
 	@Override
 	public UserRoleScopeDTO save(UserRoleScopeDTO delegate) {
+		// webservices.rest 3.2+ removed the ValidateUtil.validate call from
+		// DelegatingCrudResource.create, so the @Handler validator no longer runs on REST saves;
+		// run it explicitly so a scope without locations or operation types is a 400 instead of
+		// a 201 that grants nothing
+		validateDelegate(new UserRoleScopeDTOValidator(), delegate, "userRoleScopeDTO");
 		UserRoleScope userRoleScope = getStockManagementService().saveUserRoleScope(delegate);
 		return getByUniqueId(userRoleScope.getUuid());
 	}
@@ -170,32 +187,29 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 	}
 	
 	@PropertyGetter("locations")
-    public Collection<SimpleObject> getLocations(UserRoleScopeDTO userRoleScope) {
-        if (userRoleScope.getLocations() == null || userRoleScope.getLocations().size() == 0) {
-            return new ArrayList<SimpleObject>();
-        }
-
-        return userRoleScope.getLocations().stream()
-                .map(p -> new SimpleObject().add("locationUuid", p.getLocationUuid()).
-                        add("locationName", p.getLocationName()).
-                        add("enableDescendants", p.getEnableDescendants()).
-                        add("uuid", p.getUuid()))
-                .collect(Collectors.toList());
-
-    }
+	public Collection<SimpleObject> getLocations(UserRoleScopeDTO userRoleScope) {
+		if (userRoleScope.getLocations() == null || userRoleScope.getLocations().size() == 0) {
+			return new ArrayList<SimpleObject>();
+		}
+		
+		return userRoleScope.getLocations().stream()
+		        .map(
+		            p -> new SimpleObject().add("locationUuid", p.getLocationUuid()).add("locationName", p.getLocationName())
+		                    .add("enableDescendants", p.getEnableDescendants()).add("uuid", p.getUuid()))
+		        .collect(Collectors.toList());
+		
+	}
 	
 	@PropertyGetter("operationTypes")
-    public Collection<SimpleObject> getOperationTypes(UserRoleScopeDTO userRoleScope) {
-        if (userRoleScope.getOperationTypes() == null || userRoleScope.getOperationTypes().size() == 0) {
-            return new ArrayList<SimpleObject>();
-        }
-
-        return userRoleScope.getOperationTypes().stream()
-                .map(p -> new SimpleObject().add("uuid", p.getUuid()).
-                        add("operationTypeName", p.getOperationTypeName()).
-                        add("operationTypeUuid", p.getOperationTypeUuid()))
-                .collect(Collectors.toList());
-    }
+	public Collection<SimpleObject> getOperationTypes(UserRoleScopeDTO userRoleScope) {
+		if (userRoleScope.getOperationTypes() == null || userRoleScope.getOperationTypes().size() == 0) {
+			return new ArrayList<SimpleObject>();
+		}
+		
+		return userRoleScope.getOperationTypes().stream().map(p -> new SimpleObject().add("uuid", p.getUuid())
+		        .add("operationTypeName", p.getOperationTypeName()).add("operationTypeUuid", p.getOperationTypeUuid()))
+		        .collect(Collectors.toList());
+	}
 	
 	@Override
 	public Model getGETModel(Representation rep) {
