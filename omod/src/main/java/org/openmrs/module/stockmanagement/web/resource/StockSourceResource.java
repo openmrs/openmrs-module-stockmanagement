@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -26,8 +35,9 @@ import org.openmrs.module.webservices.rest.web.response.ResponseException;
 
 import java.util.*;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stocksource", supportedClass = StockSource.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/stocksource", supportedClass = StockSource.class, supportedOpenmrsVersions = { "1.9.*", "1.10.*", "1.11.*",
+                "1.12.*", "2.*" })
 public class StockSourceResource extends ResourceBase<StockSource> {
 	
 	@Override
@@ -36,24 +46,26 @@ public class StockSourceResource extends ResourceBase<StockSource> {
 	}
 	
 	@Override
-    protected void delete(StockSource delegate, String reason, RequestContext context) throws ResponseException {
-        if (reason != null && reason.length() > 250) {
-            throw new IllegalRequestException("Parameter reason can not exceed 250 characters");
-        }
-        List<String> stockSourcesToDelete = new ArrayList<>();
-        stockSourcesToDelete.add(delegate.getUuid());
-        String ids = context.getParameter("ids");
-        if (ids != null && StringUtils.isNotEmpty(ids)) {
-            for (String id : ids.split(",")) {
-                if (id.isEmpty()) continue;
-                if (id.length() > 38) {
-                    throw new IllegalRequestException("Id not recognized");
-                }
-                stockSourcesToDelete.add(id);
-            }
-        }
-        getStockManagementService().voidStockSources(stockSourcesToDelete, reason, Context.getAuthenticatedUser().getUserId());
-    }
+	protected void delete(StockSource delegate, String reason, RequestContext context) throws ResponseException {
+		if (reason != null && reason.length() > 250) {
+			throw new IllegalRequestException("Parameter reason can not exceed 250 characters");
+		}
+		List<String> stockSourcesToDelete = new ArrayList<>();
+		stockSourcesToDelete.add(delegate.getUuid());
+		String ids = context.getParameter("ids");
+		if (ids != null && StringUtils.isNotEmpty(ids)) {
+			for (String id : ids.split(",")) {
+				if (id.isEmpty())
+					continue;
+				if (id.length() > 38) {
+					throw new IllegalRequestException("Id not recognized");
+				}
+				stockSourcesToDelete.add(id);
+			}
+		}
+		getStockManagementService().voidStockSources(stockSourcesToDelete, reason,
+		    Context.getAuthenticatedUser().getUserId());
+	}
 	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
@@ -74,19 +86,19 @@ public class StockSourceResource extends ResourceBase<StockSource> {
 			}
 			filter.setSourceType(sourceType);
 		}
-        Result<StockSource> result = getStockManagementService().findStockSources(filter);
-        result.getData().sort(Comparator.comparing(p -> p.getName().toLowerCase()));
+		Result<StockSource> result = getStockManagementService().findStockSources(filter);
+		result.getData().sort(Comparator.comparing(p -> p.getName().toLowerCase()));
 		return toAlreadyPaged(result, context);
 	}
 	
 	@Override
-    protected PageableResult doGetAll(RequestContext context) throws ResponseException {
-        StockSourceSearchFilter filter = new StockSourceSearchFilter();
-        filter.setIncludeVoided(context.getIncludeAll());
-        Result<StockSource> result = getStockManagementService().findStockSources(filter);
-        result.getData().sort(Comparator.comparing(p -> p.getName().toLowerCase()));
-        return toAlreadyPaged(result, context);
-    }
+	protected PageableResult doGetAll(RequestContext context) throws ResponseException {
+		StockSourceSearchFilter filter = new StockSourceSearchFilter();
+		filter.setIncludeVoided(context.getIncludeAll());
+		Result<StockSource> result = getStockManagementService().findStockSources(filter);
+		result.getData().sort(Comparator.comparing(p -> p.getName().toLowerCase()));
+		return toAlreadyPaged(result, context);
+	}
 	
 	@Override
 	public StockSource newDelegate() {
@@ -157,8 +169,8 @@ public class StockSourceResource extends ResourceBase<StockSource> {
 	public Model getGETModel(Representation rep) {
 		ModelImpl modelImpl = (ModelImpl) super.getGETModel(rep);
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
-			modelImpl.property("uuid", new StringProperty()).property("name", new StringProperty())
-			        .property("acronym", new StringProperty());
+			modelImpl.property("uuid", new StringProperty()).property("name", new StringProperty()).property("acronym",
+			    new StringProperty());
 		}
 		if (rep instanceof DefaultRepresentation) {
 			modelImpl.property("sourceType", new RefProperty("#/definitions/ConceptGetRef"));

@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.tasks;
 
 import org.apache.commons.logging.Log;
@@ -17,31 +26,32 @@ public class PartySynchronize implements StartupTask {
 	private Log log = LogFactory.getLog(this.getClass());
 	
 	@Override
-    public void execute() {
-        log.debug("Checking the synchronization status of the party table");
-        try {
-            StockManagementService stockManagementService = Context.getService(StockManagementService.class);
-            List<Party> partyList = stockManagementService.findParty(true, false);
-            List<Location> locations = Context.getLocationService().getAllLocations();
-            int countLocations = 0;
-            for(Location location : locations){
-                if(!partyList.stream().anyMatch(p -> p.getLocation().getId().equals(location.getLocationId()))){
-                    Party party=new Party();
-                    party.setLocation(location);
-                    party.setDateCreated(new Date());
-                    party.setCreator(Context.getAuthenticatedUser());
-                    stockManagementService.saveParty(party);
-                    countLocations++;
-                }
-            }
-
-            if (countLocations > 0) {
-                log.debug("Created missing parties: " + Integer.toString(countLocations));
-            }
-        }catch (Exception exception){
-            log.error("Error while synchronizing party table", exception);
-        }
-    }
+	public void execute() {
+		log.debug("Checking the synchronization status of the party table");
+		try {
+			StockManagementService stockManagementService = Context.getService(StockManagementService.class);
+			List<Party> partyList = stockManagementService.findParty(true, false);
+			List<Location> locations = Context.getLocationService().getAllLocations();
+			int countLocations = 0;
+			for (Location location : locations) {
+				if (!partyList.stream().anyMatch(p -> p.getLocation().getId().equals(location.getLocationId()))) {
+					Party party = new Party();
+					party.setLocation(location);
+					party.setDateCreated(new Date());
+					party.setCreator(Context.getAuthenticatedUser());
+					stockManagementService.saveParty(party);
+					countLocations++;
+				}
+			}
+			
+			if (countLocations > 0) {
+				log.debug("Created missing parties: " + Integer.toString(countLocations));
+			}
+		}
+		catch (Exception exception) {
+			log.error("Error while synchronizing party table", exception);
+		}
+	}
 	
 	@Override
 	public int getPriority() {

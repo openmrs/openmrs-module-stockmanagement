@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -14,6 +23,7 @@ import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.validator.StockItemDTOValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
@@ -29,14 +39,15 @@ import org.openmrs.module.webservices.rest.web.resource.impl.DelegatingResourceD
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.util.LocaleUtility;
-import org.springframework.web.client.RestClientException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockitem", supportedClass = StockItemDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/stockitem", supportedClass = StockItemDTO.class, supportedOpenmrsVersions = { "1.9.*", "1.10.*", "1.11.*",
+                "1.12.*", "2.*" })
 public class StockItemResource extends ResourceBase<StockItemDTO> {
 	
 	@Override
@@ -108,85 +119,90 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	}
 	
 	protected PageableResult searchDrugsAndConcepts(RequestContext context, String searchToken) {
-        Boolean isDrugSearch = isDrugSearch(context);
-        boolean searchDrugs = true;
-        boolean searchConcepts = true;
-        if (isDrugSearch != null) {
-            if (isDrugSearch) {
-                searchConcepts = false;
-            } else {
-                searchDrugs = false;
-            }
-        }
-
-        StockItemSearchFilter filter = new StockItemSearchFilter();
-        filter.setIsDrug(isDrugSearch);
-        filter.setIncludeVoided(context.getIncludeAll());
-        filter.setStartIndex(context.getStartIndex());
-        filter.setLimit(context.getLimit());
-
-        String param = context.getParameter("drugUuid");
-        if (!StringUtils.isBlank(param)) {
-            Drug drug = Context.getConceptService().getDrugByUuid(param);
-            if (drug == null) {
-                return emptyResult(context);
-            }
-            filter.setDrugId(drug.getDrugId());
-        }
-
-        param = context.getParameter("conceptUuid");
-        if (!StringUtils.isBlank(param)) {
-            Concept concept = Context.getConceptService().getConcept(param);
-            if (concept == null) {
-                return emptyResult(context);
-            }
-            filter.setConceptId(concept.getConceptId());
-        }
-
-        param = context.getParameter("categoryUuid");
-        if (!StringUtils.isBlank(param)) {
-            Concept concept = Context.getConceptService().getConcept(param);
-            if (concept == null) {
-                return emptyResult(context);
-            }
-            filter.setCategoryId(concept.getConceptId());
-        }
-
-        ConceptService service = Context.getConceptService();
-        Integer maxIntermediateResult = GlobalProperties.getStockItemSearchMaxDrugConceptIntermediateResult();
-        List<Integer> itemsFound = getStockManagementService().searchStockItemCommonName(searchToken, filter.getIsDrug(), context.getIncludeAll(), maxIntermediateResult);
-        if (!itemsFound.isEmpty()) {
-            filter.setStockItemIds(itemsFound);
-            maxIntermediateResult = Math.max(0, maxIntermediateResult - itemsFound.size());
-        }
-
-        if (searchConcepts) {
-            List<Locale> locales = new ArrayList<Locale>(LocaleUtility.getLocalesInOrder());
-            List<Concept> searchResults = service.getConcepts(searchToken, locales, true, null, null, null, null, null, 0, maxIntermediateResult + (searchDrugs ? 0 : maxIntermediateResult))
-                    .stream()
-                    .map(p -> p.getConcept())
-                    .collect(Collectors.toList());
-            if (searchResults.isEmpty())
-                searchConcepts = false;
-            else
-                filter.setConcepts(searchResults);
-        }
-        if (searchDrugs) {
-            List<Drug> drugs = service.getDrugs(searchToken, null, true, false, true, 0, maxIntermediateResult +
-                    (searchConcepts ?
-                            Math.max(0, maxIntermediateResult - (filter.getConcepts() != null ? filter.getConcepts().size() : 0)) :
-                            maxIntermediateResult));
-            if (drugs.isEmpty())
-                searchDrugs = false;
-            else
-                filter.setDrugs(drugs);
-        }
-        if (searchConcepts && searchDrugs) {
-            filter.setSearchEitherDrugsOrConcepts(true);
-        }
-        Result<StockItemDTO> result = getStockManagementService().findStockItems(filter);
-        return toAlreadyPaged(result, context);
-    }
+		Boolean isDrugSearch = isDrugSearch(context);
+		boolean searchDrugs = true;
+		boolean searchConcepts = true;
+		if (isDrugSearch != null) {
+			if (isDrugSearch) {
+				searchConcepts = false;
+			} else {
+				searchDrugs = false;
+			}
+		}
+		
+		StockItemSearchFilter filter = new StockItemSearchFilter();
+		filter.setIsDrug(isDrugSearch);
+		filter.setIncludeVoided(context.getIncludeAll());
+		filter.setStartIndex(context.getStartIndex());
+		filter.setLimit(context.getLimit());
+		
+		String param = context.getParameter("drugUuid");
+		if (!StringUtils.isBlank(param)) {
+			Drug drug = Context.getConceptService().getDrugByUuid(param);
+			if (drug == null) {
+				return emptyResult(context);
+			}
+			filter.setDrugId(drug.getDrugId());
+		}
+		
+		param = context.getParameter("conceptUuid");
+		if (!StringUtils.isBlank(param)) {
+			Concept concept = Context.getConceptService().getConcept(param);
+			if (concept == null) {
+				return emptyResult(context);
+			}
+			filter.setConceptId(concept.getConceptId());
+		}
+		
+		param = context.getParameter("categoryUuid");
+		if (!StringUtils.isBlank(param)) {
+			Concept concept = Context.getConceptService().getConcept(param);
+			if (concept == null) {
+				return emptyResult(context);
+			}
+			filter.setCategoryId(concept.getConceptId());
+		}
+		
+		ConceptService service = Context.getConceptService();
+		Integer maxIntermediateResult = GlobalProperties.getStockItemSearchMaxDrugConceptIntermediateResult();
+		List<Integer> itemsFound = getStockManagementService().searchStockItemCommonName(searchToken, filter.getIsDrug(),
+		    context.getIncludeAll(), maxIntermediateResult);
+		if (!itemsFound.isEmpty()) {
+			filter.setStockItemIds(itemsFound);
+			maxIntermediateResult = Math.max(0, maxIntermediateResult - itemsFound.size());
+		}
+		
+		if (searchConcepts) {
+			List<Locale> locales = new ArrayList<Locale>(LocaleUtility.getLocalesInOrder());
+			List<Concept> searchResults = service
+			        .getConcepts(searchToken, locales, true, null, null, null, null, null, 0,
+			            maxIntermediateResult + (searchDrugs ? 0 : maxIntermediateResult))
+			        .stream().map(p -> p.getConcept()).collect(Collectors.toList());
+			if (searchResults.isEmpty())
+				searchConcepts = false;
+			else
+				filter.setConcepts(searchResults);
+		}
+		if (searchDrugs) {
+			List<Drug> drugs = service
+			        .getDrugs(searchToken, null, true, false, true, 0,
+			            maxIntermediateResult
+			                    + (searchConcepts
+			                            ? Math.max(0,
+			                                maxIntermediateResult
+			                                        - (filter.getConcepts() != null ? filter.getConcepts().size() : 0))
+			                            : maxIntermediateResult));
+			if (drugs.isEmpty())
+				searchDrugs = false;
+			else
+				filter.setDrugs(drugs);
+		}
+		if (searchConcepts && searchDrugs) {
+			filter.setSearchEitherDrugsOrConcepts(true);
+		}
+		Result<StockItemDTO> result = getStockManagementService().findStockItems(filter);
+		return toAlreadyPaged(result, context);
+	}
 	
 	@Override
 	protected PageableResult doGetAll(RequestContext context) throws ResponseException {
@@ -201,11 +217,13 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	@Override
 	public StockItemDTO save(StockItemDTO delegate) {
 		try {
+			// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
+			validateDelegate(new StockItemDTOValidator(), delegate, "stockItemDTO");
 			StockItem stockItem = getStockManagementService().saveStockItem(delegate);
 			return getByUniqueId(stockItem.getUuid());
 		}
 		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+			throw new IllegalRequestException(safeMessage(exception, "Unable to save stock item"));
 		}
 	}
 	
@@ -340,18 +358,18 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	}
 	
 	@PropertyGetter("references")
-    public Collection<StockItemReferenceDTO> getStockItemReferences(StockItemDTO stockItemDTO) {
-        List<StockItemReferenceDTO> stockItemReferenceDTOS = new ArrayList<>();
-
-        for (StockItemReference stockItemReference : getStockManagementService().getStockItemReferenceByStockItem(stockItemDTO.getUuid())) {
-            StockItemReferenceResource stockItemReferenceResource = new StockItemReferenceResource();
-
-            stockItemReferenceDTOS.add(stockItemReferenceResource.convertToDTO(stockItemReference));
-        }
-
-
-        return stockItemReferenceDTOS;
-    }
+	public Collection<StockItemReferenceDTO> getStockItemReferences(StockItemDTO stockItemDTO) {
+		List<StockItemReferenceDTO> stockItemReferenceDTOS = new ArrayList<>();
+		
+		for (StockItemReference stockItemReference : getStockManagementService()
+		        .getStockItemReferenceByStockItem(stockItemDTO.getUuid())) {
+			StockItemReferenceResource stockItemReferenceResource = new StockItemReferenceResource();
+			
+			stockItemReferenceDTOS.add(stockItemReferenceResource.convertToDTO(stockItemReference));
+		}
+		
+		return stockItemReferenceDTOS;
+	}
 	
 	@PropertyGetter("permission")
 	public SimpleObject getPermission(StockItemDTO stockItemDTO) {

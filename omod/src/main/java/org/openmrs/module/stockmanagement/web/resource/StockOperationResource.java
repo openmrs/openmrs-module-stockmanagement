@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -7,6 +16,8 @@ import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Location;
+import org.openmrs.api.APIAuthenticationException;
+import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
@@ -29,14 +40,22 @@ import org.openmrs.module.webservices.rest.web.resource.api.PageableResult;
 import org.openmrs.module.webservices.rest.web.resource.impl.*;
 import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOperationException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.openmrs.module.stockmanagement.api.validator.StockOperationDTOValidator;
+import org.openmrs.module.webservices.rest.web.response.GenericRestException;
+import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.springframework.web.client.RestClientException;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockoperation", supportedClass = StockOperationDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/stockoperation", supportedClass = StockOperationDTO.class, supportedOpenmrsVersions = { "1.9.*", "1.10.*",
+                "1.11.*", "1.12.*", "2.*" })
 public class StockOperationResource extends ResourceBase<StockOperationDTO> {
+	
+	private static final Log log = LogFactory.getLog(StockOperationResource.class);
 	
 	private Map<String, SimpleObject> permissionCache;
 	
@@ -50,8 +69,8 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
 		StockOperationDTO stockOperationDTO = result.getData().isEmpty() ? null : result.getData().get(0);
 		if (stockOperationDTO != null && StockOperationType.STOCK_ISSUE.equals(stockOperationDTO.getOperationType())) {
-			Result<StockOperationLinkDTO> parents = getStockManagementService().getParentStockOperationLinks(
-			    stockOperationDTO.getUuid());
+			Result<StockOperationLinkDTO> parents = getStockManagementService()
+			        .getParentStockOperationLinks(stockOperationDTO.getUuid());
 			if (parents.getData() != null && parents.getData().size() > 0) {
 				stockOperationDTO.setRequisitionStockOperationUuid(parents.getData().get(0).getParentUuid());
 			}
@@ -65,116 +84,119 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	}
 	
 	@Override
-    protected PageableResult doSearch(RequestContext context) {
-        StockOperationSearchFilter filter = new StockOperationSearchFilter();
-        filter.setIncludeVoided(context.getIncludeAll());
-        filter.setStartIndex(context.getStartIndex());
-        filter.setLimit(context.getLimit());
-        String param = context.getParameter("q");
-        if (StringUtils.isNotBlank(param))
-            filter.setSearchText(param);
-        StockManagementService stockManagementService = getStockManagementService();
-        param = context.getParameter("operationTypeUuid");
-        if (StringUtils.isNotBlank(param)) {
-            String[] params = param.split(",", 10);
-            List<Integer> typeIds = new ArrayList<>();
-            for (String typeUuid : params) {
-                StockOperationType operationType = stockManagementService.getStockOperationTypeByUuid(typeUuid);
-                if (operationType != null) {
-                    typeIds.add(operationType.getId());
-                }
-            }
-            if (typeIds.isEmpty()) {
-                return emptyResult(context);
-            }
-            filter.setOperationTypeId(typeIds);
-        }
-
-        param = context.getParameter("status");
-        if (StringUtils.isNotBlank(param)) {
-            String[] params = param.split(",", 10);
-            List<StockOperationStatus> statusIds = new ArrayList<>();
-            for (String status : params) {
-                StockOperationStatus opStatus = (StockOperationStatus) Enum.valueOf(StockOperationStatus.class, status);
-                statusIds.add(opStatus);
-            }
-            if (statusIds.isEmpty()) {
-                return emptyResult(context);
-            }
-            filter.setStatus(statusIds);
-        }
-
-        param = context.getParameter("locationUuid");
-        if (StringUtils.isNotBlank(param)) {
-            Location location = Context.getLocationService().getLocationByUuid(param);
-            if (location == null) {
-                return emptyResult(context);
-            }
-            filter.setLocationId(location.getId());
-        }
-
-        param = context.getParameter("isLocationOther");
-        if (StringUtils.isNotBlank(param)) {
-            filter.setIsLocationOther("true".equalsIgnoreCase(param) || "1".equals(param));
-        }
-
-        param = context.getParameter("sourceTypeUuid");
-        if (StringUtils.isNotBlank(param)) {
-            String[] params = param.split(",", 10);
-            List<Integer> conceptIds = new ArrayList<>();
-            for (String conceptUuid : params) {
-                Concept concept = Context.getConceptService().getConceptByUuid(conceptUuid);
-                if (concept != null) {
-                    conceptIds.add(concept.getId());
-                }
-            }
-            if (conceptIds.isEmpty()) {
-                return emptyResult(context);
-            }
-            filter.setSourceTypeIds(conceptIds);
-        }
-
-        param = context.getParameter("stockItemUuid");
-        if (StringUtils.isNotBlank(param)) {
-            StockItem stockItem = stockManagementService.getStockItemByUuid(param);
-            if (stockItem == null) {
-                return emptyResult(context);
-            }
-            filter.setStockItemId(stockItem.getId());
-        }
-
-        param = context.getParameter("operationDateMin");
-        if (StringUtils.isNotBlank(param)) {
-            Date date = (Date) ConversionUtil.convert(param, Date.class);
-            if (date == null) {
-                return emptyResult(context);
-            }
-            filter.setOperationDateMin(date);
-        }
-
-        param = context.getParameter("operationDateMax");
-        if (StringUtils.isNotBlank(param)) {
-            Date date = (Date) ConversionUtil.convert(param, Date.class);
-            if (date == null) {
-                return emptyResult(context);
-            }
-            filter.setOperationDateMax(date);
-        }
-
-        Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
-        if (!result.getData().isEmpty() && context.getRepresentation() == Representation.FULL) {
-            StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
-            itemSearchFilter.setIncludeStockUnitName(true);
-            itemSearchFilter.setIncludePackagingUnitName(true);
-            itemSearchFilter.setStockOperationUuids(result.getData().stream().map(p -> p.getUuid()).collect(Collectors.toList()));
-            Result<StockOperationItemDTO> items = getStockManagementService().findStockOperationItems(itemSearchFilter);
-            for (StockOperationDTO stockOperation : result.getData()) {
-                stockOperation.setStockOperationItems(items.getData().stream().filter(p -> p.getStockOperationUuid().equals(stockOperation.getUuid())).collect(Collectors.toList()));
-            }
-        }
-
-        return toAlreadyPaged(result, context);
-    }
+	protected PageableResult doSearch(RequestContext context) {
+		StockOperationSearchFilter filter = new StockOperationSearchFilter();
+		filter.setIncludeVoided(context.getIncludeAll());
+		filter.setStartIndex(context.getStartIndex());
+		filter.setLimit(context.getLimit());
+		String param = context.getParameter("q");
+		if (StringUtils.isNotBlank(param))
+			filter.setSearchText(param);
+		StockManagementService stockManagementService = getStockManagementService();
+		param = context.getParameter("operationTypeUuid");
+		if (StringUtils.isNotBlank(param)) {
+			String[] params = param.split(",", 10);
+			List<Integer> typeIds = new ArrayList<>();
+			for (String typeUuid : params) {
+				StockOperationType operationType = stockManagementService.getStockOperationTypeByUuid(typeUuid);
+				if (operationType != null) {
+					typeIds.add(operationType.getId());
+				}
+			}
+			if (typeIds.isEmpty()) {
+				return emptyResult(context);
+			}
+			filter.setOperationTypeId(typeIds);
+		}
+		
+		param = context.getParameter("status");
+		if (StringUtils.isNotBlank(param)) {
+			String[] params = param.split(",", 10);
+			List<StockOperationStatus> statusIds = new ArrayList<>();
+			for (String status : params) {
+				StockOperationStatus opStatus = (StockOperationStatus) Enum.valueOf(StockOperationStatus.class, status);
+				statusIds.add(opStatus);
+			}
+			if (statusIds.isEmpty()) {
+				return emptyResult(context);
+			}
+			filter.setStatus(statusIds);
+		}
+		
+		param = context.getParameter("locationUuid");
+		if (StringUtils.isNotBlank(param)) {
+			Location location = Context.getLocationService().getLocationByUuid(param);
+			if (location == null) {
+				return emptyResult(context);
+			}
+			filter.setLocationId(location.getId());
+		}
+		
+		param = context.getParameter("isLocationOther");
+		if (StringUtils.isNotBlank(param)) {
+			filter.setIsLocationOther("true".equalsIgnoreCase(param) || "1".equals(param));
+		}
+		
+		param = context.getParameter("sourceTypeUuid");
+		if (StringUtils.isNotBlank(param)) {
+			String[] params = param.split(",", 10);
+			List<Integer> conceptIds = new ArrayList<>();
+			for (String conceptUuid : params) {
+				Concept concept = Context.getConceptService().getConceptByUuid(conceptUuid);
+				if (concept != null) {
+					conceptIds.add(concept.getId());
+				}
+			}
+			if (conceptIds.isEmpty()) {
+				return emptyResult(context);
+			}
+			filter.setSourceTypeIds(conceptIds);
+		}
+		
+		param = context.getParameter("stockItemUuid");
+		if (StringUtils.isNotBlank(param)) {
+			StockItem stockItem = stockManagementService.getStockItemByUuid(param);
+			if (stockItem == null) {
+				return emptyResult(context);
+			}
+			filter.setStockItemId(stockItem.getId());
+		}
+		
+		param = context.getParameter("operationDateMin");
+		if (StringUtils.isNotBlank(param)) {
+			Date date = (Date) ConversionUtil.convert(param, Date.class);
+			if (date == null) {
+				return emptyResult(context);
+			}
+			filter.setOperationDateMin(date);
+		}
+		
+		param = context.getParameter("operationDateMax");
+		if (StringUtils.isNotBlank(param)) {
+			Date date = (Date) ConversionUtil.convert(param, Date.class);
+			if (date == null) {
+				return emptyResult(context);
+			}
+			filter.setOperationDateMax(date);
+		}
+		
+		Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
+		if (!result.getData().isEmpty() && context.getRepresentation() == Representation.FULL) {
+			StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
+			itemSearchFilter.setIncludeStockUnitName(true);
+			itemSearchFilter.setIncludePackagingUnitName(true);
+			itemSearchFilter
+			        .setStockOperationUuids(result.getData().stream().map(p -> p.getUuid()).collect(Collectors.toList()));
+			Result<StockOperationItemDTO> items = getStockManagementService().findStockOperationItems(itemSearchFilter);
+			for (StockOperationDTO stockOperation : result.getData()) {
+				stockOperation.setStockOperationItems(
+				    items.getData().stream().filter(p -> p.getStockOperationUuid().equals(stockOperation.getUuid()))
+				            .collect(Collectors.toList()));
+			}
+		}
+		
+		return toAlreadyPaged(result, context);
+	}
 	
 	@Override
 	protected PageableResult doGetAll(RequestContext context) throws ResponseException {
@@ -189,12 +211,46 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	@Override
 	public StockOperationDTO save(StockOperationDTO delegate) {
 		try {
+			validateStockOperation(delegate);
 			StockOperation stockOperation = getStockManagementService().saveStockOperation(delegate);
 			return getByUniqueId(stockOperation.getUuid());
 		}
-		catch (StockManagementException exception) {
-			throw new RestClientException(exception.getMessage());
+		catch (ResponseException | APIAuthenticationException | ValidationException exception) {
+			// already a meaningful REST error (e.g. validation, or an authorization failure that
+			// BaseRestController renders as 403); let the framework render it
+			throw exception;
 		}
+		catch (StockManagementException exception) {
+			logSaveFailure(delegate, exception);
+			// business rule violation; never let a null message through to the client; the cause
+			// is not passed on either: wrapErrorResponse appends each cause's message to the
+			// response, and logSaveFailure already logged it
+			throw new IllegalRequestException(safeMessage(exception, "Unable to save stock operation"));
+		}
+		catch (Exception exception) {
+			logSaveFailure(delegate, exception);
+			// unexpected failure: generic message to the client, original exception kept in the log
+			throw new GenericRestException("Unable to save stock operation");
+		}
+	}
+	
+	/**
+	 * Runs the StockOperationDTOValidator explicitly: webservices.rest 3.2+ removed the
+	 * ValidateUtil.validate call from DelegatingCrudResource.create, so the @Handler validator no
+	 * longer runs on REST saves. It derives atLocationUuid for clients that do not send it, and
+	 * enforces the operation type/location permission checks.
+	 */
+	protected void validateStockOperation(StockOperationDTO delegate) {
+		validateDelegate(new StockOperationDTOValidator(), delegate, "stockOperationDTO");
+	}
+	
+	private void logSaveFailure(StockOperationDTO delegate, Exception exception) {
+		log.error(String.format(
+		    "Failed to save stock operation. operationUuid=%s, operationTypeUuid=%s, sourceUuid=%s, destinationUuid=%s, itemCount=%s",
+		    delegate == null ? null : delegate.getUuid(), delegate == null ? null : delegate.getOperationTypeUuid(),
+		    delegate == null ? null : delegate.getSourceUuid(), delegate == null ? null : delegate.getDestinationUuid(),
+		    delegate == null || delegate.getStockOperationItems() == null ? 0 : delegate.getStockOperationItems().size()),
+		    exception);
 	}
 	
 	@Override
@@ -316,198 +372,210 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	}
 	
 	@PropertySetter("stockOperationItems")
-    public void setStockOperationItems(StockOperationDTO instance, ArrayList<Map<String, ?>> items) {
-
-        if (items == null) {
-            instance.setStockOperationItems(null);
-            return;
-        }
-        if (items.isEmpty()) {
-            instance.setStockOperationItems(new ArrayList<>());
-            return;
-        }
-
-        StockOperationItemResource handler = new StockOperationItemResource();
-        DelegatingResourceDescription creatableProperties = handler.getCreatableProperties();
-        DelegatingResourceDescription modifiableProperties = handler.getUpdatableProperties();
-        List<StockOperationItemDTO> existingStockOperationItems = null;
-        if (StringUtils.isBlank(instance.getUuid())) {
-            existingStockOperationItems = new ArrayList<>();
-        } else {
-            StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
-            itemSearchFilter.setStockOperationUuids(Arrays.asList(instance.getUuid()));
-            existingStockOperationItems = getStockManagementService().findStockOperationItems(itemSearchFilter).getData();
-        }
-        List<StockOperationItemDTO> itemsToUpdate = new ArrayList<>();
-
-        // Some resources do not have delegating resource description
-        for (Map<String, ?> item : items) {
-            StockOperationItemDTO itemDTO = null;
-            boolean isNew = true;
-            if (item.containsKey("uuid") && item.get("uuid") != null && !StringUtils.isBlank(item.get("uuid").toString())) {
-                String uuid = item.get("uuid").toString();
-                if (existingStockOperationItems == null) {
-                    StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
-                    itemSearchFilter.setUuid(uuid);
-                    existingStockOperationItems = getStockManagementService().findStockOperationItems(itemSearchFilter).getData();
-                    if (!existingStockOperationItems.isEmpty()) {
-                        itemSearchFilter.setUuid(null);
-                        itemSearchFilter.setStockOperationUuids(Arrays.asList(existingStockOperationItems.get(0).getStockOperationUuid()));
-                        existingStockOperationItems = getStockManagementService().findStockOperationItems(itemSearchFilter).getData();
-                    }
-                }
-                Optional<StockOperationItemDTO> existingItem = existingStockOperationItems.stream().filter(p -> uuid.equals(p.getUuid())).findFirst();
-                if (existingItem.isPresent()) {
-                    isNew = false;
-                    itemDTO = existingItem.get();
-                } else
-                    throw new RestClientException(String.format("Item %s not found", uuid));
-
-            } else {
-                itemDTO = new StockOperationItemDTO();
-            }
-
-            DelegatingResourceDescription propertiesToApply = isNew ? creatableProperties : modifiableProperties;
-            for (Map.Entry<String, DelegatingResourceDescription.Property> prop : propertiesToApply.getProperties().entrySet()) {
-                if (item.containsKey(prop.getKey()) && !RestConstants.PROPERTY_FOR_TYPE.equals(prop.getKey())) {
-                    handler.setProperty(itemDTO, prop.getKey(), item.get(prop.getKey()));
-                }
-            }
-            itemsToUpdate.add(itemDTO);
-        }
-        instance.setStockOperationItems(itemsToUpdate);
-    }
+	public void setStockOperationItems(StockOperationDTO instance, ArrayList<Map<String, ?>> items) {
+		
+		if (items == null) {
+			instance.setStockOperationItems(null);
+			return;
+		}
+		if (items.isEmpty()) {
+			instance.setStockOperationItems(new ArrayList<>());
+			return;
+		}
+		
+		StockOperationItemResource handler = new StockOperationItemResource();
+		DelegatingResourceDescription creatableProperties = handler.getCreatableProperties();
+		DelegatingResourceDescription modifiableProperties = handler.getUpdatableProperties();
+		List<StockOperationItemDTO> existingStockOperationItems = null;
+		if (StringUtils.isBlank(instance.getUuid())) {
+			existingStockOperationItems = new ArrayList<>();
+		} else {
+			StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
+			itemSearchFilter.setStockOperationUuids(Arrays.asList(instance.getUuid()));
+			existingStockOperationItems = getStockManagementService().findStockOperationItems(itemSearchFilter).getData();
+		}
+		List<StockOperationItemDTO> itemsToUpdate = new ArrayList<>();
+		
+		// Some resources do not have delegating resource description
+		for (Map<String, ?> item : items) {
+			StockOperationItemDTO itemDTO = null;
+			boolean isNew = true;
+			if (item.containsKey("uuid") && item.get("uuid") != null && !StringUtils.isBlank(item.get("uuid").toString())) {
+				String uuid = item.get("uuid").toString();
+				if (existingStockOperationItems == null) {
+					StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
+					itemSearchFilter.setUuid(uuid);
+					existingStockOperationItems = getStockManagementService().findStockOperationItems(itemSearchFilter)
+					        .getData();
+					if (!existingStockOperationItems.isEmpty()) {
+						itemSearchFilter.setUuid(null);
+						itemSearchFilter.setStockOperationUuids(
+						    Arrays.asList(existingStockOperationItems.get(0).getStockOperationUuid()));
+						existingStockOperationItems = getStockManagementService().findStockOperationItems(itemSearchFilter)
+						        .getData();
+					}
+				}
+				Optional<StockOperationItemDTO> existingItem = existingStockOperationItems.stream()
+				        .filter(p -> uuid.equals(p.getUuid())).findFirst();
+				if (existingItem.isPresent()) {
+					isNew = false;
+					itemDTO = existingItem.get();
+				} else
+					throw new RestClientException(String.format("Item %s not found", uuid));
+				
+			} else {
+				itemDTO = new StockOperationItemDTO();
+			}
+			
+			DelegatingResourceDescription propertiesToApply = isNew ? creatableProperties : modifiableProperties;
+			for (Map.Entry<String, DelegatingResourceDescription.Property> prop : propertiesToApply.getProperties()
+			        .entrySet()) {
+				if (item.containsKey(prop.getKey()) && !RestConstants.PROPERTY_FOR_TYPE.equals(prop.getKey())) {
+					handler.setProperty(itemDTO, prop.getKey(), item.get(prop.getKey()));
+				}
+			}
+			itemsToUpdate.add(itemDTO);
+		}
+		instance.setStockOperationItems(itemsToUpdate);
+	}
 	
 	@PropertyGetter("permission")
-    public SimpleObject getPermission(StockOperationDTO stockOperationDTO) {
-        if(permissionCache != null && permissionCache.containsKey(stockOperationDTO.getUuid()))
-            return permissionCache.get(stockOperationDTO.getUuid());
-
-        SimpleObject simpleObject = new SimpleObject();
-        simpleObject.add("canView", true);
-
-        boolean canEdit = stockOperationDTO.isUpdateable();
-        boolean canApprove = stockOperationDTO.isApproveable();
-        boolean canReceiveItems = stockOperationDTO.canReceiveItems();
-        boolean canDisplayReceivedItems = stockOperationDTO.canDisplayReceivedItems();
-        boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock();
-        StockOperationType stockOperationType = getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid());
-        boolean canUpdateBatchInformation = stockOperationDTO.canUpdateBatchInformation(stockOperationType);
-        Boolean userHasEditPermissions = null;
-
-        if (canEdit || canApprove) {
-            HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                    Context.getAuthenticatedUser(),
-                    Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
-                    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
-                    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE)
-            );
-
-            if(canEdit) {
-                canEdit = canEdit && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
-            }else{
-                userHasEditPermissions = Boolean.valueOf(privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)));
-            }
-            canApprove = canApprove && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
-        }
-
-        if (canReceiveItems || isRequisitionAndCanIssueStock) {
-            if(StringUtils.isBlank(stockOperationDTO.getDestinationUuid())){
-                canReceiveItems = false;
-                isRequisitionAndCanIssueStock = false;
-            }else {
-                Party party = getStockManagementService().getPartyByUuid(stockOperationDTO.getDestinationUuid());
-                if(party == null || party.getLocation() == null){
-                    canReceiveItems = false;
-                    isRequisitionAndCanIssueStock = false;
-                }
-                if(canReceiveItems){
-                    HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                            Context.getAuthenticatedUser(),
-                            party.getLocation(),
-                            getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
-                            Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS)
-                    );
-                    canReceiveItems = canReceiveItems && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS));
-                }
-                if(isRequisitionAndCanIssueStock){
-                    HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                            Context.getAuthenticatedUser(),
-                            party.getLocation(),
-                            getStockManagementService().getStockOperationTypeByType(StockOperationType.STOCK_ISSUE),
-                            Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
-                    );
-                    isRequisitionAndCanIssueStock = isRequisitionAndCanIssueStock && privilegeScopes.stream().anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
-                }
-            }
-        }
-
-        if(canUpdateBatchInformation){
-            if(userHasEditPermissions == null){
-                HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-                        Context.getAuthenticatedUser(),
-                        Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
-                        getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
-                        Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
-                );
-                userHasEditPermissions = Boolean.valueOf(!privilegeScopes.isEmpty());
-            }
-            canUpdateBatchInformation = userHasEditPermissions.booleanValue();
-        }
-
-        simpleObject.add("canEdit", canEdit);
-        simpleObject.add("canApprove", canApprove);
-        simpleObject.add("canReceiveItems", canReceiveItems);
-        simpleObject.add("canDisplayReceivedItems", canDisplayReceivedItems);
-        simpleObject.add("isRequisitionAndCanIssueStock", isRequisitionAndCanIssueStock);
-        simpleObject.add("canUpdateBatchInformation", canUpdateBatchInformation);
-
-        if(permissionCache == null){
-            permissionCache=new HashMap<>();
-            permissionCache.put(stockOperationDTO.getUuid(), simpleObject);
-        }
-        return simpleObject;
-    }
+	public SimpleObject getPermission(StockOperationDTO stockOperationDTO) {
+		if (permissionCache != null && permissionCache.containsKey(stockOperationDTO.getUuid()))
+			return permissionCache.get(stockOperationDTO.getUuid());
+		
+		SimpleObject simpleObject = new SimpleObject();
+		simpleObject.add("canView", true);
+		
+		boolean canEdit = stockOperationDTO.isUpdateable();
+		boolean canApprove = stockOperationDTO.isApproveable();
+		boolean canReceiveItems = stockOperationDTO.canReceiveItems();
+		boolean canDisplayReceivedItems = stockOperationDTO.canDisplayReceivedItems();
+		boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock();
+		StockOperationType stockOperationType = getStockManagementService()
+		        .getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid());
+		boolean canUpdateBatchInformation = stockOperationDTO.canUpdateBatchInformation(stockOperationType);
+		Boolean userHasEditPermissions = null;
+		
+		if (canEdit || canApprove) {
+			HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
+			    Context.getAuthenticatedUser(),
+			    Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
+			    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+			    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE,
+			        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
+			
+			if (canEdit) {
+				canEdit = canEdit && privilegeScopes.stream()
+				        .anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+			} else {
+				userHasEditPermissions = Boolean.valueOf(privilegeScopes.stream()
+				        .anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)));
+			}
+			canApprove = canApprove && privilegeScopes.stream()
+			        .anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
+		}
+		
+		if (canReceiveItems || isRequisitionAndCanIssueStock) {
+			if (StringUtils.isBlank(stockOperationDTO.getDestinationUuid())) {
+				canReceiveItems = false;
+				isRequisitionAndCanIssueStock = false;
+			} else {
+				Party party = getStockManagementService().getPartyByUuid(stockOperationDTO.getDestinationUuid());
+				if (party == null || party.getLocation() == null) {
+					canReceiveItems = false;
+					isRequisitionAndCanIssueStock = false;
+				}
+				if (canReceiveItems) {
+					HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
+					    Context.getAuthenticatedUser(), party.getLocation(),
+					    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+					    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS));
+					canReceiveItems = canReceiveItems && privilegeScopes.stream().anyMatch(
+					    p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS));
+				}
+				if (isRequisitionAndCanIssueStock) {
+					HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
+					    Context.getAuthenticatedUser(), party.getLocation(),
+					    getStockManagementService().getStockOperationTypeByType(StockOperationType.STOCK_ISSUE),
+					    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+					isRequisitionAndCanIssueStock = isRequisitionAndCanIssueStock && privilegeScopes.stream()
+					        .anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+				}
+			}
+		}
+		
+		if (canUpdateBatchInformation) {
+			if (userHasEditPermissions == null) {
+				HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
+				    Context.getAuthenticatedUser(),
+				    Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
+				    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+				    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+				userHasEditPermissions = Boolean.valueOf(!privilegeScopes.isEmpty());
+			}
+			canUpdateBatchInformation = userHasEditPermissions.booleanValue();
+		}
+		
+		simpleObject.add("canEdit", canEdit);
+		simpleObject.add("canApprove", canApprove);
+		simpleObject.add("canReceiveItems", canReceiveItems);
+		simpleObject.add("canDisplayReceivedItems", canDisplayReceivedItems);
+		simpleObject.add("isRequisitionAndCanIssueStock", isRequisitionAndCanIssueStock);
+		simpleObject.add("canUpdateBatchInformation", canUpdateBatchInformation);
+		
+		if (permissionCache == null) {
+			permissionCache = new HashMap<>();
+			permissionCache.put(stockOperationDTO.getUuid(), simpleObject);
+		}
+		return simpleObject;
+	}
 	
 	@PropertyGetter("stockOperationItems")
-    public Collection<StockOperationItemDTO> getStockOperationItems(StockOperationDTO stockOperationDTO) {
-        if (stockOperationDTO.getStockOperationItems() != null)
-            return stockOperationDTO.getStockOperationItems();
-        StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
-        itemSearchFilter.setIncludeStockUnitName(true);
-        itemSearchFilter.setIncludePackagingUnitName(true);
-        itemSearchFilter.setStockOperationUuids(Arrays.asList(stockOperationDTO.getUuid()));
-        Result<StockOperationItemDTO> items = getStockManagementService().findStockOperationItems(itemSearchFilter);
-
-        StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
-        filter.setIncludeVoided(false);
-        filter.setStockItemUuids(items.getData().stream().map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList()));
-        List<StockItemPackagingUOMDTO> packagingUnits = getStockManagementService().findStockItemPackagingUOMs(filter).getData();
-
-        boolean canUpdateBatchInformation = false;
-        SimpleObject permissions = getPermission(stockOperationDTO);
-        Map<Integer, Boolean> stockBatchHasTransactions = null;
-        if(permissions != null){
-            if(permissions.containsKey("canUpdateBatchInformation")) {
-                canUpdateBatchInformation = (boolean)permissions.get("canUpdateBatchInformation");
-                if(canUpdateBatchInformation){
-                    stockBatchHasTransactions = getStockManagementService().checkStockBatchHasTransactionsAfterOperation(stockOperationDTO.getId(), items.getData().stream().filter(p->p.getStockBatchId() != null).map(p -> p.getStockBatchId()).distinct().collect(Collectors.toList()));
-                }
-            }
-        }
-
-        for (StockOperationItemDTO itemDTO : items.getData()) {
-            List<StockItemPackagingUOMDTO> units = packagingUnits.stream().filter(p -> p.getStockItemUuid().equals(itemDTO.getStockItemUuid())).collect(Collectors.toList());
-            if (!units.isEmpty()) {
-                itemDTO.setPackagingUnits(units);
-            }
-            if(canUpdateBatchInformation){
-                itemDTO.setCanUpdateBatchInformation( stockBatchHasTransactions != null && !stockBatchHasTransactions.containsKey(itemDTO.getStockBatchId()));
-            }
-        }
-
-        return items.getData();
-    }
+	public Collection<StockOperationItemDTO> getStockOperationItems(StockOperationDTO stockOperationDTO) {
+		if (stockOperationDTO.getStockOperationItems() != null)
+			return stockOperationDTO.getStockOperationItems();
+		StockOperationItemSearchFilter itemSearchFilter = new StockOperationItemSearchFilter();
+		itemSearchFilter.setIncludeStockUnitName(true);
+		itemSearchFilter.setIncludePackagingUnitName(true);
+		itemSearchFilter.setStockOperationUuids(Arrays.asList(stockOperationDTO.getUuid()));
+		Result<StockOperationItemDTO> items = getStockManagementService().findStockOperationItems(itemSearchFilter);
+		
+		StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
+		filter.setIncludeVoided(false);
+		filter.setStockItemUuids(
+		    items.getData().stream().map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList()));
+		List<StockItemPackagingUOMDTO> packagingUnits = getStockManagementService().findStockItemPackagingUOMs(filter)
+		        .getData();
+		
+		boolean canUpdateBatchInformation = false;
+		SimpleObject permissions = getPermission(stockOperationDTO);
+		Map<Integer, Boolean> stockBatchHasTransactions = null;
+		if (permissions != null) {
+			if (permissions.containsKey("canUpdateBatchInformation")) {
+				canUpdateBatchInformation = (boolean) permissions.get("canUpdateBatchInformation");
+				if (canUpdateBatchInformation) {
+					stockBatchHasTransactions = getStockManagementService().checkStockBatchHasTransactionsAfterOperation(
+					    stockOperationDTO.getId(), items.getData().stream().filter(p -> p.getStockBatchId() != null)
+					            .map(p -> p.getStockBatchId()).distinct().collect(Collectors.toList()));
+				}
+			}
+		}
+		
+		for (StockOperationItemDTO itemDTO : items.getData()) {
+			List<StockItemPackagingUOMDTO> units = packagingUnits.stream()
+			        .filter(p -> p.getStockItemUuid().equals(itemDTO.getStockItemUuid())).collect(Collectors.toList());
+			if (!units.isEmpty()) {
+				itemDTO.setPackagingUnits(units);
+			}
+			if (canUpdateBatchInformation) {
+				itemDTO.setCanUpdateBatchInformation(
+				    stockBatchHasTransactions != null && !stockBatchHasTransactions.containsKey(itemDTO.getStockBatchId()));
+			}
+		}
+		
+		return items.getData();
+	}
 	
 	@Override
 	public List<String> getPropertiesToExposeAsSubResources() {

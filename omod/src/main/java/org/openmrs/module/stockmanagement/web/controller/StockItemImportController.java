@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.controller;
 
 import org.apache.commons.io.IOUtils;
@@ -40,73 +49,78 @@ import java.util.UUID;
 public class StockItemImportController {
 	
 	@RequestMapping(method = RequestMethod.POST)
-    @ResponseBody
-    public ImportResult upload(@RequestParam(value = "file") MultipartFile file, HttpServletRequest request) {
-        boolean authenticated = Context.isAuthenticated();
-        if (!authenticated) {
-            ImportResult importResult = new ImportResult();
-            importResult.setSuccess(false);
-            importResult.setErrors(new ArrayList<>());
-            importResult.getErrors().add(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.authrequired"));
-            return importResult;
-        }
-
-        if (file == null) {
-            ImportResult importResult = new ImportResult();
-            importResult.setSuccess(false);
-            importResult.setErrors(new ArrayList<>());
-            importResult.getErrors().add(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.nofileuploaded"));
-            return importResult;
-        }
-
-        if (file.getSize() > (GlobalProperties.getStockItemsMaxUploadSize() * 1024 * 1024)) {
-            ImportResult importResult = new ImportResult();
-            importResult.setSuccess(false);
-            importResult.setErrors(new ArrayList<>());
-            importResult.getErrors().add(
-                    String.format(
-                            Context.getMessageSourceService().getMessage("stockmanagement.importoperation.maxfilesizeexceeded"),
-                            GlobalProperties.getStockItemsMaxUploadSize()));
-            return importResult;
-        }
-
-        String contentType = file.getContentType();
-        if(contentType == null || !"text/csv".equals(contentType.toLowerCase())){
-            ImportResult importResult = new ImportResult();
-            importResult.setSuccess(false);
-            importResult.setErrors(new ArrayList<>());
-            importResult.getErrors().add(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.contenttypenotsupported"));
-            return importResult;
-        }
-
-        File workingDir = FileUtil.getWorkingDirectory();
-        String fileName = Context.getAuthenticatedUser().getUserId().toString() + "_" + UUID.randomUUID().toString();
-        File filePath = new File(workingDir, fileName);
-        try {
-            file.transferTo(filePath);
-        } catch (Exception exception) {
-            ImportResult importResult = new ImportResult();
-            importResult.setSuccess(false);
-            importResult.setErrors(new ArrayList<>());
-            importResult.getErrors().add(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.transferworkingdirfailed"));
-            return importResult;
-        }
-
-        String hasHeaderParam = request.getParameter("hasHeader");
-        boolean hasHeader = hasHeaderParam != null && (hasHeaderParam.toLowerCase().equals("true") || hasHeaderParam.toLowerCase().equals("1"));
-        StockManagementService stockManagementService = Context.getService(StockManagementService.class);
-        ImportResult importResult = stockManagementService.importStockItems(filePath.toPath(), hasHeader);
-        importResult.setUploadSessionId(fileName);
-        return importResult;
-    }
+	@ResponseBody
+	public ImportResult upload(@RequestParam(value = "file") MultipartFile file, HttpServletRequest request) {
+		boolean authenticated = Context.isAuthenticated();
+		if (!authenticated) {
+			ImportResult importResult = new ImportResult();
+			importResult.setSuccess(false);
+			importResult.setErrors(new ArrayList<>());
+			importResult.getErrors().add(Context.getMessageSourceService().getMessage("stockmanagement.authrequired"));
+			return importResult;
+		}
+		
+		if (file == null) {
+			ImportResult importResult = new ImportResult();
+			importResult.setSuccess(false);
+			importResult.setErrors(new ArrayList<>());
+			importResult.getErrors()
+			        .add(Context.getMessageSourceService().getMessage("stockmanagement.importoperation.nofileuploaded"));
+			return importResult;
+		}
+		
+		if (file.getSize() > (GlobalProperties.getStockItemsMaxUploadSize() * 1024 * 1024)) {
+			ImportResult importResult = new ImportResult();
+			importResult.setSuccess(false);
+			importResult.setErrors(new ArrayList<>());
+			importResult.getErrors()
+			        .add(String.format(
+			            Context.getMessageSourceService().getMessage("stockmanagement.importoperation.maxfilesizeexceeded"),
+			            GlobalProperties.getStockItemsMaxUploadSize()));
+			return importResult;
+		}
+		
+		String contentType = file.getContentType();
+		if (contentType == null || !"text/csv".equals(contentType.toLowerCase())) {
+			ImportResult importResult = new ImportResult();
+			importResult.setSuccess(false);
+			importResult.setErrors(new ArrayList<>());
+			importResult.getErrors().add(
+			    Context.getMessageSourceService().getMessage("stockmanagement.importoperation.contenttypenotsupported"));
+			return importResult;
+		}
+		
+		File workingDir = FileUtil.getWorkingDirectory();
+		String fileName = Context.getAuthenticatedUser().getUserId().toString() + "_" + UUID.randomUUID().toString();
+		File filePath = new File(workingDir, fileName);
+		try {
+			file.transferTo(filePath);
+		}
+		catch (Exception exception) {
+			ImportResult importResult = new ImportResult();
+			importResult.setSuccess(false);
+			importResult.setErrors(new ArrayList<>());
+			importResult.getErrors().add(
+			    Context.getMessageSourceService().getMessage("stockmanagement.importoperation.transferworkingdirfailed"));
+			return importResult;
+		}
+		
+		String hasHeaderParam = request.getParameter("hasHeader");
+		boolean hasHeader = hasHeaderParam != null
+		        && (hasHeaderParam.toLowerCase().equals("true") || hasHeaderParam.toLowerCase().equals("1"));
+		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
+		ImportResult importResult = stockManagementService.importStockItems(filePath.toPath(), hasHeader);
+		importResult.setUploadSessionId(fileName);
+		return importResult;
+	}
 	
 	@RequestMapping(method = RequestMethod.GET)
 	@ResponseBody
-	public Object getErrors(@RequestParam(value = "id", required = true) String importSessionId, HttpServletResponse response)
-	        throws IOException {
+	public Object getErrors(@RequestParam(value = "id", required = true) String importSessionId,
+	        HttpServletResponse response) throws IOException {
 		boolean authenticated = Context.isAuthenticated();
 		if (!authenticated) {
-			return Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.authrequired");
+			return Context.getMessageSourceService().getMessage("stockmanagement.authrequired");
 		}
 		
 		int userIdPartEnds = -1;

@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.api.validator;
 
 import org.apache.commons.lang.StringUtils;
@@ -49,7 +58,7 @@ public class BatchJobValidator implements Validator {
 			errors.reject(messageSourceService.getMessage("error.general"));
 			return;
 		}
-
+		
 		BatchJobDTO object = (BatchJobDTO) target;
 		
 		if (object.getBatchJobType() == null) {
@@ -58,9 +67,9 @@ public class BatchJobValidator implements Validator {
 			return;
 		} else {
 			BatchJobType batchJobType = object.getBatchJobType();
-			if(batchJobType == null || !batchJobType.equals(BatchJobType.Report)){
+			if (batchJobType == null || !batchJobType.equals(BatchJobType.Report)) {
 				errors.rejectValue("batchJobType", String.format(
-						messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), "Batch Job Type"));
+				    messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), "Batch Job Type"));
 				return;
 			}
 		}
@@ -74,47 +83,55 @@ public class BatchJobValidator implements Validator {
 			    String.format(messageSourceService.getMessage("stockmanagement.batchjob.exceedslimit"), "description", 255));
 			return;
 		}
-
+		
 		if (StringUtils.isBlank(object.getParameters())) {
 			errors.rejectValue("parameters",
-					String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "parameters"));
+			    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "parameters"));
 			return;
 		} else if (object.getParameters().length() > 5000) {
 			errors.rejectValue("parameters",
-					String.format(messageSourceService.getMessage("stockmanagement.batchjob.exceedslimit"), "parameters", 5000));
+			    String.format(messageSourceService.getMessage("stockmanagement.batchjob.exceedslimit"), "parameters", 5000));
 			return;
 		}
-
+		
 		Properties properties = null;
 		try {
 			properties = GlobalProperties.fromString(object.getParameters());
-		} catch (IOException e) {
-			errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "parameters"));
+		}
+		catch (IOException e) {
+			errors.rejectValue("parameters",
+			    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "parameters"));
 			return;
 		}
-		if(properties.isEmpty()){
-			errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "parameters"));
+		if (properties.isEmpty()) {
+			errors.rejectValue("parameters",
+			    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "parameters"));
 			return;
 		}
-
+		
 		String reportSystemName = null;
-		if((!properties.containsKey("param.report")) || StringUtils.isBlank(reportSystemName = properties.getProperty("param.report"))){
-			errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "param.report"));
+		if ((!properties.containsKey("param.report"))
+		        || StringUtils.isBlank(reportSystemName = properties.getProperty("param.report"))) {
+			errors.rejectValue("parameters",
+			    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldrequired"), "param.report"));
 			return;
 		}
-
+		
 		final String finalReportSystemName = reportSystemName;
-		Optional<Report> report = Report.getAllReports().stream().filter(p->p.getSystemName().equals(finalReportSystemName)).findAny();
-		if(!report.isPresent()){
-			errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), "report"));
+		Optional<Report> report = Report.getAllReports().stream()
+		        .filter(p -> p.getSystemName().equals(finalReportSystemName)).findAny();
+		if (!report.isPresent()) {
+			errors.rejectValue("parameters",
+			    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), "report"));
 			return;
 		}
-
+		
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
-		for(Map.Entry<Object,Object> property : properties.entrySet()) {
+		for (Map.Entry<Object, Object> property : properties.entrySet()) {
 			String propertyName = (String) property.getKey();
 			if (!propertyName.startsWith("param.")) {
-				errors.rejectValue("parameters", messageSourceService.getMessage("stockmanagement.batchjob.paramformatinvalid"));
+				errors.rejectValue("parameters",
+				    messageSourceService.getMessage("stockmanagement.batchjob.parameterformatnotvalid"));
 				return;
 			}
 			if (propertyName.equals("param.report")) {
@@ -123,46 +140,61 @@ public class BatchJobValidator implements Validator {
 				int indexOfToken = propertyName.lastIndexOf(".value");
 				if (indexOfToken > 6) {
 					String parameterName = propertyName.substring(6, indexOfToken);
-					ReportParameter reportParameter = ReportParameter.findInList(parameterName, report.get().getParameters());
+					ReportParameter reportParameter = ReportParameter.findInList(parameterName,
+					    report.get().getParameters());
 					if (reportParameter == null) {
-						errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), "parameter name"));
+						errors.rejectValue("parameters",
+						    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"),
+						        "parameter name"));
 						return;
-					}else if(!isValidReportParameter(reportParameter,(String)property.getValue(), object, stockManagementService)){
-						errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), parameterName));
+					} else if (!isValidReportParameter(reportParameter, (String) property.getValue(), object,
+					    stockManagementService)) {
+						errors.rejectValue("parameters", String.format(
+						    messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), parameterName));
 						return;
 					}
 				} else {
-					errors.rejectValue("parameters", messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
+					errors.rejectValue("parameters",
+					    messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
 					return;
 				}
 			} else if (propertyName.endsWith(".value.desc")) {
 				int indexOfToken = propertyName.lastIndexOf(".value.desc");
 				if (indexOfToken > 6) {
 					String parameterName = propertyName.substring(6, indexOfToken);
-					ReportParameter reportParameter = ReportParameter.findInList(parameterName, report.get().getParameters());
+					ReportParameter reportParameter = ReportParameter.findInList(parameterName,
+					    report.get().getParameters());
 					if (reportParameter == null) {
-						errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), "parameter display value"));
+						errors.rejectValue("parameters",
+						    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"),
+						        "parameter display value"));
 						return;
 					}
 				} else {
-					errors.rejectValue("parameters", messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
+					errors.rejectValue("parameters",
+					    messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
 					return;
 				}
-			}else if (propertyName.endsWith(".description")) {
+			} else if (propertyName.endsWith(".description")) {
 				int indexOfToken = propertyName.lastIndexOf(".description");
 				if (indexOfToken > 6) {
 					String parameterName = propertyName.substring(6, indexOfToken);
-					ReportParameter reportParameter = ReportParameter.findInList(parameterName, report.get().getParameters());
+					ReportParameter reportParameter = ReportParameter.findInList(parameterName,
+					    report.get().getParameters());
 					if (reportParameter == null) {
-						errors.rejectValue("parameters", String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"), "parameter description"));
+						errors.rejectValue("parameters",
+						    String.format(messageSourceService.getMessage("stockmanagement.batchjob.fieldvaluenotexist"),
+						        "parameter description"));
 						return;
 					}
 				} else {
-					errors.rejectValue("parameters", messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
+					errors.rejectValue("parameters",
+					    messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
 					return;
 				}
 			} else {
-				errors.rejectValue("parameters", messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
+				errors.rejectValue("parameters",
+				    messageSourceService.getMessage("stockmanagement.batchjob.supportedparams"));
 				return;
 			}
 		}
