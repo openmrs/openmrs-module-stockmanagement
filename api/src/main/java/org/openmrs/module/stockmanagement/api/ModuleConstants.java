@@ -24,4 +24,9 @@ public class ModuleConstants {
 	
 	public static final String APP_DATA_WORKING_DIR = "stockmgmt";
 	
+	/**
+	 * Display pattern for stock quantities in alerts and notifications, e.g. 1,234.57
+	 */
+	public static final String QUANTITY_FORMAT = "#,###,###,##0.##";
+	
 }
