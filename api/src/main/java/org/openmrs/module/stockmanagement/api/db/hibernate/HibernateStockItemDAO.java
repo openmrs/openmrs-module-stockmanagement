@@ -27,6 +27,8 @@ import java.util.stream.Collectors;
 
 public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 	
+	private static final int STOCK_ITEM_FETCH_BATCH_SIZE = 100;
+	
 	@SuppressWarnings("unchecked")
 	private <T> List<T> executeEntityQuery(StringBuilder hql, Result<T> paging, String order,
 	        HashMap<String, Object> parameters, HashMap<String, Collection> lists) {
@@ -211,8 +213,45 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 			result.setPageSize(filter.getLimit());
 		}
 		result.setData(executeEntityQuery(hqlQuery, result, " order by si.id asc", parameterList, parameterWithList));
+		loadStockItemDetails(result.getData());
 		
 		return result;
+	}
+	
+	private void loadStockItemDetails(List<StockItem> items) {
+		for (int start = 0; start < items.size(); start += STOCK_ITEM_FETCH_BATCH_SIZE) {
+			loadStockItemDetailsBatch(items.subList(start, Math.min(start + STOCK_ITEM_FETCH_BATCH_SIZE, items.size())));
+		}
+	}
+	
+	private void loadStockItemDetailsBatch(List<StockItem> items) {
+		// Fetch only the selected page. Collection joins in the paged query would apply pagination in memory.
+		getSession()
+		        .createQuery("select si from stockmanagement.StockItem si"
+		                + " left join fetch si.drug left join fetch si.preferredVendor"
+		                + " left join fetch si.concept left join fetch si.category left join fetch si.dispensingUnit"
+		                + " left join fetch si.purchasePriceUoM pu left join fetch pu.packagingUom"
+		                + " left join fetch si.reorderLevelUOM ru left join fetch ru.packagingUom"
+		                + " left join fetch si.dispensingUnitPackagingUoM du left join fetch du.packagingUom"
+		                + " left join fetch si.defaultStockOperationsUoM su left join fetch su.packagingUom"
+		                + " where si.id in (:ids)")
+		        .setParameterList("ids", items.stream().map(StockItem::getId).collect(Collectors.toList())).list();
+		Set<Integer> conceptIds = new HashSet<>();
+		for (StockItem item : items) {
+			for (Concept concept : Arrays.asList(item.getConcept(), item.getCategory(), item.getDispensingUnit())) {
+				if (concept != null)
+					conceptIds.add(concept.getConceptId());
+			}
+			for (StockItemPackagingUOM unit : Arrays.asList(item.getPurchasePriceUoM(), item.getReorderLevelUOM(),
+			    item.getDispensingUnitPackagingUoM(), item.getDefaultStockOperationsUoM())) {
+				if (unit != null && unit.getPackagingUom() != null)
+					conceptIds.add(unit.getPackagingUom().getConceptId());
+			}
+		}
+		if (!conceptIds.isEmpty()) {
+			getSession().createQuery("select distinct c from Concept c left join fetch c.names where c.conceptId in (:ids)")
+			        .setParameterList("ids", conceptIds).list();
+		}
 	}
 	
 	public Result<StockItem> findStockItemEntities(StockItemSearch filter) {
