@@ -22,6 +22,7 @@ import org.openmrs.api.LocationService;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.StockLocationTags;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.Roles;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -41,8 +42,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StockBatchExpiryJob extends AbstractTask {
-	
-	private static final String QUANTITY_FORMAT = "#,###,###,##0.##";
 	
 	private static AtomicBoolean isAlreadyRunning = new AtomicBoolean(false);
 	
@@ -198,7 +197,8 @@ public class StockBatchExpiryJob extends AbstractTask {
 							continue;
 						String alertLine = String.format("Batch %1$s for %2$s at %3$s with %4$s %5$s expires on %6$s",
 						    stockBatchDTO.getBatchNo(), stockItemNames.getOrDefault(stockItemInventory.getStockItemId(), ""),
-						    partyDTO.getName(), new DecimalFormat(QUANTITY_FORMAT).format(stockItemInventory.getQuantity()),
+						    partyDTO.getName(),
+						    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(stockItemInventory.getQuantity()),
 						    stockItemInventory.getQuantityUoM(), DateUtil.formatDDMMMyyyy(stockBatchDTO.getExpiration()));
 						
 						alert = new Alert(alertLine, user);
@@ -360,7 +360,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 						    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;&nbsp;&nbsp;</td>");
 						stringBuilder.append(String.format(
 						    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-bottom:solid 1px grey;border-right:solid 1px grey;text-align:right;'>%1$s %2$s</td>",
-						    new DecimalFormat(QUANTITY_FORMAT).format(batchNumber.getQuantity()),
+						    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(batchNumber.getQuantity()),
 						    batchNumber.getQuantityUoM()));
 						stringBuilder.append(
 						    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;&nbsp;&nbsp;</td>");

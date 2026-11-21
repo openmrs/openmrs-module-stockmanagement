@@ -58,6 +58,22 @@ public class UserEmailAddressTest {
 	}
 	
 	@Test
+	public void shouldHandleVeryLongAddressesWithoutStackOverflow() {
+		EmailDao dao = new EmailDao();
+		StockManagementServiceImpl service = new StockManagementServiceImpl();
+		service.setDao(dao);
+		User user = new User(1);
+		StringBuilder local = new StringBuilder("a");
+		for (int i = 0; i < 50000; i++) {
+			local.append(".a");
+		}
+		dao.email = local + "@example.org";
+		assertEquals(dao.email, service.getUserEmailAddress(user));
+		dao.email = local + "@example.org.";
+		assertNull(service.getUserEmailAddress(user));
+	}
+	
+	@Test
 	public void shouldFallBackToNotificationAddressThenUsername() {
 		EmailDao dao = new EmailDao();
 		StockManagementServiceImpl service = new StockManagementServiceImpl();
