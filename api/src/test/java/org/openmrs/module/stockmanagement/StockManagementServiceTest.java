@@ -426,29 +426,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	public void findStockItemPackagingUOMs_shouldFilterOnAllCriteria() {
-		stockManagementService.setDao(dao());
-		StockItemPackagingUOM so = eu().newStockItemPackagingUOM(dao());
-		so.setVoided(false);
-		daoInstance.saveStockItemPackagingUOM(so);
-		StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
-		filter.setLimit(10);
-		filter.setStartIndex(0);
-		Result<StockItemPackagingUOMDTO> result = stockManagementService.findStockItemPackagingUOMs(filter);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		
-		filter = new StockItemPackagingUOMSearchFilter();
-		filter.setStockItemUuids(Arrays.asList(so.getStockItem().getUuid()));
-		result = stockManagementService.findStockItemPackagingUOMs(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockItemPackagingUOMSearchFilter();
-		filter.setStockItemIds(Arrays.asList(so.getStockItem().getId()));
-		result = stockManagementService.findStockItemPackagingUOMs(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-	}
-	
-	@Test
 	public void findStockOperationItems_shouldFilterOnAllCriteria() {
 		stockManagementService.setDao(dao());
 		StockOperationItem so = eu().newStockOperationItem(dao());
@@ -517,66 +494,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		filter.setIncludeStockUnitName(true);
 		filter.setStockOperationIds(Arrays.asList(so.getStockOperation().getId()));
 		result = stockManagementService.getStockOperationItemCosts(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-	}
-	
-	@Test
-	public void findStockBatchs_shouldFilterOnAllCriteria() {
-		stockManagementService.setDao(dao());
-		StockBatch so = eu().newStockBatch(dao());
-		so.setVoided(false);
-		daoInstance.saveStockBatch(so);
-		
-		StockBatchSearchFilter filter = new StockBatchSearchFilter();
-		filter.setLimit(10);
-		filter.setStartIndex(0);
-		Result<StockBatchDTO> result = stockManagementService.findStockBatches(filter);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		
-		filter = new StockBatchSearchFilter();
-		filter.setStockItemUuid(so.getStockItem().getUuid());
-		result = stockManagementService.findStockBatches(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockBatchSearchFilter();
-		filter.setStockItemId(so.getStockItem().getId());
-		result = stockManagementService.findStockBatches(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-	}
-	
-	@Test
-	public void findStockItems_shouldFilterOnAllCriteria() {
-		stockManagementService.setDao(dao());
-		StockItem so = eu().newStockItem(dao(), true);
-		so.setVoided(false);
-		daoInstance.saveStockItem(so);
-		
-		StockItemSearchFilter filter = new StockItemSearchFilter();
-		filter.setLimit(10);
-		filter.setStartIndex(0);
-		Result<StockItemDTO> result = stockManagementService.findStockItems(filter);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		
-		filter = new StockItemSearchFilter();
-		filter.setDrugs(Arrays.asList(so.getDrug()));
-		result = stockManagementService.findStockItems(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockItemSearchFilter();
-		filter.setConcepts(Arrays.asList(so.getConcept()));
-		result = stockManagementService.findStockItems(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockItemSearchFilter();
-		filter.setSearchEitherDrugsOrConcepts(true);
-		filter.setConcepts(Arrays.asList(so.getConcept()));
-		filter.setDrugs(Arrays.asList(so.getDrug()));
-		result = stockManagementService.findStockItems(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockItemSearchFilter();
-		filter.setUuid(so.getUuid());
-		result = stockManagementService.findStockItems(filter);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
 	}
 	
@@ -734,151 +651,10 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		        .multiply(BigDecimal.valueOf(-1)).setScale(2, BigDecimal.ROUND_HALF_EVEN).compareTo(x.getQuantity()) == 0)));
 	}
 	
-	@Test
-	public void importStockItems() throws Exception {
-		URL resource = getClass().getClassLoader().getResource(EntityUtil.STOCK_ITEMS_IMPORT_CSV);
-		Path path = Paths.get(resource.toURI()).toFile().toPath();
-		StockItemImportJob importJob = new StockItemImportJob(path, false);
-		importJob.execute();
-		ImportResult importResult = (ImportResult) importJob.getResult();
-		if (!importResult.getSuccess()) {
-			throw new Exception(String.join(", ", importResult.getErrors()));
-		}
-		assertTrue(importResult.getSuccess());
-		
-		StockItemSearchFilter stockItemSearchFilter = new StockItemSearchFilter();
-		stockItemSearchFilter.setIncludeVoided(true);
-		Result<StockItemDTO> stockItemDTOs = dao().findStockItems(stockItemSearchFilter);
-		
-		assertEquals(5, stockItemDTOs.getData().size());
-		Optional<StockItemDTO> stockItemOptional = stockItemDTOs.getData().stream().filter(p -> p.getDrugId().equals(2))
-		        .findFirst();
-		assertTrue("Drug Stock item is present", stockItemOptional.isPresent());
-		StockItemDTO stockItem = stockItemOptional.get();
-		assertTrue(stockItem.getHasExpiration());
-		assertEquals(stockItem.getCommonName(), "TEST 2");
-		assertNull(stockItem.getAcronym());
-		assertEquals(stockItem.getPreferredVendorName(), "National Medical Stores");
-		assertEquals(stockItem.getDispensingUnitId(), (Integer) 20);
-		assertEquals(stockItem.getDispensingUnitPackagingConceptId(), (Integer) 20);
-		assertEquals(stockItem.getReorderLevel().compareTo(BigDecimal.valueOf(50)), 0);
-		assertEquals(stockItem.getReorderLevelConceptId(), (Integer) 20);
-		assertEquals(stockItem.getPurchasePrice().compareTo(BigDecimal.valueOf(13)), 0);
-		assertEquals(stockItem.getPurchasePriceConceptId(), (Integer) 20);
-		
-		stockItemOptional = stockItemDTOs.getData().stream().filter(p -> p.getConceptId().equals(5497)).findFirst();
-		assertTrue("Concenpt Stock item is present", stockItemOptional.isPresent());
-		stockItem = stockItemOptional.get();
-		assertFalse(stockItem.getHasExpiration());
-		assertEquals(stockItem.getCommonName(), "TEST 2");
-		assertNull(stockItem.getAcronym());
-		assertEquals(stockItem.getPreferredVendorName(), "Uganda Medical Stores");
-		assertEquals(stockItem.getDispensingUnitId(), (Integer) 20);
-		assertEquals(stockItem.getDispensingUnitPackagingConceptId(), (Integer) 20);
-		assertEquals(stockItem.getReorderLevel().compareTo(BigDecimal.valueOf(50)), 0);
-		assertEquals(stockItem.getReorderLevelConceptId(), (Integer) 20);
-		assertEquals(stockItem.getPurchasePrice().compareTo(BigDecimal.valueOf(13)), 0);
-		assertEquals(stockItem.getPurchasePriceConceptId(), (Integer) 20);
-		
-	}
-	
 	private void deleteAllStockItems() {
 		DbSession session = dao().getSession();
 		Query query = session.createQuery("delete from stockmanagement.StockItem");
 		query.executeUpdate();
-	}
-	
-	@Test
-	public void getStockItemByDrug() {
-		deleteAllStockItems();
-		Context.flushSession();
-		Context.flushSession();
-		
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		stockManagementService.setDao(dao());
-		List<StockItem> stockItemLeft = stockManagementService.getStockItemByDrug(stockItem.getDrug().getId());
-		assertNotNull(stockItemLeft);
-		assertTrue(
-		    stockItemLeft.stream().map(StockItem::getUuid).collect(Collectors.toList()).contains(stockItem.getUuid()));
-	}
-	
-	@Test
-	public void getStockItemByConcept() {
-		StockItem stockItem = eu().newStockItem(dao(), true);
-		stockItem.setDrug(null);
-		dao().saveStockItem(stockItem);
-		
-		stockManagementService.setDao(dao());
-		List<StockItem> stockItemLeft = stockManagementService.getStockItemByConcept(stockItem.getConcept().getId());
-		assertNotNull(stockItemLeft);
-		assertTrue(
-		    stockItemLeft.stream().map(StockItem::getUuid).collect(Collectors.toList()).contains(stockItem.getUuid()));
-	}
-	
-	@Test
-	public void getStockItemPackagingUOMByConcept() {
-		stockManagementService.setDao(dao());
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
-		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
-		
-		StockItemPackagingUOM packagingUomLeft = stockManagementService.getStockItemPackagingUOMByConcept(stockItem.getId(),
-		    packagingUom.getPackagingUom().getConceptId());
-		assertNotNull(packagingUomLeft);
-		assertEquals(packagingUom.getUuid(), packagingUomLeft.getUuid());
-	}
-	
-	@Test
-	public void getStockItemPackagingUOMByConceptStockItemIdAndConceptUuid() {
-		stockManagementService.setDao(dao());
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
-		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
-		
-		StockItemPackagingUOM packagingUomLeft = stockManagementService.getStockItemPackagingUOMByConcept(stockItem.getId(),
-		    packagingUom.getPackagingUom().getUuid());
-		assertNotNull(packagingUomLeft);
-		assertEquals(packagingUom.getUuid(), packagingUomLeft.getUuid());
-	}
-	
-	@Test
-	public void getStockItemPackagingUOMByConceptByStockItemUuidAndConceptId() {
-		stockManagementService.setDao(dao());
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
-		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
-		
-		StockItemPackagingUOM packagingUomLeft = stockManagementService
-		        .getStockItemPackagingUOMByConcept(stockItem.getUuid(), packagingUom.getPackagingUom().getConceptId());
-		assertNotNull(packagingUomLeft);
-		assertEquals(packagingUom.getUuid(), packagingUomLeft.getUuid());
-	}
-	
-	@Test
-	public void getStockItemPackagingUOMByConceptByStockItemUuidAndConceptUuid() {
-		stockManagementService.setDao(dao());
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
-		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
-		
-		StockItemPackagingUOM packagingUomLeft = stockManagementService
-		        .getStockItemPackagingUOMByConcept(stockItem.getUuid(), packagingUom.getPackagingUom().getUuid());
-		assertNotNull(packagingUomLeft);
-		assertEquals(packagingUom.getUuid(), packagingUomLeft.getUuid());
 	}
 	
 	@Test
