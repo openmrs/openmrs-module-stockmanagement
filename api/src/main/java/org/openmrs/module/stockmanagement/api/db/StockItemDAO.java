@@ -69,4 +69,17 @@ public interface StockItemDAO {
 	StockItemReference getStockItemReferenceByUuid(String uuid);
 	
 	List<StockItemReference> getStockItemReferenceByStockItem(StockItem stockItem);
+	
+	StockItemPackagingUomReference saveStockItemPackagingUomReference(
+	        StockItemPackagingUomReference stockItemPackagingUomReference);
+	
+	StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid);
+	
+	List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(
+	        StockItemPackagingUOM stockItemPackagingUOM, boolean includeVoided);
+	
+	List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceBySourceAndCode(StockSource stockSource,
+	        String stockReferenceCode);
+	
+	void voidStockItemPackagingUomReference(String uuid, String reason, int voidedBy);
 }

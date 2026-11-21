@@ -17,6 +17,7 @@ import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.db.StockItemDAO;
 import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -684,7 +685,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.getService(StockItemService.class).saveStockItemPackagingUOM(stockItemPackagingUOM);
 		StockItemPackagingUomReference reference = eu().newStockItemPackagingUomReference(dao, stockItemPackagingUOM,
 		    stockSource);
-		dao.saveStockItemPackagingUomReference(reference);
+		itemDao().saveStockItemPackagingUomReference(reference);
 		return reference;
 	}
 	
@@ -701,7 +702,8 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		Context.clearSession();
 		
 		//Then
-		StockItemPackagingUomReference savedReference = dao().getStockItemPackagingUomReferenceByUuid(reference.getUuid());
+		StockItemPackagingUomReference savedReference = itemDao()
+		        .getStockItemPackagingUomReferenceByUuid(reference.getUuid());
 		assertThat(savedReference, hasProperty("uuid", is(reference.getUuid())));
 		assertThat(savedReference, hasProperty("stockReferenceCode", is(reference.getStockReferenceCode())));
 		assertThat(savedReference, hasProperty("name", is(reference.getName())));
@@ -723,10 +725,10 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		StockItemPackagingUomReference voidedReference = eu().newStockItemPackagingUomReference(dao(),
 		    reference.getStockItemPackagingUOM(), stockSource);
 		voidedReference.setVoided(true);
-		dao().saveStockItemPackagingUomReference(voidedReference);
+		itemDao().saveStockItemPackagingUomReference(voidedReference);
 		
 		//When
-		List<StockItemPackagingUomReference> references = dao()
+		List<StockItemPackagingUomReference> references = itemDao()
 		        .getStockItemPackagingUomReferenceByPackagingUom(reference.getStockItemPackagingUOM(), false);
 		
 		//Then
@@ -747,11 +749,11 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		dao().saveStockSource(otherSource);
 		StockItemPackagingUomReference otherSourceReference = createNonVoidedReference(dao(), otherSource);
 		otherSourceReference.setStockReferenceCode(reference.getStockReferenceCode());
-		dao().saveStockItemPackagingUomReference(otherSourceReference);
+		itemDao().saveStockItemPackagingUomReference(otherSourceReference);
 		
 		//When
-		List<StockItemPackagingUomReference> references = dao().getStockItemPackagingUomReferenceBySourceAndCode(stockSource,
-		    reference.getStockReferenceCode());
+		List<StockItemPackagingUomReference> references = itemDao()
+		        .getStockItemPackagingUomReferenceBySourceAndCode(stockSource, reference.getStockReferenceCode());
 		
 		//Then
 		assertThat(references.size(), is(1));
@@ -767,13 +769,18 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
 		
 		//When
-		dao().voidStockItemPackagingUomReference(reference.getUuid(), "test void", reference.getCreator().getUserId());
+		itemDao().voidStockItemPackagingUomReference(reference.getUuid(), "test void", reference.getCreator().getUserId());
 		Context.flushSession();
 		Context.clearSession();
 		
 		//Then
-		StockItemPackagingUomReference voidedReference = dao().getStockItemPackagingUomReferenceByUuid(reference.getUuid());
+		StockItemPackagingUomReference voidedReference = itemDao()
+		        .getStockItemPackagingUomReferenceByUuid(reference.getUuid());
 		assertThat(voidedReference, hasProperty("voided", is(true)));
 		assertThat(voidedReference, hasProperty("voidReason", is("test void")));
+	}
+	
+	private StockItemDAO itemDao() {
+		return Context.getRegisteredComponent("stockmanagement.StockItemDAO", StockItemDAO.class);
 	}
 }

@@ -17,6 +17,7 @@ import org.hibernate.*;
 import org.hibernate.criterion.*;
 import org.hibernate.criterion.Order;
 import org.openmrs.*;
+import org.openmrs.api.APIException;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -560,5 +561,74 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 		criteria.add(Restrictions.eq("stockItem", stockItem));
 		criteria.add(Restrictions.eq("voided", false));
 		return criteria.list();
+	}
+	
+	public StockItemPackagingUomReference saveStockItemPackagingUomReference(
+	        StockItemPackagingUomReference stockItemPackagingUomReference) {
+		DbSession dbSession = getSession();
+		dbSession.saveOrUpdate(stockItemPackagingUomReference);
+		dbSession.flush();
+		return stockItemPackagingUomReference;
+	}
+	
+	public StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid) {
+		return (StockItemPackagingUomReference) getSession().createCriteria(StockItemPackagingUomReference.class)
+		        .add(Restrictions.eq("uuid", uuid)).uniqueResult();
+	}
+	
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(
+	        StockItemPackagingUOM stockItemPackagingUOM, boolean includeVoided) {
+		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
+		criteria.add(Restrictions.eq("stockItemPackagingUOM", stockItemPackagingUOM));
+		if (!includeVoided) {
+			criteria.add(Restrictions.eq("voided", false));
+		}
+		return criteria.list();
+	}
+	
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceBySourceAndCode(StockSource stockSource,
+	        String stockReferenceCode) {
+		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
+		// run without auto-flush so a pending code edit on the checked reference isn't flushed
+		// (and rejected by the database unique constraint) before the duplicate check sees it
+		criteria.setFlushMode(FlushMode.MANUAL);
+		criteria.add(Restrictions.eq("referenceSource", stockSource));
+		criteria.add(Restrictions.eq("stockReferenceCode", stockReferenceCode));
+		criteria.add(Restrictions.eq("voided", false));
+		return criteria.list();
+	}
+	
+	public void voidStockItemPackagingUomReference(String uuid, String reason, int voidedBy) {
+		DbSession dbSession = getSession();
+		StockItemPackagingUomReference reference = getStockItemPackagingUomReferenceByUuid(uuid);
+		if (reference == null) {
+			throw new APIException("Stock item packaging UOM reference not found");
+		}
+		if (reference.getVoided()) {
+			return;
+		}
+		//compute and validate the suffix BEFORE mutating the managed entity: a failed void must
+		//leave the reference untouched, not half-voided (voided set, code unsuffixed) in session
+		String suffixedCode = StockItemPackagingUomReference.voidedCode(reference.getStockReferenceCode(),
+		    reference.getId());
+		//a row saved before the service's code-length guard could carry a code the suffix would
+		//push past the column length; a clear message beats the raw data-truncation error
+		if (suffixedCode.length() > StockItemPackagingUomReference.CODE_MAX_LENGTH) {
+			throw new APIException(
+			        "The stock reference code is too long to be voided: appending the (voided <id>) suffix would exceed "
+			                + StockItemPackagingUomReference.CODE_MAX_LENGTH + " characters");
+		}
+		reference.setVoided(true);
+		reference.setDateVoided(new Date());
+		//voidedBy maps to a User association, so bind a User reference, not the raw user id
+		reference.setVoidedBy((User) dbSession.load(User.class, voidedBy));
+		reference.setVoidReason(reason);
+		//the (stock_source_id, stock_reference_code) unique constraint covers voided rows too,
+		//so suffix the stored code to free the original code for reuse on the same source
+		reference.setStockReferenceCode(suffixedCode);
+		dbSession.saveOrUpdate(reference);
+		//flush so a create or rename of the freed code in the same transaction sees the voided
+		//row (the duplicate check reads under MANUAL flush mode, so it misses this pending edit)
+		dbSession.flush();
 	}
 }

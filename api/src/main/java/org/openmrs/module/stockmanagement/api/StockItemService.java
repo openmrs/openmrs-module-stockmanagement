@@ -150,4 +150,33 @@ public interface StockItemService extends OpenmrsService {
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE }, requireAll = false)
 	List<StockItemPackagingUOM> getStockItemPackagingUOMsByUuids(List<String> uuids);
+	
+	@Transactional
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, requireAll = true)
+	StockItemPackagingUomReference saveStockItemPackagingUomReference(
+	        StockItemPackagingUomReference stockItemPackagingUomReference);
+	
+	@Transactional
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, requireAll = true)
+	void voidStockItemPackagingUomReference(String uuid, String reason, int userId);
+	
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid);
+	
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(String stockItemPackagingUomUuid,
+	        boolean includeVoided);
+	
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockItemPackagingUOM getStockItemPackagingUomByReference(StockSource stockSource, String stockReferenceCode);
+	
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesBySourceAndCode(String stockSourceUuid,
+	        String stockReferenceCode);
 }
