@@ -9,6 +9,9 @@
  */
 package org.openmrs.module.stockmanagement.web.resource;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
@@ -16,7 +19,6 @@ import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.*;
 import org.openmrs.api.ConceptService;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
@@ -50,12 +52,18 @@ import java.util.stream.Collectors;
                 "1.12.*", "2.*" })
 public class StockItemResource extends ResourceBase<StockItemDTO> {
 	
+	private StockItemRestMapper itemMapper = new StockItemRestMapper();
+	
+	void setItemMapper(StockItemRestMapper mapper) {
+		this.itemMapper = mapper;
+	}
+	
 	@Override
 	public StockItemDTO getByUniqueId(String uniqueId) {
-		StockItemSearchFilter filter = new StockItemSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIncludeVoided(true);
 		filter.setUuid(uniqueId);
-		Result<StockItemDTO> result = getStockManagementService().findStockItems(filter);
+		Result<StockItemDTO> result = itemMapper.findStockItems(filter);
 		return result.getData().isEmpty() ? null : result.getData().get(0);
 	}
 	
@@ -82,7 +90,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	}
 	
 	protected PageableResult getStockItemsDirect(RequestContext context) {
-		StockItemSearchFilter filter = new StockItemSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIsDrug(isDrugSearch(context));
 		filter.setIncludeVoided(context.getIncludeAll());
 		String param = context.getParameter("drugUuid");
@@ -114,7 +122,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		
 		filter.setStartIndex(context.getStartIndex());
 		filter.setLimit(context.getLimit());
-		Result<StockItemDTO> result = getStockManagementService().findStockItems(filter);
+		Result<StockItemDTO> result = itemMapper.findStockItems(filter);
 		return toAlreadyPaged(result, context);
 	}
 	
@@ -130,7 +138,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 			}
 		}
 		
-		StockItemSearchFilter filter = new StockItemSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIsDrug(isDrugSearch);
 		filter.setIncludeVoided(context.getIncludeAll());
 		filter.setStartIndex(context.getStartIndex());
@@ -165,8 +173,9 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		
 		ConceptService service = Context.getConceptService();
 		Integer maxIntermediateResult = GlobalProperties.getStockItemSearchMaxDrugConceptIntermediateResult();
-		List<Integer> itemsFound = getStockManagementService().searchStockItemCommonName(searchToken, filter.getIsDrug(),
-		    context.getIncludeAll(), maxIntermediateResult);
+		List<Integer> itemsFound = Context.getService(StockItemService.class)
+		        .searchStockItemCommonName(searchToken, filter.getIsDrug(), context.getIncludeAll(), maxIntermediateResult)
+		        .stream().map(StockItem::getId).collect(Collectors.toList());
 		if (!itemsFound.isEmpty()) {
 			filter.setStockItemIds(itemsFound);
 			maxIntermediateResult = Math.max(0, maxIntermediateResult - itemsFound.size());
@@ -200,7 +209,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		if (searchConcepts && searchDrugs) {
 			filter.setSearchEitherDrugsOrConcepts(true);
 		}
-		Result<StockItemDTO> result = getStockManagementService().findStockItems(filter);
+		Result<StockItemDTO> result = itemMapper.findStockItems(filter);
 		return toAlreadyPaged(result, context);
 	}
 	
@@ -219,7 +228,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		try {
 			// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
 			validateDelegate(new StockItemDTOValidator(), delegate, "stockItemDTO");
-			StockItem stockItem = getStockManagementService().saveStockItem(delegate);
+			StockItem stockItem = itemMapper.saveStockItem(delegate);
 			return getByUniqueId(stockItem.getUuid());
 		}
 		catch (StockManagementException exception) {
@@ -349,11 +358,10 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	public Collection<StockItemPackagingUOMDTO> getStockOperationItems(StockItemDTO stockItemDTO) {
 		if (stockItemDTO.getStockItemPackagingUOMs() != null)
 			return stockItemDTO.getStockItemPackagingUOMs();
-		StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIncludeVoided(false);
 		filter.setStockItemIds(Arrays.asList(stockItemDTO.getId()));
-		List<StockItemPackagingUOMDTO> packagingUnits = getStockManagementService().findStockItemPackagingUOMs(filter)
-		        .getData();
+		List<StockItemPackagingUOMDTO> packagingUnits = itemMapper.findStockItemPackagingUOMs(filter).getData();
 		return packagingUnits;
 	}
 	
@@ -361,7 +369,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 	public Collection<StockItemReferenceDTO> getStockItemReferences(StockItemDTO stockItemDTO) {
 		List<StockItemReferenceDTO> stockItemReferenceDTOS = new ArrayList<>();
 		
-		for (StockItemReference stockItemReference : getStockManagementService()
+		for (StockItemReference stockItemReference : Context.getService(StockItemService.class)
 		        .getStockItemReferenceByStockItem(stockItemDTO.getUuid())) {
 			StockItemReferenceResource stockItemReferenceResource = new StockItemReferenceResource();
 			

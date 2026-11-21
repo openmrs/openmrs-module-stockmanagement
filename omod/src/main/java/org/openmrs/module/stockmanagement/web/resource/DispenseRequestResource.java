@@ -19,7 +19,6 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.DispenseRequest;
-import org.openmrs.module.stockmanagement.api.dto.StockItemSearchFilter;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -42,10 +41,6 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
 	
 	@Override
 	public DispenseRequest getByUniqueId(String uniqueId) {
-		StockItemSearchFilter filter = new StockItemSearchFilter();
-		filter.setIncludeVoided(true);
-		filter.setUuid(uniqueId);
-		
 		return null;
 	}
 	

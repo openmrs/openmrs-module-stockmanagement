@@ -9,11 +9,12 @@
  */
 package org.openmrs.module.stockmanagement.api.validator;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.Location;
 import org.openmrs.Role;
 import org.openmrs.annotation.Handler;
-import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleDTO;
@@ -48,7 +49,7 @@ public class StockRuleValidator implements Validator {
 			    String.format(messageSourceService.getMessage("stockmanagement.stockrule.fieldrequired"), "stock item"));
 			return;
 		} else {
-			stockItem = Context.getService(StockManagementService.class).getStockItemByUuid(object.getStockItemUuid());
+			stockItem = Context.getService(StockItemService.class).getStockItemByUuid(object.getStockItemUuid());
 			if (stockItem == null) {
 				errors.rejectValue("stockItemUuid", String.format(
 				    messageSourceService.getMessage("stockmanagement.stockrule.fieldvaluenotexist"), "stock item"));
@@ -127,7 +128,7 @@ public class StockRuleValidator implements Validator {
 			    String.format(messageSourceService.getMessage("stockmanagement.stockrule.fieldrequired"), "packaging unit"));
 			return;
 		} else {
-			StockItemPackagingUOM stockItemPackagingUOM = Context.getService(StockManagementService.class)
+			StockItemPackagingUOM stockItemPackagingUOM = Context.getService(StockItemService.class)
 			        .getStockItemPackagingUOMByUuid(object.getStockItemPackagingUOMUuid());
 			if (stockItemPackagingUOM == null) {
 				errors.rejectValue("stockItemPackagingUOMUuid", String.format(

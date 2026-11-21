@@ -9,6 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.logging.Log;
@@ -16,7 +18,6 @@ import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.Patient;
-import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
@@ -156,7 +157,7 @@ public class StockExpiryForecastReport extends ReportGenerator {
 			}
 			
 			if (!StringUtils.isBlank(stockItemUuid)) {
-				StockItem stockItem = stockManagementService.getStockItemByUuid(stockItemUuid);
+				StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(stockItemUuid);
 				if (stockItem == null) {
 					stockManagementService.failBatchJob(batchJob.getUuid(), "Report stock item parameter not found");
 					return;

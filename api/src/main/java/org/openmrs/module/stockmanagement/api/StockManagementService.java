@@ -22,7 +22,6 @@ import org.openmrs.module.stockmanagement.api.reporting.Report;
 import org.openmrs.util.PrivilegeConstants;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 
@@ -139,26 +138,6 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_USERROLESCOPES_MUTATE)
 	void voidUserRoleScopeOperationTypes(List<String> userRoleScopeOperationTypeIds, String reason, int voidedBy);
 	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	Result<StockItem> findStockItemEntities(StockItemSearchFilter filter);
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems);
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	Result<StockItemDTO> findStockItems(StockItemSearchFilter filter);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	StockItem saveStockItem(StockItemDTO stockItemDTO);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	StockItem saveStockItem(StockItem stockItem);
-	
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
 	StockRuleDTO saveStockRule(StockRuleDTO stockRuleDTO);
@@ -178,14 +157,6 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
 	void voidStockRules(List<String> stockRuleUuids, String reason, int voidedBy);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	StockItem saveStockItem(StockItem stockItem, StockItemPackagingUOM stockItemPackagingUOM);
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	StockItem getStockItemByUuid(String uuid);
 	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS)
@@ -241,18 +212,6 @@ public interface StockManagementService extends OpenmrsService {
 	SessionInfo getCurrentUserSessionInfo();
 	
 	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	Result<StockItemPackagingUOMDTO> findStockItemPackagingUOMs(StockItemPackagingUOMSearchFilter filter);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	StockItemPackagingUOM saveStockItemPackagingUOM(StockItemPackagingUOMDTO stockItemPackagingUOM);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	StockItemPackagingUOM saveStockItemPackagingUOM(StockItemPackagingUOM stockItemPackagingUOM);
-	
-	@Transactional(readOnly = true)
 	boolean userHasStockManagementPrivilege(User user, Location location, StockOperationType stockOperationType,
 	        String stockManagementPrivilege);
 	
@@ -263,11 +222,6 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional(readOnly = true)
 	HashSet<PrivilegeScope> getPrivilegeScopes(User user, Location location, StockOperationType stockOperationType,
 	        List<String> stockManagementPrivileges);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
-	        Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	Result<StockBatchDTO> findStockBatches(StockBatchSearchFilter filter);
 	
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
@@ -332,55 +286,10 @@ public interface StockManagementService extends OpenmrsService {
 	Result<StockItemTransactionDTO> findStockItemTransactions(StockItemTransactionSearchFilter filter);
 	
 	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockItemPackagingUOM getStockItemPackagingUOMByUuid(String uuid);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	void voidStockItemPackagingUOM(String uuid, String reason, int voidedBy);
-	
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	ImportResult importStockItems(Path file, boolean hasHeader);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	List<StockItemDTO> getExistingStockItemIds(Collection<StockItemSearchFilter.ItemGroupFilter> stockItemFilters);
-	
-	@Transactional(readOnly = true)
 	List<Drug> getDrugs(Collection<Integer> drugIds);
 	
 	@Transactional(readOnly = true)
 	List<Concept> getConcepts(Collection<Integer> conceptIds);
-	
-	@Transactional(readOnly = true)
-	List<StockItem> getStockItems(Collection<Integer> stockItemIds);
-	
-	@Transactional(readOnly = true)
-	List<StockItemPackagingUOM> getStockItemPackagingUOMs(List<StockItemPackagingUOMSearchFilter.ItemGroupFilter> filters);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	List<StockItem> getStockItemByDrug(Integer drugId);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	List<StockItem> getStockItemByConcept(Integer conceptId);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockItemPackagingUOM getStockItemPackagingUOMByConcept(Integer stockItemId, Integer conceptId);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockItemPackagingUOM getStockItemPackagingUOMByConcept(Integer stockItemId, String conceptUuid);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockItemPackagingUOM getStockItemPackagingUOMByConcept(String stockItemUuid, Integer conceptId);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockItemPackagingUOM getStockItemPackagingUOMByConcept(String stockItemUuid, String conceptUuid);
 	
 	@Transactional(readOnly = true)
 	@Authorized(value = { Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE_QTY }, requireAll = false)
@@ -531,26 +440,6 @@ public interface StockManagementService extends OpenmrsService {
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
 	StockOperationBatchNumbersDTO saveStockOperationBatchNumbers(StockOperationBatchNumbersDTO stockOperationBatchNumbers);
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	StockItem getStockItemByReference(StockSource stockSource, String code);
-	
-	@Transactional
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	StockItemReference saveStockItemReference(StockItemReference stockItemReference);
-	
-	@Transactional
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	void voidStockItemReference(String uuid, String reason, Integer userId);
-	
-	@Transactional
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	StockItemReference getStockItemReferenceByUuid(String uuid);
-	
-	@Transactional
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	List<StockItemReference> getStockItemReferenceByStockItem(String uuid);
 	
 	@Transactional
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,

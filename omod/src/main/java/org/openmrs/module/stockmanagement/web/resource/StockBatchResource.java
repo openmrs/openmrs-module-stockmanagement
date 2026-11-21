@@ -9,6 +9,9 @@
  */
 package org.openmrs.module.stockmanagement.web.resource;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
@@ -46,10 +49,10 @@ public class StockBatchResource extends ResourceBase<StockBatch> {
 	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
-		StockBatchSearchFilter filter = new StockBatchSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		String param = context.getParameter("stockItemUuid");
 		if (StringUtils.isNotBlank(param)) {
-			StockItem stockItem = getStockManagementService().getStockItemByUuid(param);
+			StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(param);
 			if (stockItem == null) {
 				return emptyResult(context);
 			}
@@ -74,7 +77,7 @@ public class StockBatchResource extends ResourceBase<StockBatch> {
 		}
 		
 		filter.setIncludeVoided(context.getIncludeAll());
-		Result<StockBatchDTO> result = getStockManagementService().findStockBatches(filter);
+		Result<StockBatchDTO> result = new StockItemRestMapper().findStockBatches(filter);
 		return toAlreadyPaged(result, context);
 	}
 	

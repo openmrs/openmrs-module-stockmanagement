@@ -30,13 +30,9 @@
         </property>
         <property name="target">
             <bean class="org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl">
+                <property name="stockItemDAO" ref="stockmanagement.StockItemDAO" />
                 <property name="dao">
-                    <bean class="${project.parent.groupId}.${project.parent.artifactId}.api.dao.StockManagementDao">
-                        <property name="sessionFactory">
-                            <ref bean="dbSessionFactory" />
-                        </property>
-                        <property name="searchSessionFactory" ref="searchSessionFactory"/>
-                    </bean>
+                    <ref bean="stockmanagement.StockManagementDAO" />
                 </property>
             </bean>
         </property>
@@ -55,6 +51,45 @@
             <list>
                 <value>org.openmrs.module.stockmanagement.api.StockManagementService</value>
                 <ref bean="stockmanagement.StockManagementService" />
+            </list>
+        </property>
+    </bean>
+    <bean id="stockmanagement.StockManagementDAO" class="${project.parent.groupId}.${project.parent.artifactId}.api.dao.StockManagementDao">
+        <property name="stockItemDAO" ref="stockmanagement.StockItemDAO" />
+        <property name="sessionFactory" ref="dbSessionFactory" />
+        <property name="searchSessionFactory" ref="searchSessionFactory" />
+    </bean>
+
+    <bean id="stockmanagement.StockItemDAO" class="org.openmrs.module.stockmanagement.api.db.hibernate.HibernateStockItemDAO">
+        <property name="sessionFactory" ref="dbSessionFactory" />
+        <property name="searchSessionFactory" ref="searchSessionFactory" />
+    </bean>
+
+    <bean id="stockmanagement.StockItemService"
+            class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager">
+            <ref bean="transactionManager" />
+        </property>
+        <property name="target">
+            <bean class="org.openmrs.module.stockmanagement.api.impl.StockItemServiceImpl">
+                <property name="dao" ref="stockmanagement.StockItemDAO" />
+                <property name="inventoryDao" ref="stockmanagement.StockManagementDAO" />
+            </bean>
+        </property>
+        <property name="preInterceptors">
+            <ref bean="serviceInterceptors" />
+        </property>
+        <property name="transactionAttributeSource">
+            <ref bean="transactionAttributeSource" />
+        </property>
+    </bean>
+
+    <!-- Adds StockItemService to the OpenMRS service context. -->
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>org.openmrs.module.stockmanagement.api.StockItemService</value>
+                <ref bean="stockmanagement.StockItemService" />
             </list>
         </property>
     </bean>

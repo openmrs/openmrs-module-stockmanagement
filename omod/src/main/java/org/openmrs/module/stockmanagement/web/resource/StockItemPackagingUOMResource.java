@@ -9,12 +9,14 @@
  */
 package org.openmrs.module.stockmanagement.web.resource;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -42,23 +44,23 @@ public class StockItemPackagingUOMResource extends ResourceBase<StockItemPackagi
 	
 	@Override
 	public StockItemPackagingUOMDTO getByUniqueId(String uniqueId) {
-		StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIncludeVoided(false);
 		filter.setUuid(uniqueId);
-		Result<StockItemPackagingUOMDTO> result = getStockManagementService().findStockItemPackagingUOMs(filter);
+		Result<StockItemPackagingUOMDTO> result = new StockItemRestMapper().findStockItemPackagingUOMs(filter);
 		return result.getData().isEmpty() ? null : result.getData().get(0);
 	}
 	
 	@Override
 	protected void delete(StockItemPackagingUOMDTO delegate, String reason, RequestContext context)
 	        throws ResponseException {
-		getStockManagementService().voidStockItemPackagingUOM(delegate.getUuid(), reason,
+		Context.getService(StockItemService.class).voidStockItemPackagingUOM(delegate.getUuid(), reason,
 		    Context.getAuthenticatedUser().getUserId());
 	}
 	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
-		StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIncludeVoided(context.getIncludeAll());
 		filter.setStartIndex(context.getStartIndex());
 		filter.setLimit(context.getLimit());
@@ -66,7 +68,7 @@ public class StockItemPackagingUOMResource extends ResourceBase<StockItemPackagi
 		if (StringUtils.isNotBlank(param)) {
 			filter.setStockItemUuids(Arrays.asList(param));
 		}
-		return toAlreadyPaged(getStockManagementService().findStockItemPackagingUOMs(filter), context);
+		return toAlreadyPaged(new StockItemRestMapper().findStockItemPackagingUOMs(filter), context);
 	}
 	
 	@Override
@@ -83,7 +85,7 @@ public class StockItemPackagingUOMResource extends ResourceBase<StockItemPackagi
 	public StockItemPackagingUOMDTO save(StockItemPackagingUOMDTO delegate) {
 		// webservices.rest 3.2+ no longer runs the @Handler validator on REST saves
 		validateDelegate(new StockItemPackagingUOMValidator(), delegate, "stockItemPackagingUOMDTO");
-		StockItemPackagingUOM stockItemPackagingUOM = getStockManagementService().saveStockItemPackagingUOM(delegate);
+		StockItemPackagingUOM stockItemPackagingUOM = new StockItemRestMapper().saveStockItemPackagingUOM(delegate);
 		return getByUniqueId(stockItemPackagingUOM.getUuid());
 	}
 	

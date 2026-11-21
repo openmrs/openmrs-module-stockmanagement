@@ -33,6 +33,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUomReferenceDTO;
@@ -129,11 +130,11 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 	
 	private StockItemPackagingUOM createNonVoidedPackagingUom() {
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
 		packagingUom.setFactor(BigDecimal.valueOf(30));
-		return dao().saveStockItemPackagingUOM(packagingUom);
+		return Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 	}
 	
 	private StockItemPackagingUomReferenceDTO createReferenceViaResource() {

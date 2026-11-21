@@ -9,13 +9,14 @@
  */
 package org.openmrs.module.stockmanagement.api.validator;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.Role;
 import org.openmrs.annotation.Handler;
-import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -260,7 +261,7 @@ public class BatchJobValidator implements Validator {
 			}
 		} else if (reportParameter.isStockItem()) {
 			if (!StringUtils.isBlank(value)) {
-				StockItem stockItem = stockManagementService.getStockItemByUuid(value);
+				StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(value);
 				if (stockItem == null) {
 					return false;
 				}

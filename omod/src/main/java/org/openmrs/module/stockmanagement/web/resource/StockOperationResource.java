@@ -9,6 +9,9 @@
  */
 package org.openmrs.module.stockmanagement.web.resource;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
@@ -18,7 +21,6 @@ import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.ValidationException;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
@@ -155,7 +157,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		
 		param = context.getParameter("stockItemUuid");
 		if (StringUtils.isNotBlank(param)) {
-			StockItem stockItem = stockManagementService.getStockItemByUuid(param);
+			StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(param);
 			if (stockItem == null) {
 				return emptyResult(context);
 			}
@@ -541,11 +543,11 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		itemSearchFilter.setStockOperationUuids(Arrays.asList(stockOperationDTO.getUuid()));
 		Result<StockOperationItemDTO> items = getStockManagementService().findStockOperationItems(itemSearchFilter);
 		
-		StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIncludeVoided(false);
 		filter.setStockItemUuids(
 		    items.getData().stream().map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList()));
-		List<StockItemPackagingUOMDTO> packagingUnits = getStockManagementService().findStockItemPackagingUOMs(filter)
+		List<StockItemPackagingUOMDTO> packagingUnits = new StockItemRestMapper().findStockItemPackagingUOMs(filter)
 		        .getData();
 		
 		boolean canUpdateBatchInformation = false;

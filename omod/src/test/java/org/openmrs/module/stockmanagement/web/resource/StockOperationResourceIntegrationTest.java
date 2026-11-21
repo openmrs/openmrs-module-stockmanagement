@@ -9,6 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.web.resource;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -28,7 +30,6 @@ import org.openmrs.Location;
 import org.openmrs.Privilege;
 import org.openmrs.Role;
 import org.openmrs.User;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
@@ -133,7 +134,9 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		Set<Role> roles = new HashSet<>(user.getRoles());
 		roles.add(clerk);
 		user.setRoles(roles);
-		Context.getUserService().saveUser(user);
+		// Match StockRuleTestSupport: persist role assignment without refreshing authentication
+		// or validating unrelated fields on the legacy admin fixture.
+		Context.flushSession();
 		// the permission checks run against the user context's cached instance, so grant the role
 		// there too
 		Context.getAuthenticatedUser().setRoles(roles);
@@ -188,8 +191,8 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), true);
 		packagingUom.setVoided(false);
 		packagingUom.getStockItem().setVoided(false);
-		dao().saveStockItem(packagingUom.getStockItem());
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItem(packagingUom.getStockItem());
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		StockOperationItemDTO item = new StockOperationItemDTO();
 		item.setStockItemUuid(packagingUom.getStockItem().getUuid());
 		item.setStockItemPackagingUOMUuid(packagingUom.getUuid());

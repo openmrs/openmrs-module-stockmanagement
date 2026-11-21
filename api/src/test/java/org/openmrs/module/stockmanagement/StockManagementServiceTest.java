@@ -9,6 +9,8 @@
  */
 package org.openmrs.module.stockmanagement;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.hibernate.Query;
@@ -21,7 +23,6 @@ import org.openmrs.*;
 import org.openmrs.api.APIException;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.UserService;
-import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
@@ -63,12 +64,16 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	
 	private StockManagementDao daoInstance;
 	
-	private static EntityUtil entityUtil;
+	private EntityUtil entityUtil;
 	
 	private StockManagementDao dao() {
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
 			daoInstance.setSessionFactory(sessionFactory);
+			org.openmrs.module.stockmanagement.api.db.hibernate.HibernateStockItemDAO items = new org.openmrs.module.stockmanagement.api.db.hibernate.HibernateStockItemDAO();
+			items.setSessionFactory(sessionFactory);
+			daoInstance.setStockItemDAO(items);
+			stockManagementService.setStockItemDAO(items);
 		}
 		return daoInstance;
 	}
@@ -507,14 +512,14 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void getStockInventory_shouldFilterOnAllCriteria() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = entityUtil.newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
-		dao().saveStockBatch(stockBatch);
+		Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 		
 		StockItemTransaction so = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
 		so.setQuantity(BigDecimal.valueOf(10));
@@ -596,13 +601,13 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	@Test
 	public void dispenseStockItems() {
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = entityUtil.newStockItemPackagingUOM(dao(), false, stockItem);
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
-		dao().saveStockBatch(stockBatch);
+		Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 		
 		for (int i = 3; i > 0; i--) {
 			StockItemTransaction stockItemTransaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch,
@@ -661,11 +666,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void getOrderItemsByOrderByOrderIds() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		//Given
 		OrderItem orderItem = eu().newOrderItem(dao(), stockItem, packagingUom);
 		dao().saveOrderItem(orderItem);
@@ -679,11 +684,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void getOrderItemsByEncounterByEncounterIds() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		//Given
 		OrderItem orderItem = eu().newOrderItem(dao(), stockItem, packagingUom);
 		dao().saveOrderItem(orderItem);
@@ -708,11 +713,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void findOrderItems() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		//Given
 		Party party = eu().getParty(dao());
 		
@@ -994,11 +999,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void findStockRules() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockRule stockRule = eu().newStockRule(dao(), stockItem, packagingUom);
 		stockRule.setVoided(false);
@@ -1307,12 +1312,12 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	private StockItemPackagingUomReference createReferenceForServiceTests() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
 		packagingUom.setFactor(BigDecimal.valueOf(30));
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockSource stockSource = createNonVoidedStockSource();
 		
@@ -1370,11 +1375,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void saveStockItemPackagingUomReference_shouldRejectMissingStockSource() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
 		reference.setStockItemPackagingUOM(packagingUom);
@@ -1393,11 +1398,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void saveStockItemPackagingUomReference_shouldRejectBlankReferenceCode() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockSource stockSource = createNonVoidedStockSource();
 		
@@ -1637,10 +1642,10 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void saveStockItemPackagingUomReference_shouldRejectAReferenceCodeTooLongToVoid() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		StockSource stockSource = createNonVoidedStockSource();
 		
 		// 235 characters is the longest code voiding can still suffix within VARCHAR(255)
@@ -1672,10 +1677,10 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void voidStockItemPackagingUomReference_shouldRejectALegacyCodeTooLongForTheSuffix() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		StockSource stockSource = createNonVoidedStockSource();
 		
 		// a row saved before the save-side length guard existed: inserted through the dao, since
@@ -1711,11 +1716,12 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void saveStockItemPackagingUomReference_shouldRejectAPackagingUomVoidedInTheDatabase() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
-		dao().voidStockItemPackagingUOM(packagingUom.getUuid(), "test void", Context.getAuthenticatedUser().getUserId());
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).voidStockItemPackagingUOM(packagingUom.getUuid(), "test void",
+		    Context.getAuthenticatedUser().getUserId());
 		// the bulk-HQL void bypasses the session cache: clear it so the save path reads the row
 		Context.flushSession();
 		Context.clearSession();
@@ -1744,10 +1750,10 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void saveStockItemPackagingUomReference_shouldRejectAStockSourceThatDoesNotExist() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		// a fabricated source with a valid-looking id: the uuid existence check must catch it
 		// before it dies at flush on the foreign key
@@ -1771,8 +1777,8 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	@Test
 	public void getStockItemPackagingUomByReference_shouldNotResolveAReferenceOfAVoidedPackagingUom() {
 		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
-		dao().voidStockItemPackagingUOM(savedReference.getStockItemPackagingUOM().getUuid(), "test void",
-		    savedReference.getCreator().getUserId());
+		Context.getService(StockItemService.class).voidStockItemPackagingUOM(
+		    savedReference.getStockItemPackagingUOM().getUuid(), "test void", savedReference.getCreator().getUserId());
 		Context.flushSession();
 		Context.clearSession();
 		
@@ -1787,10 +1793,10 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void saveStockItemPackagingUomReference_shouldRejectAVoidedStockSource() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockSource stockSource = createNonVoidedStockSource();
 		stockSource.setVoided(true);
@@ -1832,8 +1838,8 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	@Test
 	public void getStockItemPackagingUomReferencesBySourceAndCode_shouldExcludeReferencesOfAVoidedPackagingUom() {
 		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
-		dao().voidStockItemPackagingUOM(savedReference.getStockItemPackagingUOM().getUuid(), "test void",
-		    savedReference.getCreator().getUserId());
+		Context.getService(StockItemService.class).voidStockItemPackagingUOM(
+		    savedReference.getStockItemPackagingUOM().getUuid(), "test void", savedReference.getCreator().getUserId());
 		Context.flushSession();
 		Context.clearSession();
 		

@@ -9,10 +9,11 @@
  */
 package org.openmrs.module.stockmanagement.dao;
 
+import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.api.context.Context;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openmrs.*;
-import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
@@ -47,6 +48,9 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
 			daoInstance.setSessionFactory(sessionFactory);
+			org.openmrs.module.stockmanagement.api.db.hibernate.HibernateStockItemDAO items = new org.openmrs.module.stockmanagement.api.db.hibernate.HibernateStockItemDAO();
+			items.setSessionFactory(sessionFactory);
+			daoInstance.setStockItemDAO(items);
 		}
 		return daoInstance;
 	}
@@ -123,14 +127,14 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		StockItemPackagingUOM stockItemPackagingUOM = eu().newStockItemPackagingUOM(dao());
 		
 		//When
-		dao().saveStockItemPackagingUOM(stockItemPackagingUOM);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(stockItemPackagingUOM);
 		
 		//Let's clean up the cache to be sure getStockItemPackagingUOMByUuid fetches from DB and not from cache
 		Context.flushSession();
 		Context.flushSession();
 		
 		//Then
-		StockItemPackagingUOM savedStockItemPackagingUOM = dao()
+		StockItemPackagingUOM savedStockItemPackagingUOM = Context.getService(StockItemService.class)
 		        .getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid());
 		assertThat(savedStockItemPackagingUOM, hasProperty("uuid", is(stockItemPackagingUOM.getUuid())));
 		assertThat(savedStockItemPackagingUOM, hasProperty("creator", is(stockItemPackagingUOM.getCreator())));
@@ -220,14 +224,14 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		StockItem stockItem = eu().newStockItem(dao(), true);
 		
 		//When
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		//Let's clean up the cache to be sure getStockItemByUuid fetches from DB and not from cache
 		Context.flushSession();
 		Context.flushSession();
 		
 		//Then
-		StockItem savedStockItem = dao().getStockItemByUuid(stockItem.getUuid());
+		StockItem savedStockItem = Context.getService(StockItemService.class).getStockItemByUuid(stockItem.getUuid());
 		assertThat(savedStockItem, hasProperty("uuid", is(stockItem.getUuid())));
 		assertThat(savedStockItem, hasProperty("creator", is(stockItem.getCreator())));
 		assertThat(savedStockItem, hasProperty("dateCreated", is(stockItem.getDateCreated())));
@@ -253,14 +257,14 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		StockBatch stockBatch = eu().newStockBatch(dao());
 		
 		//When
-		dao().saveStockBatch(stockBatch);
+		Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 		
 		//Let's clean up the cache to be sure getStockBatchByUuid fetches from DB and not from cache
 		Context.flushSession();
 		Context.flushSession();
 		
 		//Then
-		StockBatch savedStockBatch = dao().getStockBatchByUuid(stockBatch.getUuid());
+		StockBatch savedStockBatch = Context.getService(StockItemService.class).getStockBatchByUuid(stockBatch.getUuid());
 		assertThat(savedStockBatch, hasProperty("uuid", is(stockBatch.getUuid())));
 		assertThat(savedStockBatch, hasProperty("creator", is(stockBatch.getCreator())));
 		assertThat(savedStockBatch, hasProperty("dateCreated", is(stockBatch.getDateCreated())));
@@ -580,11 +584,11 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 	@Test
 	public void saveOrderItem_shouldSaveAllProperties() {
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		//Given
 		OrderItem orderItem = eu().newOrderItem(dao(), stockItem, packagingUom);
 		
@@ -677,7 +681,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 	private StockItemPackagingUomReference createNonVoidedReference(StockManagementDao dao, StockSource stockSource) {
 		StockItemPackagingUOM stockItemPackagingUOM = eu().newStockItemPackagingUOM(dao, false);
 		stockItemPackagingUOM.setVoided(false);
-		dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(stockItemPackagingUOM);
 		StockItemPackagingUomReference reference = eu().newStockItemPackagingUomReference(dao, stockItemPackagingUOM,
 		    stockSource);
 		dao.saveStockItemPackagingUomReference(reference);
