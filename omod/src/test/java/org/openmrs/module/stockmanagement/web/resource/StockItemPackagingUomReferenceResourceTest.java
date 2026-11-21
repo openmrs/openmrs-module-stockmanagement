@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import static org.junit.Assert.assertEquals;
@@ -53,16 +62,16 @@ import static org.mockito.Mockito.when;
  * do for real REST requests.
  */
 public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebContextSensitiveTest {
-
+	
 	@Autowired
 	DbSessionFactory sessionFactory;
-
+	
 	private StockManagementDao daoInstance;
-
+	
 	private EntityUtil entityUtil;
-
+	
 	private StockItemPackagingUomReferenceResource resource = new StockItemPackagingUomReferenceResource();
-
+	
 	private StockManagementDao dao() {
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
@@ -70,34 +79,33 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		}
 		return daoInstance;
 	}
-
+	
 	private EntityUtil eu() {
 		if (entityUtil == null) {
 			entityUtil = new EntityUtil(Context.getConceptService().getDrug(3), Context.getUserService().getUser(501),
-			    Context.getLocationService().getLocation(1), Context.getUserService().getRole("Provider"),
-			    Context.getConceptService().getDrug(3).getConcept(), Context.getPatientService().getPatient(2));
+			        Context.getLocationService().getLocation(1), Context.getUserService().getRole("Provider"),
+			        Context.getConceptService().getDrug(3).getConcept(), Context.getPatientService().getPatient(2));
 		}
 		return entityUtil;
 	}
-
+	
 	@Before
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
 		grantAuthenticatedUserStockItemsPrivilege();
 	}
-
+	
 	private void grantAuthenticatedUserStockItemsPrivilege() {
 		Privilege privilege = Context.getUserService().getPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
 		if (privilege == null) {
-			privilege = Context.getUserService().savePrivilege(new Privilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
-			        "Able to view and manage stock items"));
+			privilege = Context.getUserService().savePrivilege(
+			    new Privilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS, "Able to view and manage stock items"));
 		}
-		Privilege mutatePrivilege = Context.getUserService()
-		        .getPrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE);
+		Privilege mutatePrivilege = Context.getUserService().getPrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE);
 		if (mutatePrivilege == null) {
-			mutatePrivilege = Context.getUserService().savePrivilege(new Privilege(
-			        Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE, "Able to add, edit and void stock items"));
+			mutatePrivilege = Context.getUserService().savePrivilege(
+			    new Privilege(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE, "Able to add, edit and void stock items"));
 		}
 		Role clerk = new Role();
 		clerk.setRole("Stock item clerk");
@@ -112,13 +120,13 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		roles.add(clerk);
 		Context.getAuthenticatedUser().setRoles(roles);
 	}
-
+	
 	private StockSource createNonVoidedStockSource() {
 		StockSource stockSource = eu().newStockSource(dao());
 		stockSource.setVoided(false);
 		return dao().saveStockSource(stockSource);
 	}
-
+	
 	private StockItemPackagingUOM createNonVoidedPackagingUom() {
 		StockItem stockItem = eu().newStockItem(dao(), false);
 		dao().saveStockItem(stockItem);
@@ -127,11 +135,11 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		packagingUom.setFactor(BigDecimal.valueOf(30));
 		return dao().saveStockItemPackagingUOM(packagingUom);
 	}
-
+	
 	private StockItemPackagingUomReferenceDTO createReferenceViaResource() {
 		StockItemPackagingUOM packagingUom = createNonVoidedPackagingUom();
 		StockSource stockSource = createNonVoidedStockSource();
-
+		
 		StockItemPackagingUomReferenceDTO dto = new StockItemPackagingUomReferenceDTO();
 		dto.setStockItemPackagingUomUuid(packagingUom.getUuid());
 		dto.setStockSourceUuid(stockSource.getUuid());
@@ -140,13 +148,13 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		dto.setDescription("UNHTS packaging reference description");
 		return resource.save(dto);
 	}
-
+	
 	private RequestContext searchContext(MockHttpServletRequest request) {
 		RequestContext context = new RequestContext();
 		context.setRequest(request);
 		return context;
 	}
-
+	
 	@Test
 	public void save_shouldTurnAValidationExceptionIntoABadRequest() {
 		// core's length checks throw ValidationException, an APIException: unlike
@@ -157,7 +165,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		resource.setStockManagementService(service);
 		when(service.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
 		        .thenThrow(new ValidationException("name is too long"));
-
+		
 		try {
 			resource.save(new StockItemPackagingUomReferenceDTO());
 			fail("Expected an IllegalRequestException to be thrown");
@@ -166,7 +174,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 			assertEquals("name is too long", e.getMessage());
 		}
 	}
-
+	
 	@Test
 	public void save_shouldReturnSafeGenericErrorWhenUnexpectedExceptionOccurs() {
 		// e.g. the check-then-insert race lost on the unique constraint: the client must get the
@@ -175,7 +183,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		resource.setStockManagementService(service);
 		when(service.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
 		        .thenThrow(new NullPointerException());
-
+		
 		try {
 			resource.save(new StockItemPackagingUomReferenceDTO());
 			fail("Expected a GenericRestException to be thrown");
@@ -185,11 +193,11 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 			assertNull(e.getCause());
 		}
 	}
-
+	
 	@Test
 	public void save_shouldCreateReferenceAndReturnConvertedDto() {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		assertNotNull(saved);
 		assertNotNull(saved.getUuid());
 		assertEquals("M221680001EP30T", saved.getReferenceCode());
@@ -198,76 +206,79 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		assertNotNull(saved.getStockSourceUuid());
 		assertNotNull(saved.getStockSourceName());
 	}
-
+	
 	@Test
 	public void save_shouldRejectNonExistentPackagingUom() {
 		StockSource stockSource = createNonVoidedStockSource();
-
+		
 		StockItemPackagingUomReferenceDTO dto = new StockItemPackagingUomReferenceDTO();
 		dto.setStockItemPackagingUomUuid("non-existent-packaging-uom-uuid");
 		dto.setStockSourceUuid(stockSource.getUuid());
 		dto.setReferenceCode("M221680001EP30T");
-
+		
 		try {
 			resource.save(dto);
 			fail("Expected an IllegalRequestException to be thrown");
-		} catch (IllegalRequestException e) {
+		}
+		catch (IllegalRequestException e) {
 			assertTrue(e.getMessage().contains("packaging UOM"));
 		}
 	}
-
+	
 	@Test
 	public void save_shouldRejectDuplicateActiveSourceAndCode() {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		StockItemPackagingUomReferenceDTO duplicate = new StockItemPackagingUomReferenceDTO();
 		duplicate.setStockItemPackagingUomUuid(saved.getStockItemPackagingUomUuid());
 		duplicate.setStockSourceUuid(saved.getStockSourceUuid());
 		duplicate.setReferenceCode("M221680001EP30T");
-
+		
 		try {
 			resource.save(duplicate);
 			fail("Expected an IllegalRequestException to be thrown");
-		} catch (IllegalRequestException e) {
+		}
+		catch (IllegalRequestException e) {
 			assertTrue(e.getMessage().contains("already exists"));
 		}
 	}
-
+	
 	@Test
 	public void save_shouldRejectEditingAVoidedReference() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		resource.delete(saved, "test void", searchContext(new MockHttpServletRequest()));
 		Context.flushSession();
 		Context.clearSession();
-
+		
 		// an update carrying a voided reference's uuid must be refused, not silently edit the voided row
 		StockItemPackagingUomReferenceDTO edited = resource.getByUniqueId(saved.getUuid());
 		edited.setName("renamed while voided");
 		try {
 			resource.save(edited);
 			fail("Expected an IllegalRequestException to be thrown");
-		} catch (IllegalRequestException e) {
+		}
+		catch (IllegalRequestException e) {
 			assertTrue(e.getMessage().contains("voided"));
 		}
 	}
-
+	
 	@Test
 	public void create_shouldNotOverwriteTheReferenceWhoseUuidItCarries() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		SimpleObject post = new SimpleObject().add("uuid", saved.getUuid())
 		        .add("stockItemPackagingUomUuid", saved.getStockItemPackagingUomUuid())
 		        .add("stockSourceUuid", saved.getStockSourceUuid()).add("referenceCode", "M221680001EP60T");
 		resource.create(post, searchContext(new MockHttpServletRequest()));
 		Context.flushSession();
 		Context.clearSession();
-
+		
 		StockItemPackagingUomReferenceDTO original = resource.getByUniqueId(saved.getUuid());
 		assertEquals("M221680001EP30T", original.getReferenceCode());
 		assertEquals("UNHTS packaging reference", original.getName());
 	}
-
+	
 	@Test
 	public void update_shouldRefuseToReassignThePackagingUomOrTheSource() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
@@ -283,26 +294,26 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 			}
 		}
 	}
-
+	
 	@Test
 	public void getByUniqueId_shouldReturnTheReference() {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		StockItemPackagingUomReferenceDTO fetched = resource.getByUniqueId(saved.getUuid());
 		assertNotNull(fetched);
 		assertEquals(saved.getUuid(), fetched.getUuid());
 		assertEquals("M221680001EP30T", fetched.getReferenceCode());
 	}
-
+	
 	@Test
 	public void getByUniqueId_shouldReturnNullForUnknownUuid() {
 		assertNull(resource.getByUniqueId("unknown-uuid"));
 	}
-
+	
 	@Test
 	public void doSearch_shouldListReferencesOfAPackagingUom() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setParameter("stockItemPackagingUomUuid", saved.getStockItemPackagingUomUuid());
 		AlreadyPaged<StockItemPackagingUomReferenceDTO> result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource
@@ -311,21 +322,21 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		assertEquals(1, references.size());
 		assertEquals(saved.getUuid(), references.get(0).getUuid());
 	}
-
+	
 	@Test
 	public void doSearch_shouldListVoidedReferencesWithIncludeAll() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
 		resource.delete(saved, "test void", searchContext(new MockHttpServletRequest()));
 		Context.flushSession();
 		Context.clearSession();
-
+		
 		// default search skips voided rows, includeAll matches the sibling resources' audit view
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setParameter("stockItemPackagingUomUuid", saved.getStockItemPackagingUomUuid());
 		AlreadyPaged<StockItemPackagingUomReferenceDTO> result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource
 		        .doSearch(searchContext(request));
 		assertTrue(result.getPageOfResults().isEmpty());
-
+		
 		request = new MockHttpServletRequest();
 		request.setParameter("stockItemPackagingUomUuid", saved.getStockItemPackagingUomUuid());
 		request.setParameter("includeAll", "true");
@@ -338,7 +349,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		assertEquals(1, references.size());
 		assertTrue(references.get(0).isVoided());
 	}
-
+	
 	@Test
 	public void doSearch_shouldReturnAnEmptyResultForAnUnknownPackagingUom() throws ResponseException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -347,23 +358,24 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		        .doSearch(searchContext(request));
 		assertTrue(result.getPageOfResults().isEmpty());
 	}
-
+	
 	@Test
 	public void doSearch_shouldRejectARequestWithoutAnyParameter() throws ResponseException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		try {
 			resource.doSearch(searchContext(request));
 			fail("Expected an IllegalRequestException to be thrown");
-		} catch (IllegalRequestException e) {
+		}
+		catch (IllegalRequestException e) {
 			// the resolved message or, if the message source is unavailable in the test context, the key
 			assertTrue(e.getMessage().contains("required"));
 		}
 	}
-
+	
 	@Test
 	public void doSearch_shouldResolveAPackagingUomBySourceAndCode() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setParameter("stockSourceUuid", saved.getStockSourceUuid());
 		request.setParameter("referenceCode", "M221680001EP30T");
@@ -372,7 +384,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		List<StockItemPackagingUomReferenceDTO> references = result.getPageOfResults();
 		assertEquals(1, references.size());
 		assertEquals(saved.getStockItemPackagingUomUuid(), references.get(0).getStockItemPackagingUomUuid());
-
+		
 		//an unknown code resolves to nothing
 		request = new MockHttpServletRequest();
 		request.setParameter("stockSourceUuid", saved.getStockSourceUuid());
@@ -380,11 +392,11 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		result = (AlreadyPaged<StockItemPackagingUomReferenceDTO>) resource.doSearch(searchContext(request));
 		assertTrue(result.getPageOfResults().isEmpty());
 	}
-
+	
 	@Test
 	public void delete_shouldRejectAnOverLongVoidReason() {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		// void_reason is VARCHAR(255): over 250 characters the void would overflow at flush and
 		// come back as the generic 500, so the resource refuses it with a 400
 		char[] overLongReason = new char[251];
@@ -399,7 +411,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		catch (ResponseException e) {
 			fail("Expected an IllegalRequestException, got " + e.getClass().getSimpleName());
 		}
-
+		
 		// 250 characters still voids: the reason fits void_reason
 		char[] longestReason = new char[250];
 		Arrays.fill(longestReason, 'x');
@@ -408,20 +420,20 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		Context.clearSession();
 		assertTrue(resource.getByUniqueId(saved.getUuid()).isVoided());
 	}
-
+	
 	@Test
 	public void delete_shouldVoidTheReference() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		resource.delete(saved, "test void", searchContext(new MockHttpServletRequest()));
 		Context.flushSession();
 		Context.clearSession();
-
+		
 		StockItemPackagingUomReferenceDTO voided = resource.getByUniqueId(saved.getUuid());
 		assertNotNull(voided);
 		assertTrue(voided.isVoided());
 	}
-
+	
 	@Test
 	public void delete_shouldAnswerABadRequestWhenTheServiceRejectsTheVoid() {
 		// a legacy row saved before the save-side length guard: a code the (voided <id>) suffix
@@ -435,7 +447,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		Arrays.fill(legacyCode, 'X');
 		legacy.setStockReferenceCode(new String(legacyCode));
 		StockItemPackagingUomReference saved = dao().saveStockItemPackagingUomReference(legacy);
-
+		
 		StockItemPackagingUomReferenceDTO dto = resource.getByUniqueId(saved.getUuid());
 		try {
 			resource.delete(dto, "test void", searchContext(new MockHttpServletRequest()));
@@ -449,15 +461,15 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 			fail("Expected an IllegalRequestException, got " + e.getClass().getSimpleName());
 		}
 	}
-
+	
 	@Test
 	public void save_shouldAllowRecreatingAReferenceAfterVoidingIt() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
-
+		
 		resource.delete(saved, "test void", searchContext(new MockHttpServletRequest()));
 		Context.flushSession();
 		Context.clearSession();
-
+		
 		// voiding must release the source/code pair so a replacement reference can reuse it
 		StockItemPackagingUomReferenceDTO replacement = new StockItemPackagingUomReferenceDTO();
 		replacement.setStockItemPackagingUomUuid(saved.getStockItemPackagingUomUuid());
@@ -468,7 +480,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		assertNotNull(recreated.getUuid());
 		assertNotEquals(saved.getUuid(), recreated.getUuid());
 	}
-
+	
 	@Test
 	public void saveAndDelete_shouldBeRefusedForAUserWithoutTheMutatePrivilege() throws ResponseException {
 		StockItemPackagingUOM packagingUom = createNonVoidedPackagingUom();
@@ -479,7 +491,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		reference.setStockReferenceCode("M221680001EP30T");
 		reference = dao().saveStockItemPackagingUomReference(reference);
 		StockItemPackagingUomReferenceDTO dto = resource.convertToDTO(reference);
-
+		
 		// swap the clerk role (which carries the mutate task privilege) for a view-only role, then
 		// restore the original roles so later tests are unaffected
 		Privilege viewPrivilege = Context.getUserService().getPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
@@ -493,52 +505,56 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 			Set<Role> roles = new HashSet<>();
 			roles.add(viewer);
 			Context.getAuthenticatedUser().setRoles(roles);
-
+			
 			try {
 				resource.save(dto);
 				fail("Expected APIAuthenticationException to be thrown");
-			} catch (APIAuthenticationException e) {
+			}
+			catch (APIAuthenticationException e) {
 				// expected
 			}
-
+			
 			try {
 				resource.delete(dto, "test void", searchContext(new MockHttpServletRequest()));
 				fail("Expected APIAuthenticationException to be thrown");
-			} catch (APIAuthenticationException e) {
+			}
+			catch (APIAuthenticationException e) {
 				// expected
 			}
-		} finally {
+		}
+		finally {
 			Context.getAuthenticatedUser().setRoles(originalRoles);
 		}
 	}
-
+	
 	@Test
 	public void purge_shouldNotBeSupported() throws ResponseException {
 		StockItemPackagingUomReferenceDTO saved = createReferenceViaResource();
 		try {
 			resource.purge(saved, searchContext(new MockHttpServletRequest()));
 			fail("Expected ResourceDoesNotSupportOperationException to be thrown");
-		} catch (ResourceDoesNotSupportOperationException e) {
+		}
+		catch (ResourceDoesNotSupportOperationException e) {
 			// expected
 		}
 	}
-
+	
 	@Test
 	public void entities_shouldRoundTripThroughConvertToDtoAndBack() {
 		StockItemPackagingUOM packagingUom = createNonVoidedPackagingUom();
 		StockSource stockSource = createNonVoidedStockSource();
-
+		
 		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
 		reference.setStockItemPackagingUOM(packagingUom);
 		reference.setReferenceSource(stockSource);
 		reference.setStockReferenceCode("M221680001EP30T");
 		reference.setName("UNHTS packaging reference");
 		reference = dao().saveStockItemPackagingUomReference(reference);
-
+		
 		StockItemPackagingUomReferenceDTO dto = resource.convertToDTO(reference);
 		assertEquals(reference.getUuid(), dto.getUuid());
 		assertEquals("M221680001EP30T", dto.getReferenceCode());
-
+		
 		StockItemPackagingUomReference converted = resource.convertFromDTO(dto);
 		assertEquals(reference.getUuid(), converted.getUuid());
 		assertEquals(packagingUom.getUuid(), converted.getStockItemPackagingUOM().getUuid());

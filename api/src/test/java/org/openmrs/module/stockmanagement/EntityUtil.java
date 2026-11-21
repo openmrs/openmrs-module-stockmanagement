@@ -245,7 +245,7 @@ public class EntityUtil {
 		stockItemPackagingUOM.setStockItem(stockItem);
 		return stockItemPackagingUOM;
 	}
-
+	
 	public StockItemPackagingUomReference newStockItemPackagingUomReference(StockManagementDao dao,
 	        StockItemPackagingUOM stockItemPackagingUOM, StockSource stockSource) {
 		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();

@@ -1,3 +1,12 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public License,
+ * v. 2.0. If a copy of the MPL was not distributed with this file, You can
+ * obtain one at http://mozilla.org/MPL/2.0/. OpenMRS is also distributed under
+ * the terms of the Healthcare Disclaimer located at http://openmrs.org/license.
+ *
+ * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
+ * graphic logo is a trademark of OpenMRS Inc.
+ */
 package org.openmrs.module.stockmanagement.web.resource;
 
 import io.swagger.models.Model;
@@ -30,17 +39,18 @@ import org.apache.commons.logging.LogFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockitempackaginguomreference", supportedClass = StockItemPackagingUomReferenceDTO.class, supportedOpenmrsVersions = {
-        "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
+@Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
+        + "/stockitempackaginguomreference", supportedClass = StockItemPackagingUomReferenceDTO.class, supportedOpenmrsVersions = {
+                "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockItemPackagingUomReferenceResource extends ResourceBase<StockItemPackagingUomReferenceDTO> {
-
+	
 	private static final Log log = LogFactory.getLog(StockItemPackagingUomReferenceResource.class);
-
+	
 	@Override
 	public StockItemPackagingUomReferenceDTO getByUniqueId(String uniqueId) {
 		return convertToDTO(getStockManagementService().getStockItemPackagingUomReferenceByUuid(uniqueId));
 	}
-
+	
 	@Override
 	protected void delete(StockItemPackagingUomReferenceDTO delegate, String reason, RequestContext context)
 	        throws ResponseException {
@@ -68,7 +78,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			throw new GenericRestException("Unable to void stock item packaging UOM reference");
 		}
 	}
-
+	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
 		String stockItemPackagingUomUuid = context.getParameter("stockItemPackagingUomUuid");
@@ -83,7 +93,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			}
 			return toAlreadyPaged(referenceDTOS, context);
 		}
-
+		
 		String stockSourceUuid = context.getParameter("stockSourceUuid");
 		String referenceCode = context.getParameter("referenceCode");
 		if (StringUtils.isNotBlank(stockSourceUuid) && StringUtils.isNotBlank(referenceCode)) {
@@ -94,22 +104,22 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			}
 			return toAlreadyPaged(referenceDTOS, context);
 		}
-
+		
 		// thrown as a bad request directly, since invalidRequest's RestClientException answers a 500
-		throw new IllegalRequestException(
-		        Context.getMessageSourceService().getMessage("stockmanagement.stockitempackaginguomreference.search.parameter.required"));
+		throw new IllegalRequestException(Context.getMessageSourceService()
+		        .getMessage("stockmanagement.stockitempackaginguomreference.search.parameter.required"));
 	}
-
+	
 	@Override
 	protected PageableResult doGetAll(RequestContext context) throws ResponseException {
 		return doSearch(context);
 	}
-
+	
 	@Override
 	public StockItemPackagingUomReferenceDTO newDelegate() {
 		return new StockItemPackagingUomReferenceDTO();
 	}
-
+	
 	@Override
 	public StockItemPackagingUomReferenceDTO save(StockItemPackagingUomReferenceDTO delegate) {
 		StockItemPackagingUomReference reference;
@@ -122,27 +132,29 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		catch (APIException e) {
 			// the REST module answers service rejections with a 500 otherwise; the cause stays
 			// in the log, since wrapErrorResponse appends each cause's message to the response
-			log.error("Failed to save stock item packaging UOM reference. uuid=" + delegate.getUuid()
-			        + ", packagingUomUuid=" + delegate.getStockItemPackagingUomUuid() + ", sourceUuid="
-			        + delegate.getStockSourceUuid() + ", referenceCode=" + delegate.getReferenceCode(), e);
+			log.error("Failed to save stock item packaging UOM reference. uuid=" + delegate.getUuid() + ", packagingUomUuid="
+			        + delegate.getStockItemPackagingUomUuid() + ", sourceUuid=" + delegate.getStockSourceUuid()
+			        + ", referenceCode=" + delegate.getReferenceCode(),
+			    e);
 			throw new IllegalRequestException(safeMessage(e, "Unable to save stock item packaging UOM reference"));
 		}
 		catch (Exception e) {
 			// unexpected failure (e.g. the check-then-insert race lost on the unique constraint):
 			// generic message to the client, original exception in the log
-			log.error("Failed to save stock item packaging UOM reference. uuid=" + delegate.getUuid()
-			        + ", packagingUomUuid=" + delegate.getStockItemPackagingUomUuid() + ", sourceUuid="
-			        + delegate.getStockSourceUuid() + ", referenceCode=" + delegate.getReferenceCode(), e);
+			log.error("Failed to save stock item packaging UOM reference. uuid=" + delegate.getUuid() + ", packagingUomUuid="
+			        + delegate.getStockItemPackagingUomUuid() + ", sourceUuid=" + delegate.getStockSourceUuid()
+			        + ", referenceCode=" + delegate.getReferenceCode(),
+			    e);
 			throw new GenericRestException("Unable to save stock item packaging UOM reference");
 		}
 		return getByUniqueId(reference.getUuid());
 	}
-
+	
 	@Override
 	public void purge(StockItemPackagingUomReferenceDTO delegate, RequestContext context) throws ResponseException {
 		throw new ResourceDoesNotSupportOperationException();
 	}
-
+	
 	@Override
 	public DelegatingResourceDescription getCreatableProperties() throws ResourceDoesNotSupportOperationException {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
@@ -153,7 +165,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		description.addProperty("description");
 		return description;
 	}
-
+	
 	@Override
 	public DelegatingResourceDescription getUpdatableProperties() {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
@@ -162,7 +174,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		description.addProperty("description");
 		return description;
 	}
-
+	
 	@Override
 	public DelegatingResourceDescription getRepresentationDescription(Representation rep) {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
@@ -176,25 +188,25 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			description.addProperty("stockItemPackagingUomUuid");
 			description.addProperty("voided");
 		}
-
+		
 		if (rep instanceof DefaultRepresentation) {
 			description.addLink("full", ".?v=" + RestConstants.REPRESENTATION_FULL);
 		}
-
+		
 		if (rep instanceof FullRepresentation) {
 			description.addSelfLink();
 		}
-
+		
 		if (rep instanceof RefRepresentation) {
 			description.addProperty("uuid");
 			description.addProperty("referenceCode");
 			description.addProperty("stockSourceName");
 			description.addProperty("stockItemPackagingUomUuid");
 		}
-
+		
 		return description;
 	}
-
+	
 	@Override
 	public Model getGETModel(Representation rep) {
 		ModelImpl modelImpl = (ModelImpl) super.getGETModel(rep);
@@ -204,16 +216,16 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			        .property("stockSourceUuid", new StringProperty()).property("stockSourceName", new StringProperty())
 			        .property("stockItemPackagingUomUuid", new StringProperty());
 		}
-
+		
 		if (rep instanceof RefRepresentation) {
 			modelImpl.property("uuid", new StringProperty()).property("referenceCode", new StringProperty())
 			        .property("stockSourceName", new StringProperty())
 			        .property("stockItemPackagingUomUuid", new StringProperty());
 		}
-
+		
 		return modelImpl;
 	}
-
+	
 	public StockItemPackagingUomReferenceDTO convertToDTO(StockItemPackagingUomReference reference) {
 		if (reference != null) {
 			StockItemPackagingUomReferenceDTO referenceDTO = new StockItemPackagingUomReferenceDTO();
@@ -233,7 +245,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			return null;
 		}
 	}
-
+	
 	public StockItemPackagingUomReference convertFromDTO(StockItemPackagingUomReferenceDTO dto) {
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		if (dto != null) {
@@ -255,5 +267,5 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			return null;
 		}
 	}
-
+	
 }

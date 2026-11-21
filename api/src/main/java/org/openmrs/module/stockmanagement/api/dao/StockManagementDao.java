@@ -5369,21 +5369,22 @@ public class StockManagementDao extends DaoBase {
 		criteria.add(Restrictions.eq("voided", false));
 		return criteria.list();
 	}
-
-	public StockItemPackagingUomReference saveStockItemPackagingUomReference(StockItemPackagingUomReference stockItemPackagingUomReference) {
+	
+	public StockItemPackagingUomReference saveStockItemPackagingUomReference(
+	        StockItemPackagingUomReference stockItemPackagingUomReference) {
 		DbSession dbSession = getSession();
 		dbSession.saveOrUpdate(stockItemPackagingUomReference);
 		dbSession.flush();
 		return stockItemPackagingUomReference;
 	}
-
+	
 	public StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid) {
 		return (StockItemPackagingUomReference) getSession().createCriteria(StockItemPackagingUomReference.class)
 		        .add(Restrictions.eq("uuid", uuid)).uniqueResult();
 	}
-
-	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(StockItemPackagingUOM stockItemPackagingUOM,
-	        boolean includeVoided) {
+	
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(
+	        StockItemPackagingUOM stockItemPackagingUOM, boolean includeVoided) {
 		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
 		criteria.add(Restrictions.eq("stockItemPackagingUOM", stockItemPackagingUOM));
 		if (!includeVoided) {
@@ -5391,8 +5392,9 @@ public class StockManagementDao extends DaoBase {
 		}
 		return criteria.list();
 	}
-
-	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceBySourceAndCode(StockSource stockSource, String stockReferenceCode) {
+	
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceBySourceAndCode(StockSource stockSource,
+	        String stockReferenceCode) {
 		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
 		// run without auto-flush so a pending code edit on the checked reference isn't flushed
 		// (and rejected by the database unique constraint) before the duplicate check sees it
@@ -5402,7 +5404,7 @@ public class StockManagementDao extends DaoBase {
 		criteria.add(Restrictions.eq("voided", false));
 		return criteria.list();
 	}
-
+	
 	public void voidStockItemPackagingUomReference(String uuid, String reason, int voidedBy) {
 		DbSession dbSession = getSession();
 		StockItemPackagingUomReference reference = getStockItemPackagingUomReferenceByUuid(uuid);
@@ -5414,7 +5416,8 @@ public class StockManagementDao extends DaoBase {
 		}
 		//compute and validate the suffix BEFORE mutating the managed entity: a failed void must
 		//leave the reference untouched, not half-voided (voided set, code unsuffixed) in session
-		String suffixedCode = StockItemPackagingUomReference.voidedCode(reference.getStockReferenceCode(), reference.getId());
+		String suffixedCode = StockItemPackagingUomReference.voidedCode(reference.getStockReferenceCode(),
+		    reference.getId());
 		//a row saved before the service's code-length guard could carry a code the suffix would
 		//push past the column length; a clear message beats the raw data-truncation error
 		if (suffixedCode.length() > StockItemPackagingUomReference.CODE_MAX_LENGTH) {
