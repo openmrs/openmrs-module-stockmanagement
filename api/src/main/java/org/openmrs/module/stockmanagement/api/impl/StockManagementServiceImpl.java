@@ -9,10 +9,6 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
-import org.openmrs.module.stockmanagement.api.utils.StockItemFields;
-import org.openmrs.module.stockmanagement.api.StockItemService;
-import org.openmrs.api.context.Context;
-import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -23,10 +19,12 @@ import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.db.StockItemDAO;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
@@ -34,10 +32,12 @@ import org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob;
 import org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob;
 import org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob;
 import org.openmrs.module.stockmanagement.api.reporting.Report;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.openmrs.module.stockmanagement.api.utils.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.module.stockmanagement.api.utils.StockItemFields;
 import org.openmrs.module.stockmanagement.tasks.StockOperationNotificationTask;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;

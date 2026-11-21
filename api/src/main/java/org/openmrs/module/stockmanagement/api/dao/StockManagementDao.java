@@ -9,9 +9,6 @@
  */
 package org.openmrs.module.stockmanagement.api.dao;
 
-import org.openmrs.module.stockmanagement.api.db.StockItemDAO;
-import org.openmrs.module.stockmanagement.api.utils.StockItemFields;
-import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.hibernate.*;
@@ -24,17 +21,20 @@ import org.openmrs.api.APIException;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
+import org.openmrs.module.stockmanagement.api.db.StockItemDAO;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-
 import java.math.BigDecimal;
+
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.openmrs.module.stockmanagement.api.utils.StockItemFields;
 
 @SuppressWarnings({ "unchecked" })
 public class StockManagementDao extends DaoBase {

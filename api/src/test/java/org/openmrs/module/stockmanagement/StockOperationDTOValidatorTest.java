@@ -9,12 +9,12 @@
  */
 package org.openmrs.module.stockmanagement;
 
-import org.openmrs.module.stockmanagement.api.StockItemService;
-import org.openmrs.api.context.Context;
 import org.apache.commons.lang.time.DateUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;

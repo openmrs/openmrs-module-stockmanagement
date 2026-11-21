@@ -9,9 +9,6 @@
  */
 package org.openmrs.module.stockmanagement.web.resource;
 
-import org.openmrs.module.stockmanagement.api.StockItemService;
-import org.openmrs.api.context.Context;
-import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import io.swagger.models.Model;
 import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.*;
@@ -19,11 +16,14 @@ import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.*;
 import org.openmrs.api.ConceptService;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 import org.openmrs.module.stockmanagement.api.validator.StockItemDTOValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;

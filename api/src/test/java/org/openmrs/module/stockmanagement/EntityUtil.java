@@ -9,16 +9,16 @@
  */
 package org.openmrs.module.stockmanagement;
 
-import org.openmrs.module.stockmanagement.api.StockItemService;
-import org.openmrs.api.context.Context;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.openmrs.*;
-
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+
 import java.util.Date;
 import java.util.Random;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.model.*;
