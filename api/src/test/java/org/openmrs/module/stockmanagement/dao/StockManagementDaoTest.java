@@ -9,18 +9,19 @@
  */
 package org.openmrs.module.stockmanagement.dao;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.*;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
-import org.openmrs.test.BaseModuleContextSensitiveTest;
+import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.openmrs.module.stockmanagement.api.model.*;
 
@@ -50,7 +51,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		return daoInstance;
 	}
 	
-	@Before
+	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);

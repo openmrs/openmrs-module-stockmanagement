@@ -1,6 +1,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <parent>
+        <groupId>org.openmrs.maven.parents</groupId>
+        <artifactId>maven-parent-openmrs-module</artifactId>
+        <version>2.3.0</version>
+    </parent>
+
     <groupId>org.openmrs.module</groupId>
     <artifactId>stockmanagement</artifactId>
     <version>4.0.0-SNAPSHOT</version>
@@ -24,55 +30,14 @@
 
     <properties>
         <openmrsPlatformVersion>2.8.0</openmrsPlatformVersion>
-        <javaCompilerVersion>1.8</javaCompilerVersion>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
         <webservicesRestVersion>3.0.0</webservicesRestVersion>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <lombokVersion>1.18.38</lombokVersion>
     </properties>
 
     <dependencyManagement>
         <dependencies>
-            <!-- Begin OpenMRS core -->
-            <dependency>
-                <groupId>org.openmrs.api</groupId>
-                <artifactId>openmrs-api</artifactId>
-                <version>${openmrsPlatformVersion}</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.openmrs.web</groupId>
-                <artifactId>openmrs-web</artifactId>
-                <version>${openmrsPlatformVersion}</version>
-                <scope>provided</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.openmrs.api</groupId>
-                <artifactId>openmrs-api</artifactId>
-                <version>${openmrsPlatformVersion}</version>
-                <type>test-jar</type>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.openmrs.web</groupId>
-                <artifactId>openmrs-web</artifactId>
-                <version>${openmrsPlatformVersion}</version>
-                <classifier>tests</classifier>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.openmrs.test</groupId>
-                <artifactId>openmrs-test</artifactId>
-                <version>${openmrsPlatformVersion}</version>
-                <type>pom</type>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- End OpenMRS core -->
-
-            <!-- Importing versions from refapp distro -->
             <dependency>
                 <groupId>org.openmrs.module</groupId>
                 <artifactId>webservices.rest-omod</artifactId>
@@ -85,6 +50,12 @@
                 <version>${webservicesRestVersion}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombokVersion}</version>
+                <scope>provided</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -95,42 +66,22 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <configuration>
-                        <target>${javaCompilerVersion}</target>
-                        <source>${javaCompilerVersion}</source>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombokVersion}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                 </plugin>
                 <plugin>
-                    <groupId>org.openmrs.maven.plugins</groupId>
-                    <artifactId>maven-openmrs-plugin</artifactId>
-                    <version>1.0.1</version>
-                    <extensions>true</extensions>
-                    <executions>
-                        <execution>
-                            <id>pack</id>
-                            <phase>package</phase>
-                            <goals>
-                                <goal>package-module</goal>
-                            </goals>
-                        </execution>
-                    </executions>
-                </plugin>
-                <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-checkstyle-plugin</artifactId>
-                    <version>3.1.2</version>
+                    <artifactId>maven-javadoc-plugin</artifactId>
                     <configuration>
-                        <configLocation>stockmanagement/checkstyle.xml</configLocation>
+                        <doclint>none</doclint>
+                        <failOnError>false</failOnError>
                     </configuration>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>3.0.0-M8</version>
-                </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <version>3.5.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.jacoco</groupId>
@@ -154,18 +105,6 @@
             </plugins>
         </pluginManagement>
     </build>
-    <distributionManagement>
-        <repository>
-            <id>openmrs-repo-modules</id>
-            <name>OpenMRS Modules</name>
-            <url>https://openmrs.jfrog.io/artifactory/modules/</url>
-        </repository>
-        <snapshotRepository>
-            <id>openmrs-repo-snapshots</id>
-            <name>OpenMRS Snapshots</name>
-            <url>https://openmrs.jfrog.io/openmrs/snapshots</url>
-        </snapshotRepository>
-    </distributionManagement>
 
     <repositories>
         <repository>
