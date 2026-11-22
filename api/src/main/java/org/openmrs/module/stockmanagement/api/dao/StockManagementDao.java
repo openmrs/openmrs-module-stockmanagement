@@ -2716,6 +2716,37 @@ public class StockManagementDao extends DaoBase {
 		if (filter.getLimit() != null) {
 			result.setPageIndex(filter.getStartIndex());
 			result.setPageSize(filter.getLimit());
+			List<String> countGroupColumns = new ArrayList<>();
+			if (groupByParty) {
+				countGroupColumns.add("concat('', sit.party.id)");
+			}
+			if (groupByStockItem) {
+				countGroupColumns.add("concat('', sit.stockItem.id)");
+			}
+			if (groupByStockBatch) {
+				countGroupColumns.add("concat('', sit.stockBatch.id)");
+			}
+			String countExpression = countGroupColumns.size() == 1 ? countGroupColumns.get(0)
+			        : "concat(" + String.join(", '-', ", countGroupColumns) + ")";
+			StringBuilder countHql = new StringBuilder("select count(distinct " + countExpression + ") ");
+			String hql = hqlQuery.toString();
+			countHql.append(hql.substring(hql.toLowerCase().indexOf("from")));
+			int groupByIdx = countHql.toString().toLowerCase().indexOf(" group by ");
+			if (groupByIdx >= 0) {
+				countHql.setLength(groupByIdx);
+			}
+			Query countQuery = getSession().createQuery(countHql.toString());
+			if (parameterList != null) {
+				for (Map.Entry<String, Object> entry : parameterList.entrySet())
+					countQuery.setParameter(entry.getKey(), entry.getValue());
+			}
+			if (parameterWithList != null) {
+				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+					countQuery.setParameterList(entry.getKey(), entry.getValue());
+			}
+			Long count = (Long) countQuery.uniqueResult();
+			result.setTotalRecordCount(count == null ? 0 : count);
+			result.setLoadRecordCount(false);
 		}
 		String orderByField = (groupByParty ? "sit.party.id"
 		        : (groupByStockItem ? "sit.stockItem.id" : (groupByStockBatch ? "sit.stockBatch.id" : "")));
@@ -2937,7 +2968,9 @@ public class StockManagementDao extends DaoBase {
 				if (itemGroupClause.length() > 0) {
 					appliedItemGroupFilters++;
 					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+					if (zeroQtyItemGroupFilter.getStockItemId() != null) {
+						zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+					}
 					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
 						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
 					}
@@ -2965,6 +2998,17 @@ public class StockManagementDao extends DaoBase {
 		
 		if (itemGroupFilters.length() > 0) {
 			appendFilter(hqlFilter, itemGroupFilters.toString());
+		} else if (restrictedPartyIds != null) {
+			if (restrictedPartyIds.isEmpty()) {
+				return null;
+			}
+			if (restrictedPartyIds.size() == 1) {
+				appendFilter(hqlFilter, "sit.party.id = :rpid");
+				parameterList.putIfAbsent("rpid", restrictedPartyIds.get(0));
+			} else {
+				appendFilter(hqlFilter, "sit.party.id in (:rpids)");
+				parameterWithList.putIfAbsent("rpids", restrictedPartyIds);
+			}
 		}
 		
 		if (filter.getRequireNonExpiredStockBatches() != null && filter.getRequireNonExpiredStockBatches()) {

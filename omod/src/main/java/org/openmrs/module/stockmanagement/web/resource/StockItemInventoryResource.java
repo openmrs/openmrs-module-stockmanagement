@@ -159,12 +159,12 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 						return emptyResult(context);
 					}
 					stockItemIds = items.getData().stream().map(p -> p.getStockItemId()).collect(Collectors.toList());
-					
-				} else {
-					return emptyResult(context);
 				}
 			}
 		}
+		
+		boolean hasItemFilter = stockItemId != null || stockItemIds != null;
+		List<Integer> unRestrictedPartyIds = null;
 		
 		param = context.getParameter("partyUuid");
 		if (!StringUtils.isBlank(param)) {
@@ -233,6 +233,18 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 						}
 					}
 				}
+			}
+		}
+		
+		if (!hasItemFilter) {
+			if (partyIds != null) {
+				unRestrictedPartyIds = partyIds;
+			} else if (partyUuid != null) {
+				Party party = getStockManagementService().getPartyByUuid(partyUuid);
+				if (party == null) {
+					return emptyResult(context);
+				}
+				unRestrictedPartyIds = Arrays.asList(party.getId());
 			}
 		}
 		
@@ -309,6 +321,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 		filter.setIncludeStockItemName(includeStockItemName);
 		filter.setRequireNonExpiredStockBatches(requireNonExpiredStockBatches);
 		filter.setDate(date);
+		filter.setUnRestrictedPartyIds(unRestrictedPartyIds);
 		List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = new ArrayList<>();
 		if (stockItemId != null) {
 			if (partyIds == null) {
@@ -333,10 +346,24 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 				}
 			}
 		}
+		if (!hasItemFilter && stockBatchId != null) {
+			itemsToSearch.add(
+			    new StockItemInventorySearchFilter.ItemGroupFilter((Integer) null, (List<String>) null, stockBatchId));
+		}
 		filter.setItemGroupFilters(itemsToSearch);
-		//filter.setStartIndex(context.getStartIndex());
-		//filter.setLimit(context.getLimit());
+		if (itemsToSearch.isEmpty()) {
+			filter.setRequireItemGroupFilters(false);
+		}
+		boolean explicitPaging = context.getParameter("limit") != null || context.getParameter("startIndex") != null;
+		if (!hasItemFilter || explicitPaging) {
+			filter.setStartIndex(context.getStartIndex());
+			filter.setLimit(context.getLimit());
+		}
 		StockInventoryResult stockItemInventoryResult = getStockManagementService().getStockInventory(filter);
+		if (Boolean.parseBoolean(context.getParameter("totalCount")) && filter.getLimit() == null) {
+			stockItemInventoryResult.setTotalRecordCount((long) stockItemInventoryResult.getData().size());
+			stockItemInventoryResult.setLoadRecordCount(false);
+		}
 		return new StockInventoryPageableResult(context, stockItemInventoryResult, stockItemInventoryResult.hasMoreResults(),
 		        stockItemInventoryResult.getTotalRecordCount());
 	}

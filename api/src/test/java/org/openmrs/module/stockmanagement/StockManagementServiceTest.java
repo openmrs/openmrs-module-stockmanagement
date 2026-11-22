@@ -622,6 +622,89 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
+	public void getStockInventory_shouldReturnAllItemsWhenItemGroupFiltersAreNotRequired() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		StockItemTransaction transaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
+		transaction.setQuantity(BigDecimal.TEN);
+		dao().saveStockItemTransaction(transaction);
+		
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setRequireItemGroupFilters(false);
+		StockInventoryResult result = stockManagementService.getStockInventory(filter, null);
+		
+		assertTrue(result.getData().stream().anyMatch(p -> p.getStockItemId().equals(stockItem.getId())
+		        && p.getPartyId().equals(transaction.getParty().getId()) && p.getStockBatchId().equals(stockBatch.getId())));
+	}
+	
+	@Test
+	public void getStockInventory_shouldApplyRecordPrivilegesWithoutItemGroupFilters() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		StockItemTransaction transaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
+		dao().saveStockItemTransaction(transaction);
+		
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setRequireItemGroupFilters(false);
+		
+		RecordPrivilegeFilter allowed = new RecordPrivilegeFilter();
+		allowed.setLocationId(transaction.getParty().getLocation().getId());
+		StockInventoryResult allowedResult = stockManagementService.getStockInventory(filter,
+		    new HashSet<>(Arrays.asList(allowed)));
+		assertTrue(allowedResult.getData().stream().anyMatch(p -> p.getStockItemId().equals(stockItem.getId())));
+		
+		Location otherLocation = new Location();
+		otherLocation.setName("Other inventory privilege location");
+		otherLocation.setDescription("Used by getStockInventory_shouldApplyRecordPrivilegesWithoutItemGroupFilters");
+		Context.getLocationService().saveLocation(otherLocation);
+		Party otherParty = new Party();
+		otherParty.setLocation(otherLocation);
+		otherParty.setCreator(eu().getUser());
+		otherParty.setDateCreated(new Date());
+		dao().saveParty(otherParty);
+		
+		RecordPrivilegeFilter denied = new RecordPrivilegeFilter();
+		denied.setLocationId(otherLocation.getLocationId());
+		StockInventoryResult deniedResult = stockManagementService.getStockInventory(filter,
+		    new HashSet<>(Arrays.asList(denied)));
+		assertFalse(deniedResult.getData().stream().anyMatch(p -> p.getStockItemId().equals(stockItem.getId())));
+	}
+	
+	@Test
+	public void getStockInventory_shouldPageUnfilteredResultsAndCountThem() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch firstBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(firstBatch);
+		StockBatch secondBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(secondBatch);
+		dao().saveStockItemTransaction(eu().newStockItemTransaction(dao(), stockItem, firstBatch, packagingUom));
+		dao().saveStockItemTransaction(eu().newStockItemTransaction(dao(), stockItem, secondBatch, packagingUom));
+		
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setRequireItemGroupFilters(false);
+		filter.setStartIndex(0);
+		filter.setLimit(1);
+		StockInventoryResult result = stockManagementService.getStockInventory(filter, null);
+		
+		assertEquals(1, result.getData().size());
+		assertThat(result.getTotalRecordCount(), greaterThan(1L));
+	}
+	
+	@Test
 	public void findStockItemTransactions_shouldFilterOnAllCriteria() {
 		stockManagementService.setDao(dao());
 		StockItemTransaction so = eu().newStockItemTransaction(dao());
