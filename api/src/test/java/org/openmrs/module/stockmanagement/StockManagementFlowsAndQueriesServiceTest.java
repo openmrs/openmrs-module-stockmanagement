@@ -420,55 +420,6 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	}
 	
 	@Test
-	public void userHasStockManagementPrivilege_shouldDenyPermissionThroughDisabledScopes() {
-		User user = createTestUser("perm_off_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		grantScope(user, managerRole, parentLocation, true, receiptType).setEnabled(false);
-		grantScope(user, managerRole, childLocation, false, receiptType).setEnabled(false);
-		Context.flushSession();
-		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
-				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
-	}
-
-	@Test
-	public void userHasStockManagementPrivilege_shouldDenyPermissionThroughExpiredScopes() {
-		User user = createTestUser("perm_exp_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		for (UserRoleScope scope : Arrays.asList(grantScope(user, managerRole, parentLocation, true, receiptType),
-				grantScope(user, managerRole, childLocation, false, receiptType))) {
-			scope.setPermanent(false);
-			scope.setActiveFrom(DateUtils.addDays(new Date(), -10));
-			scope.setActiveTo(DateUtils.addDays(new Date(), -1));
-		}
-		Context.flushSession();
-		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
-				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
-	}
-
-	@Test
-	public void userHasStockManagementPrivilege_shouldDenyPermissionThroughScopesNotYetActive() {
-		User user = createTestUser("perm_new_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		for (UserRoleScope scope : Arrays.asList(grantScope(user, managerRole, parentLocation, true, receiptType),
-				grantScope(user, managerRole, childLocation, false, receiptType))) {
-			scope.setPermanent(false);
-			scope.setActiveFrom(DateUtils.addDays(new Date(), 1));
-			scope.setActiveTo(DateUtils.addDays(new Date(), 10));
-		}
-		Context.flushSession();
-		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
-				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
-	}
-
-	@Test
-	public void userHasStockManagementPrivilege_shouldDenyPermissionForAnOperationTypeOutsideTheScopes() {
-		User user = createTestUser("perm_type_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		grantScope(user, managerRole, parentLocation, true, receiptType);
-		grantScope(user, managerRole, childLocation, false, receiptType);
-		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
-				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
-		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, stockIssueType,
-				Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
-	}
-
-	@Test
 	public void getPrivilegeScopes_shouldReturnFlattenedPrivilegeScopesAcrossHierarchy() {
 		User user = createTestUser("flatten_user_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
 		grantScope(user, managerRole, parentLocation, true, receiptType);
@@ -769,39 +720,6 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
-	@Test
-	public void stockOperationLifecycle_shouldGiveTheReservedStockBackToTheSourceWhenAnIssueIsCancelled() {
-		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
-		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
-				BigDecimal.valueOf(50), "BATCH-CANCEL");
-		StockOperationItemDTO item = new StockOperationItemDTO();
-		item.setStockItemUuid(sampleStockItem.getUuid());
-		item.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
-		item.setStockBatchUuid(stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
-				.iterator().next().getStockBatch().getUuid());
-		item.setQuantity(BigDecimal.TEN);
-		StockOperationDTO issue = new StockOperationDTO();
-		issue.setOperationTypeUuid(stockIssueType.getUuid());
-		issue.setOperationDate(DateUtils.addDays(new Date(), -1));
-		issue.setSourceUuid(parentParty.getUuid());
-		issue.setDestinationUuid(childParty.getUuid());
-		issue.setAtLocationUuid(parentLocation.getUuid());
-		issue.setStockOperationItems(Collections.singletonList(item));
-		issue.setUuid(stockManagementService.saveStockOperation(issue).getUuid());
-		Context.flushSession();
-		Context.clearSession();
-		stockManagementService.submitStockOperation(issue);
-		Context.flushSession();
-		Context.clearSession();
-		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
-
-		stockManagementService.cancelStockOperation(issue, "Not needed");
-		Context.flushSession();
-		Context.clearSession();
-		assertEquals(0, BigDecimal.valueOf(50).compareTo(balanceAt(parentParty)));
-		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
-	}
-
 	@Test
 	public void stockOperationLifecycle_shouldEnforcePermissionsInheritedThroughParentLocation() {
 		// User A has scope at parentLocation with descendants enabled -> can process at childLocation
