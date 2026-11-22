@@ -140,7 +140,7 @@ Resources are served under `/ws/rest/v1/stockmanagement/`, for example `GET /ope
 
 The resource classes are in [`omod/src/main/java/org/openmrs/module/stockmanagement/web/resource`](omod/src/main/java/org/openmrs/module/stockmanagement/web/resource). The resource name is in the `@Resource` annotation of each class:
 
-- **Stock items**: `stockitem`, `stockitempackaginguom`, `stockitemreference`, `stockbatch`, `stockrule`
+- **Stock items**: `stockitem`, `stockitempackaginguom`, `stockitempackaginguomreference` (`master` only), `stockitemreference`, `stockbatch`, `stockrule`
 - **Inventory**: `stockiteminventory`, `stockitemtransaction`
 - **Stock operations**: `stockoperation`, `stockoperationitem`, `stockoperationaction`, `stockoperationactionlineitem`, `stockoperationlink`, `stockoperationitemcost`, `stockoperationbatchnumbers`, `stockoperationtype`, `stockoperationtypelocationscope`
 - **Sources and locations**: `stocksource`, `party`, `location`
@@ -181,7 +181,7 @@ mvn clean package -DskipTests
 ### Running tests
 
 ```bash
-mvn test
+mvn package
 ```
 
 The tests are in `api/src/test` and `omod/src/test`. On `master` they use JUnit 5 and the `jupiter` base test classes from OpenMRS core.
@@ -210,7 +210,7 @@ On a standalone server, replace the `.omod` in the `modules` folder of the appli
 
 - Tickets are in the [O3 project](https://openmrs.atlassian.net/browse/O3) in Jira.
 - Branch off `master`, or off `core-3.x` for changes that only apply to Platform 3. A fix that both lines need gets a pull request against each branch, and one against `3.x` too if it should ship in a 3.x release.
-- Pull requests are usually squash-merged, so the PR title becomes the commit message. Title them `(type) O3-1234: Summary of the change`, for example `(fix) O3-6201: Reject stock actions without an operation UUID`.
+- Pull requests are usually squash-merged. The squash commit takes the PR title, or the commit title when the PR has only one commit, so give both the title the [pull request template](.github/PULL_REQUEST_TEMPLATE.md) asks for, `O3-1234: Title of the Jira issue`, for example `O3-6307: Modernise the build`.
 - Add or update tests for the behaviour you change. CI runs the build on every pull request to `master` and `core-3.x`.
 - Report security issues privately. See [SECURITY.md](SECURITY.md).
 
