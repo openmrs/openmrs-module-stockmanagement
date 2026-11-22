@@ -2748,10 +2748,19 @@ public class StockManagementDao extends DaoBase {
 			result.setTotalRecordCount(count == null ? 0 : count);
 			result.setLoadRecordCount(false);
 		}
-		String orderByField = (groupByParty ? "sit.party.id"
-		        : (groupByStockItem ? "sit.stockItem.id" : (groupByStockBatch ? "sit.stockBatch.id" : "")));
-		result.setData(executeQuery(StockItemInventory.class, hqlQuery, result,
-		    filter.getLimit() != null ? " order by " + orderByField : null, parameterList, parameterWithList));
+		List<String> orderColumns = new ArrayList<>();
+		if (groupByParty) {
+			orderColumns.add("sit.party.id");
+		}
+		if (groupByStockItem) {
+			orderColumns.add("sit.stockItem.id");
+		}
+		if (groupByStockBatch) {
+			orderColumns.add("sit.stockBatch.id");
+		}
+		String orderBy = orderColumns.isEmpty() ? null : " order by " + String.join(", ", orderColumns);
+		result.setData(executeQuery(StockItemInventory.class, hqlQuery, result, filter.getLimit() != null ? orderBy : null,
+		    parameterList, parameterWithList));
 		
 		if ((!groupByStockBatch || filter.getAllowEmptyBatchInfo()) && filter.dispensing()) {
 			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : zeroStockQtyToReturn) {

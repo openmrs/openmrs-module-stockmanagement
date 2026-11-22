@@ -355,17 +355,47 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			filter.setRequireItemGroupFilters(false);
 		}
 		boolean explicitPaging = context.getParameter("limit") != null || context.getParameter("startIndex") != null;
-		if (!hasItemFilter || explicitPaging) {
-			filter.setStartIndex(context.getStartIndex());
-			filter.setLimit(context.getLimit());
+		boolean requestPaging = !hasItemFilter || explicitPaging;
+		boolean needsFullResultForPostProcessing = filter.getTotalBy() != null
+		        || (filter.dispensing() && !filter.getItemGroupFilters().isEmpty()
+		                && (!filter.getInventoryGroupBy()
+		                        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo)
+		                        || filter.getAllowEmptyBatchInfo()));
+		Integer requestedLimit = requestPaging ? context.getLimit() : null;
+		Integer requestedStartIndex = requestPaging ? context.getStartIndex() : null;
+		if (requestPaging && !needsFullResultForPostProcessing) {
+			filter.setStartIndex(requestedLimit != null && requestedLimit > 0 ? requestedStartIndex / requestedLimit : 0);
+			filter.setLimit(requestedLimit);
 		}
 		StockInventoryResult stockItemInventoryResult = getStockManagementService().getStockInventory(filter);
+		if (requestPaging && needsFullResultForPostProcessing) {
+			stockItemInventoryResult = pageInMemory(stockItemInventoryResult, requestedStartIndex, requestedLimit);
+		}
 		if (Boolean.parseBoolean(context.getParameter("totalCount")) && filter.getLimit() == null) {
 			stockItemInventoryResult.setTotalRecordCount((long) stockItemInventoryResult.getData().size());
 			stockItemInventoryResult.setLoadRecordCount(false);
 		}
 		return new StockInventoryPageableResult(context, stockItemInventoryResult, stockItemInventoryResult.hasMoreResults(),
 		        stockItemInventoryResult.getTotalRecordCount());
+	}
+	
+	private StockInventoryResult pageInMemory(StockInventoryResult result, Integer startIndex, Integer limit) {
+		if (result == null || result.getData() == null) {
+			return result;
+		}
+		List<StockItemInventory> data = result.getData();
+		int start = startIndex == null || startIndex < 0 ? 0 : startIndex;
+		int end = limit == null ? data.size() : Math.min(data.size(), start + limit);
+		if (start >= data.size()) {
+			result.setData(new ArrayList<>());
+		} else {
+			result.setData(new ArrayList<>(data.subList(start, end)));
+		}
+		result.setPageIndex(limit != null && limit > 0 ? start / limit : 0);
+		result.setPageSize(limit);
+		result.setTotalRecordCount((long) data.size());
+		result.setLoadRecordCount(false);
+		return result;
 	}
 	
 	@Override
