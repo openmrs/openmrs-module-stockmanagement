@@ -2614,10 +2614,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		Map<String, Integer> stockItemIds = dao.getStockItemIds(Arrays.asList(stockItemUuid));
 		if (stockItemIds.isEmpty())
 			return null;
-		for (Integer stockItemId : stockItemIds.values()) {
-			return getStockItemPackagingUOMByConcept(stockItemId, conceptId);
-		}
-		return null;
+		return getStockItemPackagingUOMByConcept(stockItemIds.values().iterator().next(), conceptId);
 	}
 	
 	public StockItemPackagingUOM getStockItemPackagingUOMByConcept(String stockItemUuid, String conceptUuid) {
@@ -2627,10 +2624,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		Map<String, Integer> stockItemIds = dao.getStockItemIds(Arrays.asList(stockItemUuid));
 		if (stockItemIds.isEmpty())
 			return null;
-		for (Integer stockItemId : stockItemIds.values()) {
-			return getStockItemPackagingUOMByConcept(stockItemId, concept.getId());
-		}
-		return null;
+		return getStockItemPackagingUOMByConcept(stockItemIds.values().iterator().next(), concept.getId());
 	}
 	
 	public List<OrderItem> getOrderItemsByOrder(Integer... orderIds) {

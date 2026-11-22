@@ -1453,7 +1453,7 @@ public class StockManagementDao extends DaoBase {
 				for (StockOperationItemDTO stockOperationItemDTO : result.getData()) {
 					
 					if (filter.getIncludePackagingUnitName()) {
-						Optional<ConceptNameDTO> conceptNameDTO = null;
+						Optional<ConceptNameDTO> conceptNameDTO = Optional.empty();
 						if (stockOperationItemDTO.getPackagingUoMId() != null
 						        && stockOperationItemDTO.getStockItemPackagingUOMUuid() != null) {
 							conceptNameDTO = conceptNameDTOs.stream()
@@ -3216,7 +3216,6 @@ public class StockManagementDao extends DaoBase {
 			        .map(p -> Arrays.asList(p.getPartyId(), p.getOperationSourcePartyId(),
 			            p.getOperationDestinationPartyId()))
 			        .flatMap(Collection::stream).filter(p -> p != null).distinct().collect(Collectors.toList());
-			namePartyIds.addAll(namePartyIds);
 			partySearchFilter.setPartyIds(namePartyIds);
 			Map<Integer, List<PartyDTO>> partyNameMap = findParty(partySearchFilter).getData().stream()
 			        .collect(Collectors.groupingBy(PartyDTO::getId));
@@ -3632,7 +3631,6 @@ public class StockManagementDao extends DaoBase {
 			List<Integer> nameLocationIds = result.getData().stream()
 			        .map(p -> Arrays.asList(p.getCreatedFrom(), p.getFulfilmentLocationId())).flatMap(Collection::stream)
 			        .filter(p -> p != null).distinct().collect(Collectors.toList());
-			nameLocationIds.addAll(nameLocationIds);
 			partySearchFilter.setLocationIds(nameLocationIds);
 			Map<Integer, List<PartyDTO>> partyNameMap = nameLocationIds.isEmpty() ? null
 			        : findParty(partySearchFilter).getData().stream()
