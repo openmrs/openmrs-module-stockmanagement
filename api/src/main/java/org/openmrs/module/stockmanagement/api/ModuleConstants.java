@@ -16,8 +16,6 @@ public class ModuleConstants {
 	 */
 	public static final String MODULE_ID = "stockmanagement";
 	
-	public static final String DEV_ENVIRONMENT = "dev";
-	
 	public static final String APP_DATA_WORKING_DIR = "stockmgmt";
 	
 }

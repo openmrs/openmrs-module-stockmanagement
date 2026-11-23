@@ -89,7 +89,7 @@ The MySQL trigger changesets are marked as `mysql` only, and on a MariaDB 10.11 
 
 ### Global properties
 
-The module declares 30 global properties, all prefixed with `stockmanagement.`. [`config.xml`](omod/src/main/resources/config.xml) has the full list with a description of each. These are the ones you are most likely to change:
+The module declares 18 global properties, all prefixed with `stockmanagement.`. [`config.xml`](omod/src/main/resources/config.xml) has the full list with a description of each. These are the ones you are most likely to change:
 
 | Property                                                          | Default | Description                                                                                                             |
 | ----------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -110,12 +110,6 @@ These properties have no default. Their use on `master` is shown below; prefix e
 | `stockOperationNotificationEmail` | Optional: send stock-operation emails to this address and to the role's users. Only works when `stockOperationNotificationRole` names an existing role, and needs the email template and SMTP settings. | A single valid email address |
 | `observationDispensingLocationConcept` | Optional: use with `observationDrugConcept` to resolve the fulfilment location from observations in prescription reports. | UUID of the concept used for the dispensing-location observation |
 | `observationDrugConcept` | Optional: use with `observationDispensingLocationConcept` to match the drug observation in the same observation group. | UUID of the concept used for the drug observation |
-| `stockSourceCodeConceptId` | Not used by the current backend. O3 uses `stockSourceTypeUUID` instead. | Leave unset |
-| `stockAdjustmentReasonCodeConceptId` | Not used by the current backend. O3 uses `stockAdjustmentReasonUUID` and `stockTakeReasonUUID` instead. | Leave unset |
-| `packagingUnitsConceptId` | Not used by the current backend. O3 uses `packingUnitsUUID` instead. | Leave unset |
-| `stockItemCategoryConceptId` | Not used by the current backend. O3 uses `stockItemCategoryUUID` instead. | Leave unset |
-| `printLogoText` | Not used by the current backend. | Leave unset |
-| `applicationRootUrl` | Not used by the current backend. | Leave unset |
 
 Stock operation alerts and emails are only sent for the operation types and actions that have notifications turned on. Liquibase turns them on for submit, approve and complete on Receipt and Transfer Out operations only, and they can't be changed over REST.
 
