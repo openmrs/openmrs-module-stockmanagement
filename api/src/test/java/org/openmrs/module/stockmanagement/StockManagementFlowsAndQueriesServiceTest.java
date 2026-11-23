@@ -393,6 +393,9 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		Context.flushSession();
 		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
 		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertFalse(stockManagementService
+		        .getActiveUsersAssignedForScope(childLocation.getId(), Collections.singletonList(managerRole.getRole()))
+		        .contains(user.getId()));
 	}
 	
 	@Test
@@ -407,6 +410,9 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		Context.flushSession();
 		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
 		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertFalse(stockManagementService
+		        .getActiveUsersAssignedForScope(childLocation.getId(), Collections.singletonList(managerRole.getRole()))
+		        .contains(user.getId()));
 	}
 	
 	@Test
@@ -421,6 +427,59 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		Context.flushSession();
 		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
 		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertFalse(stockManagementService
+		        .getActiveUsersAssignedForScope(childLocation.getId(), Collections.singletonList(managerRole.getRole()))
+		        .contains(user.getId()));
+	}
+	
+	@Test
+	public void userHasStockManagementPrivilege_shouldDenyPermissionAtALocationRemovedFromTheScopes() {
+		User user = createTestUser("perm_less_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		UserRoleScope inherited = grantScope(user, managerRole, parentLocation, true, receiptType);
+		UserRoleScope direct = grantScope(user, managerRole, childLocation, false, receiptType);
+		rescope(inherited, grandchildLocation, false, receiptType);
+		rescope(direct, grandchildLocation, false, receiptType);
+		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, grandchildLocation, receiptType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertFalse(stockManagementService
+		        .getActiveUsersAssignedForScope(childLocation.getId(), Collections.singletonList(managerRole.getRole()))
+		        .contains(user.getId()));
+	}
+	
+	@Test
+	public void userHasStockManagementPrivilege_shouldDenyPermissionForAnOperationTypeRemovedFromTheScopes() {
+		User user = createTestUser("perm_untype_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		UserRoleScope inherited = grantScope(user, managerRole, parentLocation, true, stockIssueType);
+		UserRoleScope direct = grantScope(user, managerRole, childLocation, false, stockIssueType);
+		rescope(inherited, parentLocation, true, receiptType);
+		rescope(direct, childLocation, false, receiptType);
+		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, stockIssueType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+	}
+	
+	private void rescope(UserRoleScope scope, Location location, boolean enableDescendants,
+	        StockOperationType operationType) {
+		UserRoleScopeDTO dto = new UserRoleScopeDTO();
+		dto.setUuid(scope.getUuid());
+		dto.setUserUuid(scope.getUser().getUuid());
+		dto.setRole(scope.getRole().getRole());
+		dto.setPermanent(true);
+		dto.setEnabled(true);
+		UserRoleScopeLocationDTO locDto = new UserRoleScopeLocationDTO();
+		locDto.setLocationUuid(location.getUuid());
+		locDto.setEnableDescendants(enableDescendants);
+		dto.setLocations(Collections.singletonList(locDto));
+		UserRoleScopeOperationTypeDTO opDto = new UserRoleScopeOperationTypeDTO();
+		opDto.setOperationTypeUuid(operationType.getUuid());
+		dto.setOperationTypes(Collections.singletonList(opDto));
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.saveUserRoleScope(dto);
+		Context.flushSession();
 	}
 	
 	@Test
@@ -558,6 +617,9 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	
 	@Test
 	public void stockOperationLifecycle_shouldSubmitDispatchAndCompleteOperationRequiringDispatch() {
+		User sourceOnly = createTestUser("source_only_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(sourceOnly, managerRole, parentLocation, false, stockIssueType);
+		
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		
 		// First ensure parent location has stock
@@ -604,6 +666,16 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertNotNull("dispatchedDate must be recorded", dispatched.getDispatchedDate());
 		
 		// 3. COMPLETE
+		Context.authenticate(sourceOnly.getUsername(), "TestPassword123!");
+		try {
+			stockManagementService.completeStockOperation(issueDto);
+			fail("Only a user scoped at the destination can receive the items");
+		}
+		catch (StockManagementException e) {
+			assertEquals(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.nopermission"),
+			    e.getMessage());
+		}
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		stockManagementService.completeStockOperation(issueDto);
 		Context.flushSession();
 		Context.clearSession();
@@ -622,6 +694,51 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		        Collections.singletonList(party.getId()), sampleStockItem.getId(), null)));
 		return stockManagementService.getStockInventory(filter, null).getData().stream().map(StockItemInventory::getQuantity)
 		        .reduce(BigDecimal.ZERO, BigDecimal::add);
+	}
+	
+	@Test
+	public void stockOperationLifecycle_shouldGiveTheReservedStockBackToTheSourceWhenAnIssueIsRejectedOrReturned() {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(50), "BATCH-UNDO");
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		StockOperationDTO rejected = submitIssueOfTen(batchUuid);
+		StockOperationDTO returned = submitIssueOfTen(batchUuid);
+		assertEquals(0, BigDecimal.valueOf(30).compareTo(balanceAt(parentParty)));
+		
+		stockManagementService.rejectStockOperation(rejected, "Not needed");
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		
+		stockManagementService.returnStockOperation(returned, "Wrong quantity");
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, BigDecimal.valueOf(50).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
+	}
+	
+	private StockOperationDTO submitIssueOfTen(String batchUuid) {
+		StockOperationItemDTO item = new StockOperationItemDTO();
+		item.setStockItemUuid(sampleStockItem.getUuid());
+		item.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		item.setStockBatchUuid(batchUuid);
+		item.setQuantity(BigDecimal.TEN);
+		StockOperationDTO issue = new StockOperationDTO();
+		issue.setOperationTypeUuid(stockIssueType.getUuid());
+		issue.setOperationDate(DateUtils.addDays(new Date(), -1));
+		issue.setSourceUuid(parentParty.getUuid());
+		issue.setDestinationUuid(childParty.getUuid());
+		issue.setAtLocationUuid(parentLocation.getUuid());
+		issue.setStockOperationItems(Collections.singletonList(item));
+		issue.setUuid(stockManagementService.saveStockOperation(issue).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(issue);
+		Context.flushSession();
+		Context.clearSession();
+		return issue;
 	}
 	
 	@Test
@@ -814,13 +931,18 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		stockManagementService.submitStockOperation(dto);
 		Context.flushSession();
 		Context.clearSession();
-		try {
-			stockManagementService.approveStockOperation(dto);
-			fail("The role scoped to the child location cannot approve");
-		}
-		catch (StockManagementException e) {
-			assertEquals(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.nopermission"),
-			    e.getMessage());
+		for (Runnable action : Arrays.<Runnable> asList(() -> stockManagementService.approveStockOperation(dto),
+		    () -> stockManagementService.rejectStockOperation(dto, "No"),
+		    () -> stockManagementService.returnStockOperation(dto, "No"),
+		    () -> stockManagementService.cancelStockOperation(dto, "No"))) {
+			try {
+				action.run();
+				fail("The role scoped to the child location can only submit");
+			}
+			catch (StockManagementException e) {
+				assertEquals(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.nopermission"),
+				    e.getMessage());
+			}
 		}
 	}
 	
