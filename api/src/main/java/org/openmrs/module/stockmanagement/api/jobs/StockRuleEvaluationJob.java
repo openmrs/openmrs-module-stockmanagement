@@ -18,6 +18,7 @@ import org.openmrs.Role;
 import org.openmrs.User;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleNotificationUser;
@@ -36,8 +37,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StockRuleEvaluationJob extends AbstractTask {
-	
-	private static final String QUANTITY_FORMAT = "#,###,###,##0.##";
 	
 	private static final AtomicBoolean isAlreadyRunning = new AtomicBoolean(false);
 	
@@ -261,13 +260,13 @@ public class StockRuleEvaluationJob extends AbstractTask {
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;</td>");
 					stringBuilder.append(String.format(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-bottom:solid 1px grey;border-right:solid 1px grey;'>%1s %2s</td>",
-					    new DecimalFormat(QUANTITY_FORMAT).format(quantityRule),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(quantityRule),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;</td>");
 					stringBuilder.append(String.format(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-bottom:solid 1px grey;'>%1s %2s</td>",
-					    new DecimalFormat(QUANTITY_FORMAT).format(currentQuantity),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(currentQuantity),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append("</tr>");
 				} else {
@@ -282,12 +281,12 @@ public class StockRuleEvaluationJob extends AbstractTask {
 					stringBuilder.append("<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;'>&nbsp;</td>");
 					stringBuilder.append(String.format(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-right:solid 1px grey;'>%1s %2s</td>",
-					    new DecimalFormat(QUANTITY_FORMAT).format(quantityRule),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(quantityRule),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append("<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;'>&nbsp;</td>");
 					stringBuilder.append(
 					    String.format("<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;'>%1s %2s</td>",
-					        new DecimalFormat(QUANTITY_FORMAT).format(currentQuantity),
+					        new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(currentQuantity),
 					        conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append("</tr>");
 				}
@@ -387,9 +386,9 @@ public class StockRuleEvaluationJob extends AbstractTask {
 					    "Stock alert: %1$s at %2$s currently %3$s %4$s at or below threshold %5$s %4$s",
 					    stockItemNames.getOrDefault(rule.getStockItemId(), ""),
 					    locationNames.getOrDefault(rule.getLocationId(), ""),
-					    new DecimalFormat(QUANTITY_FORMAT).format(currentQuantity),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(currentQuantity),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), ""),
-					    new DecimalFormat(QUANTITY_FORMAT).format(quantityRule));
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(quantityRule));
 					
 					Alert alert = new Alert(alertLine, user);
 					alert.setDateToExpire(DateUtils.addDays(new Date(), 7));

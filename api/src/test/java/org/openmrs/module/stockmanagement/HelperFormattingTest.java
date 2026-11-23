@@ -10,6 +10,7 @@
 package org.openmrs.module.stockmanagement;
 
 import org.junit.jupiter.api.Test;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 
 import java.math.BigDecimal;
@@ -31,10 +32,11 @@ public class HelperFormattingTest {
 			        { "12345678901234567890.125", "12,345,678,901,234,567,890.12" }, { "1.235", "1.24" },
 			        { "1.225", "1.22" }, { "12.5000", "12.5" }, { "0.001", "0" }, { "-0.001", "-0" } };
 			for (String[] example : examples) {
-				assertEquals(example[1], new DecimalFormat("#,###,###,##0.##").format(new BigDecimal(example[0])),
-				    example[0]);
+				assertEquals(example[1],
+				    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(new BigDecimal(example[0])), example[0]);
 			}
-			assertThrows(IllegalArgumentException.class, () -> new DecimalFormat("#,###,###,##0.##").format((Object) null));
+			assertThrows(IllegalArgumentException.class,
+			    () -> new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format((Object) null));
 		}
 		finally {
 			Locale.setDefault(Locale.Category.FORMAT, previous);
@@ -46,10 +48,14 @@ public class HelperFormattingTest {
 		Locale previous = Locale.getDefault(Locale.Category.FORMAT);
 		try {
 			Locale.setDefault(Locale.Category.FORMAT, Locale.US);
-			assertEquals("0", new DecimalFormat("#,###,###,##0").format(0));
-			assertEquals("-1,234", new DecimalFormat("#,###,###,##0").format(-1234));
-			assertEquals("2,147,483,647", new DecimalFormat("#,###,###,##0").format(Integer.MAX_VALUE));
-			assertThrows(IllegalArgumentException.class, () -> new DecimalFormat("#,###,###,##0").format((Object) null));
+			ReportGenerator report = new ReportGenerator() {};
+			Properties properties = new Properties();
+			int[][] examples = { { 0 }, { -1234 }, { Integer.MAX_VALUE } };
+			String[] expected = { "0", "-1,234", "2,147,483,647" };
+			for (int i = 0; i < examples.length; i++) {
+				report.setRecordsProcessed(properties, examples[i][0]);
+				assertEquals(expected[i], properties.getProperty("param.RecordsProcessed.value.desc"));
+			}
 		}
 		finally {
 			Locale.setDefault(Locale.Category.FORMAT, previous);

@@ -19,6 +19,7 @@ import org.openmrs.api.LocationService;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.StockLocationTags;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -54,9 +55,8 @@ import java.util.stream.Stream;
 
 public class StockManagementServiceImpl extends BaseOpenmrsService implements StockManagementService {
 	
-	private static final String QUANTITY_FORMAT = "#,###,###,##0.##";
-	
-	// Preserve the notification email rules, including the two-to-seven-letter TLD limit.
+	// Preserve the notification email rules, including the two-to-seven-letter TLD limit. Possessive quantifiers
+	// give the same matches without backtracking, so a long address cannot overflow the stack.
 	private static final Pattern EMAIL_PATTERN = Pattern
 	        .compile("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*+@(?:[a-zA-Z0-9-]+\\.)++[a-zA-Z]{2,7}$");
 	
@@ -1710,7 +1710,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				errors.add(String.format(
 				    messageSourceService.getMessage("stockmanagement.stockoperation.itembatchbalancenegativeafteroperation"),
 				    stockItemName, stockOperationItem.getStockBatch().getBatchNo(),
-				    new DecimalFormat(QUANTITY_FORMAT).format(displayUnitValue), displayUom));
+				    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(displayUnitValue), displayUom));
 			}
 		}
 		if (!errors.isEmpty()) {
@@ -2333,7 +2333,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 						    messageSourceService
 						            .getMessage("stockmanagement.stockoperation.itembatchbalancenegativeafteroperation"),
 						    stockItemName, stockBatch.getBatchNo(),
-						    new DecimalFormat(QUANTITY_FORMAT).format(displayUnitValue), displayUom));
+						    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(displayUnitValue), displayUom));
 					}
 				}
 				if (!errors.isEmpty()) {
