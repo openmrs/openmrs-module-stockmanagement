@@ -496,34 +496,6 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	public void saveStockSource_shouldSaveAllProperties() {
-		//Given
-		StockSource stockSource = eu().newStockSource(dao());
-		
-		//When
-		dao().saveStockSource(stockSource);
-		
-		//Let's clean up the cache to be sure getStockSourceByUuid fetches from DB and not from cache
-		Context.flushSession();
-		Context.flushSession();
-		
-		//Then
-		StockSource savedStockSource = dao().getStockSourceByUuid(stockSource.getUuid());
-		assertThat(savedStockSource, hasProperty("uuid", is(stockSource.getUuid())));
-		assertThat(savedStockSource, hasProperty("creator", is(stockSource.getCreator())));
-		assertThat(savedStockSource, hasProperty("dateCreated", is(stockSource.getDateCreated())));
-		assertThat(savedStockSource, hasProperty("changedBy", is(stockSource.getChangedBy())));
-		assertThat(savedStockSource, hasProperty("dateChanged", is(stockSource.getDateChanged())));
-		assertThat(savedStockSource, hasProperty("voided", is(stockSource.getVoided())));
-		assertThat(savedStockSource, hasProperty("dateVoided", is(stockSource.getDateVoided())));
-		assertThat(savedStockSource, hasProperty("voidedBy", is(stockSource.getVoidedBy())));
-		assertThat(savedStockSource, hasProperty("voidReason", is(stockSource.getVoidReason())));
-		assertThat(savedStockSource, hasProperty("name", is(stockSource.getName())));
-		assertThat(savedStockSource, hasProperty("acronym", is(stockSource.getAcronym())));
-		assertThat(savedStockSource, hasProperty("sourceType", is(stockSource.getSourceType())));
-	}
-	
-	@Test
 	public void saveParty_shouldSaveAllProperties() {
 		//Given
 		Party party = eu().newParty(dao());
@@ -689,7 +661,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		//Given
 		StockSource stockSource = eu().newStockSource(dao());
 		stockSource.setVoided(false);
-		dao().saveStockSource(stockSource);
+		Context.getService(org.openmrs.module.stockmanagement.api.StockSourceService.class).saveStockSource(stockSource);
 		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
 		
 		//Let's clean up the cache to be sure getStockItemPackagingUomReferenceByUuid fetches from DB and not from cache
@@ -713,7 +685,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		//Given
 		StockSource stockSource = eu().newStockSource(dao());
 		stockSource.setVoided(false);
-		dao().saveStockSource(stockSource);
+		Context.getService(org.openmrs.module.stockmanagement.api.StockSourceService.class).saveStockSource(stockSource);
 		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
 		
 		StockItemPackagingUomReference voidedReference = eu().newStockItemPackagingUomReference(dao(),
@@ -735,12 +707,12 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		//Given
 		StockSource stockSource = eu().newStockSource(dao());
 		stockSource.setVoided(false);
-		dao().saveStockSource(stockSource);
+		Context.getService(org.openmrs.module.stockmanagement.api.StockSourceService.class).saveStockSource(stockSource);
 		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
 		
 		StockSource otherSource = eu().newStockSource(dao());
 		otherSource.setVoided(false);
-		dao().saveStockSource(otherSource);
+		Context.getService(org.openmrs.module.stockmanagement.api.StockSourceService.class).saveStockSource(otherSource);
 		StockItemPackagingUomReference otherSourceReference = createNonVoidedReference(dao(), otherSource);
 		otherSourceReference.setStockReferenceCode(reference.getStockReferenceCode());
 		dao().saveStockItemPackagingUomReference(otherSourceReference);
@@ -759,7 +731,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		//Given
 		StockSource stockSource = eu().newStockSource(dao());
 		stockSource.setVoided(false);
-		dao().saveStockSource(stockSource);
+		Context.getService(org.openmrs.module.stockmanagement.api.StockSourceService.class).saveStockSource(stockSource);
 		StockItemPackagingUomReference reference = createNonVoidedReference(dao(), stockSource);
 		
 		//When

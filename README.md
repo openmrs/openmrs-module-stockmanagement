@@ -69,7 +69,7 @@ Email notifications also require SMTP configuration and valid recipient email ad
 
 ### Privileges
 
-The module declares 17 privileges in [`config.xml`](omod/src/main/resources/config.xml), and OpenMRS creates them when the module starts. `App: stockmanagement.*` privileges allow viewing, for example `App: stockmanagement.stockItems`. Most `Task: stockmanagement.*` privileges allow changes, for example `Task: stockmanagement.stockoperations.approve`. The same names are constants in [`Privileges.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/Privileges.java), and most of the service methods in [`StockManagementService.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/StockManagementService.java) are annotated with the privilege they need.
+The module declares 17 privileges in [`config.xml`](omod/src/main/resources/config.xml), and OpenMRS creates them when the module starts. `App: stockmanagement.*` privileges allow viewing, for example `App: stockmanagement.stockItems`. Most `Task: stockmanagement.*` privileges allow changes, for example `Task: stockmanagement.stockoperations.approve`. The same names are constants in [`Privileges.java`](api/src/main/java/org/openmrs/module/stockmanagement/api/Privileges.java), and service methods across domain services (such as `StockSourceService` and `StockManagementService`) are annotated with the privilege they need.
 
 The module does not create roles. Assign the privileges to roles of your own. A user who requests reports also needs core's `Manage Scheduler` privilege, because queuing a report looks up the report task through the scheduler.
 
@@ -179,6 +179,16 @@ mvn package
 ```
 
 The tests are in `api/src/test` and `omod/src/test`. On `master` they use JUnit 5 and the `jupiter` base test classes from OpenMRS core.
+
+### Architecture and Domain Services
+
+The module is structured into dedicated domain services and DAOs following standard OpenMRS conventions (modelled after the Billing module):
+
+- **Service Interface and Implementation**: Each domain defines a service interface in `org.openmrs.module.stockmanagement.api` (e.g. `StockSourceService`) extending `OpenmrsService`, with its implementation in `api.impl` (e.g. `StockSourceServiceImpl`) extending `BaseOpenmrsService`. Service methods declare required privileges using `@Authorized`.
+- **Data Access Object (DAO)**: A DAO interface in `org.openmrs.module.stockmanagement.api.db` (e.g. `StockSourceDAO`) with its Hibernate implementation in `api.db.hibernate` (e.g. `HibernateStockSourceDAO`) extending `DaoBase`.
+- **Search Criteria**: Domain-specific criteria classes in `api.search` (e.g. `StockSourceSearch`) encapsulate search filters, while pagination is managed via `IPagingInfo`.
+- **Spring Wiring**: Beans are configured in `moduleApplicationContext.xml` with transaction proxying and registered in `serviceContext`.
+- **REST Resources**: Web resources delegate directly to domain services instead of `StockManagementService`.
 
 ### Deploying to a local backend
 

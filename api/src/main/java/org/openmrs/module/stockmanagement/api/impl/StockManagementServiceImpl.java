@@ -21,6 +21,7 @@ import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.api.context.Context;
@@ -454,7 +455,21 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		stockItem.setExpiryNotice(stockItemDTO.getExpiryNotice());
 		
 		if (!StringUtils.isBlank(stockItemDTO.getPreferredVendorUuid())) {
-			StockSource stockSource = getStockSourceByUuid(stockItemDTO.getPreferredVendorUuid());
+			boolean proxied = false;
+			StockSource stockSource;
+			try {
+				if (!Context.hasPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKSOURCES)) {
+					Context.addProxyPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKSOURCES);
+					proxied = true;
+				}
+				stockSource = Context.getService(StockSourceService.class)
+				        .getStockSourceByUuid(stockItemDTO.getPreferredVendorUuid());
+			}
+			finally {
+				if (proxied) {
+					Context.removeProxyPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKSOURCES);
+				}
+			}
 			if (stockSource == null) {
 				invalidRequest("stockmanagement.stockitem.preferredvendornoexist");
 			}
@@ -674,37 +689,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		return result;
 	}
 	
-	public StockSource getStockSourceByUuid(String uuid) {
-		return dao.getStockSourceByUuid(uuid);
-	}
-	
-	public StockSource saveStockSource(StockSource stockSource) {
-		if (stockSource.getId() != null && stockSource.getId() > 0) {
-			stockSource.setChangedBy(Context.getAuthenticatedUser());
-			stockSource.setDateChanged(new Date());
-		}
-		StockSource result = dao.saveStockSource(stockSource);
-		Party party = dao.getPartyByStockSource(result);
-		if (party == null) {
-			party = new Party();
-			party.setStockSource(result);
-			party.setCreator(Context.getAuthenticatedUser());
-			party.setDateCreated(new Date());
-			dao.saveParty(party);
-		}
-		return result;
-	}
-	
 	public Result<StockOperationLinkDTO> findStockOperationLinks(String stockOperationUuid) {
 		return dao.findStockOperationLinks(stockOperationUuid);
-	}
-	
-	public Result<StockSource> findStockSources(StockSourceSearchFilter filter) {
-		return dao.findStockSources(filter);
-	}
-	
-	public void voidStockSources(List<String> stockSourceIds, String reason, int voidedBy) {
-		dao.voidStockSources(stockSourceIds, reason, voidedBy);
 	}
 	
 	public Party getPartyByStockSource(StockSource stockSource) {
@@ -3535,7 +3521,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		}
 		
 		StockSource referenceSource = stockItemPackagingUomReference.getReferenceSource();
-		StockSource storedSource = referenceSource == null ? null : dao.getStockSourceByUuid(referenceSource.getUuid());
+		StockSource storedSource = referenceSource == null ? null
+		        : Context.getService(StockSourceService.class).getStockSourceByUuid(referenceSource.getUuid());
 		if (referenceSource == null || referenceSource.getId() == null || storedSource == null) {
 			throw new APIException("Stock source is required and must exist");
 		}
@@ -3621,7 +3608,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	@Override
 	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesBySourceAndCode(String stockSourceUuid,
 	        String stockReferenceCode) {
-		StockSource stockSource = getStockSourceByUuid(stockSourceUuid);
+		StockSource stockSource = Context.getService(StockSourceService.class).getStockSourceByUuid(stockSourceUuid);
 		if (stockSource == null) {
 			//a stale source uuid is just an empty result, matching the stale packaging uuid lookup
 			return Collections.emptyList();

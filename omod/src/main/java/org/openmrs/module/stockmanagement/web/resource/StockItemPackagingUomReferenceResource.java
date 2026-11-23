@@ -18,6 +18,7 @@ import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUomReferenceDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUomReference;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -257,7 +258,8 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 				reference = new StockItemPackagingUomReference();
 				reference.setStockItemPackagingUOM(
 				    stockManagementService.getStockItemPackagingUOMByUuid(dto.getStockItemPackagingUomUuid()));
-				reference.setReferenceSource(stockManagementService.getStockSourceByUuid(dto.getStockSourceUuid()));
+				reference.setReferenceSource(
+				    Context.getService(StockSourceService.class).getStockSourceByUuid(dto.getStockSourceUuid()));
 			}
 			reference.setStockReferenceCode(dto.getReferenceCode());
 			reference.setName(dto.getName());

@@ -17,8 +17,10 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.search.StockSourceSearch;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
@@ -39,9 +41,22 @@ import java.util.*;
                 "1.12.*", "2.*" })
 public class StockSourceResource extends ResourceBase<StockSource> {
 	
+	private StockSourceService stockSourceService;
+	
+	protected StockSourceService getStockSourceService() {
+		if (stockSourceService == null) {
+			stockSourceService = Context.getService(StockSourceService.class);
+		}
+		return stockSourceService;
+	}
+	
+	public void setStockSourceService(StockSourceService stockSourceService) {
+		this.stockSourceService = stockSourceService;
+	}
+	
 	@Override
 	public StockSource getByUniqueId(String uniqueId) {
-		return getStockManagementService().getStockSourceByUuid(uniqueId);
+		return getStockSourceService().getStockSourceByUuid(uniqueId);
 	}
 	
 	@Override
@@ -62,20 +77,17 @@ public class StockSourceResource extends ResourceBase<StockSource> {
 				stockSourcesToDelete.add(id);
 			}
 		}
-		getStockManagementService().voidStockSources(stockSourcesToDelete, reason,
-		    Context.getAuthenticatedUser().getUserId());
+		getStockSourceService().voidStockSources(stockSourcesToDelete, reason, Context.getAuthenticatedUser().getUserId());
 	}
 	
 	@Override
 	protected PageableResult doSearch(RequestContext context) {
-		StockSourceSearchFilter filter = new StockSourceSearchFilter();
-		filter.setIncludeVoided(context.getIncludeAll());
-		filter.setStartIndex(context.getStartIndex());
-		filter.setLimit(context.getLimit());
+		StockSourceSearch search = new StockSourceSearch();
+		search.setIncludeVoided(context.getIncludeAll());
 		
 		String param = context.getParameter("q");
 		if (StringUtils.isNotBlank(param))
-			filter.setTextSearch(param);
+			search.setTextSearch(param);
 		
 		param = context.getParameter("sourceTypeUuid");
 		if (StringUtils.isNotBlank(param)) {
@@ -83,20 +95,26 @@ public class StockSourceResource extends ResourceBase<StockSource> {
 			if (sourceType == null) {
 				return emptyResult(context);
 			}
-			filter.setSourceType(sourceType);
+			search.setSourceType(sourceType);
 		}
-		Result<StockSource> result = getStockManagementService().findStockSources(filter);
-		result.getData().sort(Comparator.comparing(p -> p.getName().toLowerCase()));
+		Result<StockSource> result = new Result<>();
+		if (context.getLimit() != null) {
+			result.setPageIndex(context.getStartIndex());
+			result.setPageSize(context.getLimit());
+		}
+		List<StockSource> stockSources = getStockSourceService().getStockSources(search, result);
+		stockSources.sort(Comparator.comparing(p -> p.getName().toLowerCase()));
+		result.setData(stockSources);
 		return toAlreadyPaged(result, context);
 	}
 	
 	@Override
 	protected PageableResult doGetAll(RequestContext context) throws ResponseException {
-		StockSourceSearchFilter filter = new StockSourceSearchFilter();
-		filter.setIncludeVoided(context.getIncludeAll());
-		Result<StockSource> result = getStockManagementService().findStockSources(filter);
-		result.getData().sort(Comparator.comparing(p -> p.getName().toLowerCase()));
-		return toAlreadyPaged(result, context);
+		StockSourceSearch search = new StockSourceSearch();
+		search.setIncludeVoided(context.getIncludeAll());
+		List<StockSource> stockSources = getStockSourceService().getStockSources(search);
+		stockSources.sort(Comparator.comparing(p -> p.getName().toLowerCase()));
+		return toAlreadyPaged(stockSources, context);
 	}
 	
 	@Override
@@ -106,7 +124,7 @@ public class StockSourceResource extends ResourceBase<StockSource> {
 	
 	@Override
 	public StockSource save(StockSource delegate) {
-		return getStockManagementService().saveStockSource(delegate);
+		return getStockSourceService().saveStockSource(delegate);
 	}
 	
 	@Override

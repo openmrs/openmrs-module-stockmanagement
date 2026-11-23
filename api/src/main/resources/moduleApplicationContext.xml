@@ -58,4 +58,40 @@
             </list>
         </property>
     </bean>
+
+    <!-- Wraps StockSourceService methods in DB transactions and OpenMRS interceptors -->
+    <bean id="stockmanagement.StockSourceService"
+            class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager">
+            <ref bean="transactionManager" />
+        </property>
+        <property name="target">
+            <bean class="org.openmrs.module.stockmanagement.api.impl.StockSourceServiceImpl">
+                <property name="dao">
+                    <bean class="${project.parent.groupId}.${project.parent.artifactId}.api.db.hibernate.HibernateStockSourceDAO">
+                        <property name="sessionFactory">
+                            <ref bean="dbSessionFactory" />
+                        </property>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+        <property name="preInterceptors">
+            <ref bean="serviceInterceptors" />
+        </property>
+        <property name="transactionAttributeSource">
+            <ref bean="transactionAttributeSource" />
+        </property>
+    </bean>
+
+    <!-- Adds StockSourceService to OpenMRS context so it can be accessed
+    calling Context.getService(StockSourceService.class) -->
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>org.openmrs.module.stockmanagement.api.StockSourceService</value>
+                <ref bean="stockmanagement.StockSourceService" />
+            </list>
+        </property>
+    </bean>
 </beans>

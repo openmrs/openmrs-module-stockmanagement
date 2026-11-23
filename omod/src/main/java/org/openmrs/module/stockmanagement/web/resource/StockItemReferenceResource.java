@@ -15,6 +15,7 @@ import io.swagger.models.properties.StringProperty;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemReferenceDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemReference;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -189,7 +190,8 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 			if (stockItemReference == null) {
 				stockItemReference = new StockItemReference();
 			}
-			stockItemReference.setReferenceSource(stockManagementService.getStockSourceByUuid(dto.getStockSourceUuid()));
+			stockItemReference.setReferenceSource(
+			    Context.getService(StockSourceService.class).getStockSourceByUuid(dto.getStockSourceUuid()));
 			stockItemReference.setStockItem(stockManagementService.getStockItemByUuid(dto.getStockItemUuid()));
 			stockItemReference.setStockReferenceCode(dto.getReferenceCode());
 			return stockItemReference;

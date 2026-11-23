@@ -200,22 +200,6 @@ public interface StockManagementService extends OpenmrsService {
 	Result<StockOperationLinkDTO> getParentStockOperationLinks(String stockOperationUuid);
 	
 	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKSOURCES)
-	StockSource getStockSourceByUuid(String uuid);
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKSOURCES)
-	Result<StockSource> findStockSources(StockSourceSearchFilter filter);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKSOURCES_MUTATE)
-	StockSource saveStockSource(StockSource stockSource);
-	
-	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKSOURCES_MUTATE)
-	void voidStockSources(List<String> stockSourceIds, String reason, int voidedBy);
-	
-	@Transactional(readOnly = true)
 	Party getPartyByStockSource(StockSource stockSource);
 	
 	@Transactional(readOnly = true)

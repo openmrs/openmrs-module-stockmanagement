@@ -25,6 +25,8 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -368,49 +370,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		recordPrivilegeFilters.add(recordPrivilegeFilter);
 		result = dao().findStockOperations(filter, recordPrivilegeFilters);
 		assertFalse(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-	}
-	
-	@Test
-	public void findStockSources_shouldFilterOnAllCriteria() {
-		stockManagementService.setDao(dao());
-		StockSource so = eu().newStockSource(dao());
-		so.setVoided(false);
-		daoInstance.saveStockSource(so);
-		StockSourceSearchFilter filter = new StockSourceSearchFilter();
-		filter.setLimit(10);
-		filter.setStartIndex(0);
-		Result<StockSource> result = stockManagementService.findStockSources(filter);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		
-		filter = new StockSourceSearchFilter();
-		filter.setTextSearch(so.getName().substring(0, Math.min(3, so.getName().length())));
-		result = stockManagementService.findStockSources(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockSourceSearchFilter();
-		filter.setTextSearch(so.getName());
-		result = stockManagementService.findStockSources(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockSourceSearchFilter();
-		filter.setTextSearch(so.getAcronym().substring(0, Math.min(3, so.getAcronym().length())));
-		result = stockManagementService.findStockSources(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockSourceSearchFilter();
-		filter.setTextSearch(so.getAcronym());
-		result = stockManagementService.findStockSources(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockSourceSearchFilter();
-		filter.setSourceType(so.getSourceType());
-		result = stockManagementService.findStockSources(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
-		
-		filter = new StockSourceSearchFilter();
-		filter.setIncludeVoided(so.getVoided());
-		result = stockManagementService.findStockSources(filter);
-		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
 	}
 	
 	@Test
@@ -1524,7 +1483,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	private StockSource createNonVoidedStockSource() {
 		StockSource stockSource = eu().newStockSource(dao());
 		stockSource.setVoided(false);
-		dao().saveStockSource(stockSource);
+		Context.getService(StockSourceService.class).saveStockSource(stockSource);
 		return stockSource;
 	}
 	
@@ -2018,7 +1977,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		
 		StockSource stockSource = createNonVoidedStockSource();
 		stockSource.setVoided(true);
-		dao().saveStockSource(stockSource);
+		Context.getService(StockSourceService.class).saveStockSource(stockSource);
 		Context.flushSession();
 		Context.clearSession();
 		
@@ -2042,7 +2001,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
 		StockSource stockSource = savedReference.getReferenceSource();
 		stockSource.setVoided(true);
-		dao().saveStockSource(stockSource);
+		Context.getService(StockSourceService.class).saveStockSource(stockSource);
 		Context.flushSession();
 		Context.clearSession();
 		

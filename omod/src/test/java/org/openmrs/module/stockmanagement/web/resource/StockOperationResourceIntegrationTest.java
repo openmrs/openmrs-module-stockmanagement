@@ -176,12 +176,9 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		// receipts originate from a stock source (source_type Other), not a location
 		org.openmrs.module.stockmanagement.api.model.StockSource stockSource = eu().newStockSource(dao());
 		stockSource.setVoided(false);
-		dao().saveStockSource(stockSource);
-		org.openmrs.module.stockmanagement.api.model.Party sourceParty = new org.openmrs.module.stockmanagement.api.model.Party();
-		sourceParty.setStockSource(stockSource);
-		sourceParty.setCreator(eu().getUser());
-		sourceParty.setDateCreated(new Date());
-		dao().saveParty(sourceParty);
+		org.openmrs.api.context.Context.getService(org.openmrs.module.stockmanagement.api.StockSourceService.class)
+		        .saveStockSource(stockSource);
+		org.openmrs.module.stockmanagement.api.model.Party sourceParty = dao().getPartyByStockSource(stockSource);
 		dto.setSourceUuid(sourceParty.getUuid());
 		dto.setDestinationUuid(eu().getParty(dao()).getUuid());
 		

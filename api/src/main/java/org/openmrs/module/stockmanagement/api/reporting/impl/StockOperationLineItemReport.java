@@ -16,6 +16,7 @@ import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItemFilter;
@@ -97,7 +98,7 @@ public abstract class StockOperationLineItemReport extends ReportGenerator {
 			}
 			
 			if (!StringUtils.isBlank(stockSourceUuid)) {
-				StockSource stockSource = stockManagementService.getStockSourceByUuid(stockSourceUuid);
+				StockSource stockSource = Context.getService(StockSourceService.class).getStockSourceByUuid(stockSourceUuid);
 				if (stockSource == null) {
 					stockManagementService.failBatchJob(batchJob.getUuid(), "Report source parameter not found");
 					return;
@@ -112,7 +113,8 @@ public abstract class StockOperationLineItemReport extends ReportGenerator {
 			}
 			
 			if (!StringUtils.isBlank(stockSourceDestinationUuid)) {
-				StockSource stockSourceDestination = stockManagementService.getStockSourceByUuid(stockSourceDestinationUuid);
+				StockSource stockSourceDestination = Context.getService(StockSourceService.class)
+				        .getStockSourceByUuid(stockSourceDestinationUuid);
 				if (stockSourceDestination == null) {
 					stockManagementService.failBatchJob(batchJob.getUuid(), "Report destination parameter not found");
 					return;

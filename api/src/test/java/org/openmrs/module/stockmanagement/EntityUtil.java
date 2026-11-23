@@ -19,6 +19,7 @@ import java.util.Date;
 import java.util.Random;
 
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
@@ -318,7 +319,7 @@ public class EntityUtil {
 		stockItem.setConcept(stockItem.getDrug().getConcept());
 		stockItem.setHasExpiration(getRandomBool());
 		StockSource preferredVendor = newStockSource(dao);
-		dao.saveStockSource(preferredVendor);
+		Context.getService(StockSourceService.class).saveStockSource(preferredVendor);
 		stockItem.setPreferredVendor(preferredVendor);
 		stockItem.setPurchasePrice(getRandomBigDecimal());
 		if (associateUoMs) {
@@ -536,7 +537,13 @@ public class EntityUtil {
 	}
 	
 	public Party newParty(StockManagementDao dao) {
-		Party party = new Party();
+		StockSource stockSource = newStockSource(dao);
+		Context.getService(StockSourceService.class).saveStockSource(stockSource);
+		Party party = dao.getPartyByStockSource(stockSource);
+		if (party == null) {
+			party = new Party();
+			party.setStockSource(stockSource);
+		}
 		party.setCreator(getUser());
 		party.setDateCreated(getRandomDate());
 		party.setChangedBy(getUser());
@@ -546,9 +553,6 @@ public class EntityUtil {
 		party.setVoidedBy(getUser());
 		party.setVoidReason(getRandomString(255));
 		party.setLocation(getLocation());
-		StockSource stockSource = newStockSource(dao);
-		dao.saveStockSource(stockSource);
-		party.setStockSource(stockSource);
 		return party;
 	}
 	

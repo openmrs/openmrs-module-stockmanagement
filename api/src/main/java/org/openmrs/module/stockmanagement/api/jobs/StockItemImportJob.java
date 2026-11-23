@@ -21,11 +21,13 @@ import org.openmrs.Concept;
 import org.openmrs.Drug;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockSourceService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockItemReference;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
+import org.openmrs.module.stockmanagement.api.search.StockSourceSearch;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 
 import java.io.File;
@@ -670,10 +672,11 @@ public class StockItemImportJob {
 				}
 				StockSource stockSource = stockSources.getOrDefault(cacheKey, null);
 				if (stockSource == null) {
-					StockSourceSearchFilter filter = new StockSourceSearchFilter();
-					filter.setIncludeVoided(true);
-					filter.setTextSearch(preferredVendorName);
-					List<StockSource> stockSourcesInDb = stockManagementService.findStockSources(filter).getData();
+					StockSourceSearch search = new StockSourceSearch();
+					search.setIncludeVoided(true);
+					search.setSearch(preferredVendorName);
+					List<StockSource> stockSourcesInDb = Context.getService(StockSourceService.class)
+					        .getStockSources(search);
 					if (!stockSourcesInDb.isEmpty()) {
 						stockSource = stockSourcesInDb.get(0);
 						for (StockSource stockSourceInDb : stockSourcesInDb) {
@@ -716,7 +719,7 @@ public class StockItemImportJob {
 					stockSource.setSourceType(unknownConcept);
 					stockSource.setCreator(Context.getAuthenticatedUser());
 					stockSource.setDateCreated(new Date());
-					stockManagementService.saveStockSource(stockSource);
+					Context.getService(StockSourceService.class).saveStockSource(stockSource);
 					stockSources.put(cacheKey, stockSource);
 				}
 				

@@ -998,50 +998,6 @@ public class StockManagementDao extends DaoBase {
 		return query.list();
 	}
 	
-	public StockSource getStockSourceByUuid(String uuid) {
-		return (StockSource) getSession().createCriteria(StockSource.class).add(Restrictions.eq("uuid", uuid))
-		        .uniqueResult();
-	}
-	
-	public StockSource saveStockSource(StockSource stockSource) {
-		getSession().saveOrUpdate(stockSource);
-		return stockSource;
-	}
-	
-	public Result<StockSource> findStockSources(StockSourceSearchFilter filter) {
-		DbSession dbSession = getSession();
-		Criteria criteria = dbSession.createCriteria(StockSource.class, "ss");
-		if (isNotNullOrEmpty(filter.getUuid())) {
-			criteria.add(Restrictions.eq("ss.uuid", filter.getUuid()));
-		}
-		
-		if (filter.getSourceType() != null) {
-			criteria.add(Restrictions.eq("ss.sourceType", filter.getSourceType()));
-		}
-		
-		if (!filter.getIncludeVoided()) {
-			criteria.add(Restrictions.eq("ss.voided", false));
-		}
-		
-		if (StringUtils.isNotBlank(filter.getTextSearch())) {
-			String textSearch = filter.getTextSearch().replaceAll("%", "");
-			if (textSearch.length() == 0)
-				return new Result<>(new ArrayList<>(), 0);
-			textSearch = textSearch + "%";
-			criteria.add(
-			    Restrictions.or(Restrictions.ilike("ss.name", textSearch), Restrictions.ilike("ss.acronym", textSearch)));
-		}
-		
-		Result<StockSource> result = new Result<>();
-		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
-			result.setPageSize(filter.getLimit());
-		}
-		result.setData(executeCriteria(criteria, result));
-		
-		return result;
-	}
-	
 	public void voidStockItemPackagingUOM(String uuid, String reason, int voidedBy) {
 		DbSession session = getSession();
 		Query query = session.createQuery(
@@ -1058,17 +1014,6 @@ public class StockManagementDao extends DaoBase {
 		Query query = session.createQuery(
 		    "UPDATE stockmanagement.StockItemReference SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid = :uuid");
 		query.setParameter("uuid", uuid);
-		query.setDate("dateVoided", new Date());
-		query.setInteger("voidedBy", voidedBy);
-		query.setString("reason", reason);
-		query.executeUpdate();
-	}
-	
-	public void voidStockSources(List<String> stockSourceIds, String reason, int voidedBy) {
-		DbSession session = getSession();
-		Query query = session.createQuery(
-		    "UPDATE stockmanagement.StockSource SET voided=1, dateVoided=:dateVoided, voidedBy=:voidedBy, voidReason=:reason WHERE uuid in (:uuidList)");
-		query.setParameterList("uuidList", stockSourceIds);
 		query.setDate("dateVoided", new Date());
 		query.setInteger("voidedBy", voidedBy);
 		query.setString("reason", reason);
