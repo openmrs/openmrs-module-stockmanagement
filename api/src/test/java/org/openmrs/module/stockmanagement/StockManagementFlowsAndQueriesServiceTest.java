@@ -313,6 +313,21 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertFalse("Retired user must be excluded", usersAfterRetire.contains(user.getId()));
 	}
 	
+	@Test
+	public void getActiveUsersAssignedForScope_shouldExcludeUsersAtALocationOnceItIsRetired() {
+		User inherited = createTestUser("ret_desc_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(inherited, managerRole, parentLocation, true, receiptType);
+		User direct = createTestUser("ret_direct_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(direct, managerRole, childLocation, false, receiptType);
+		List<String> roles = Collections.singletonList(managerRole.getRole());
+		assertTrue(stockManagementService.getActiveUsersAssignedForScope(childLocation.getId(), roles)
+		        .containsAll(Arrays.asList(inherited.getId(), direct.getId())));
+		retire(childLocation);
+		List<Integer> users = stockManagementService.getActiveUsersAssignedForScope(childLocation.getId(), roles);
+		assertFalse(users.contains(inherited.getId()));
+		assertFalse(users.contains(direct.getId()));
+	}
+	
 	// ---------------------------------------------------------------------------------------------
 	// Query 2: Flattened privilege scopes and permission checks (userHasStockManagementPrivilege)
 	// ---------------------------------------------------------------------------------------------
@@ -420,6 +435,19 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	}
 	
 	@Test
+	public void userHasStockManagementPrivilege_shouldStillGrantPermissionAtARetiredLocation() {
+		User user = createTestUser("perm_ret_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(user, managerRole, parentLocation, true, receiptType);
+		grantScope(user, managerRole, grandchildLocation, false, stockIssueType);
+		retire(childLocation);
+		retire(grandchildLocation);
+		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, grandchildLocation, stockIssueType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+	}
+	
+	@Test
 	public void getPrivilegeScopes_shouldReturnFlattenedPrivilegeScopesAcrossHierarchy() {
 		User user = createTestUser("flatten_user_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
 		grantScope(user, managerRole, parentLocation, true, receiptType);
@@ -476,6 +504,19 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertNotNull("Grandchild balance with descendants should be calculated", grandchildWithDesc.getQuantity());
 		assertEquals("Grandchild balance with descendants should be 30", 0,
 		    BigDecimal.valueOf(30).compareTo(grandchildWithDesc.getQuantity()));
+	}
+	
+	@Test
+	public void stockBalance_shouldStillCountStockAtARetiredChildLocation() {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(10), "BATCH-RP");
+		createAndCompleteReceipt(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(20), "BATCH-RC");
+		authenticate();
+		retire(childLocation);
+		StockRuleCurrentQuantity parent = new StockRuleCurrentQuantity(sampleStockItem.getId(), parentLocation.getId(), null,
+		        true);
+		stockManagementService.setStockItemCurrentBalanceWithDescendants(Collections.singletonList(parent));
+		assertEquals(0, BigDecimal.valueOf(30).compareTo(parent.getQuantity()));
 	}
 	
 	// ---------------------------------------------------------------------------------------------
@@ -911,5 +952,11 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		Context.flushSession();
 		Context.clearSession();
 		return dto;
+	}
+	
+	private void retire(Location location) {
+		LocationService locationService = Context.getLocationService();
+		locationService.retireLocation(locationService.getLocationByUuid(location.getUuid()), "Testing");
+		Context.flushSession();
 	}
 }
