@@ -1,1 +1,0 @@
-delete from liquibasechangelog where ID like 'stock%';
