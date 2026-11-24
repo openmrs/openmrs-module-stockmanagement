@@ -364,18 +364,19 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 		Integer requestedLimit = requestPaging ? context.getLimit() : null;
 		Integer requestedStartIndex = requestPaging ? context.getStartIndex() : null;
 		if (requestPaging && !needsFullResultForPostProcessing) {
-			filter.setStartIndex(requestedLimit != null && requestedLimit > 0 ? requestedStartIndex / requestedLimit : 0);
+			filter.setStartIndex(requestedStartIndex == null ? 0 : requestedStartIndex);
 			filter.setLimit(requestedLimit);
 		}
 		StockInventoryResult stockItemInventoryResult = getStockManagementService().getStockInventory(filter);
 		if (requestPaging && needsFullResultForPostProcessing) {
 			stockItemInventoryResult = pageInMemory(stockItemInventoryResult, requestedStartIndex, requestedLimit);
 		}
-		if (Boolean.parseBoolean(context.getParameter("totalCount")) && filter.getLimit() == null) {
+		if (Boolean.parseBoolean(context.getParameter("totalCount")) && !requestPaging) {
 			stockItemInventoryResult.setTotalRecordCount((long) stockItemInventoryResult.getData().size());
 			stockItemInventoryResult.setLoadRecordCount(false);
 		}
-		return new StockInventoryPageableResult(context, stockItemInventoryResult, stockItemInventoryResult.hasMoreResults(),
+		boolean hasMoreResults = hasMoreResults(stockItemInventoryResult, requestedStartIndex, requestPaging);
+		return new StockInventoryPageableResult(context, stockItemInventoryResult, hasMoreResults,
 		        stockItemInventoryResult.getTotalRecordCount());
 	}
 	
@@ -396,6 +397,14 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 		result.setTotalRecordCount((long) data.size());
 		result.setLoadRecordCount(false);
 		return result;
+	}
+	
+	private boolean hasMoreResults(StockInventoryResult result, Integer startIndex, boolean requestPaging) {
+		if (!requestPaging || result.getTotalRecordCount() == null || result.getData() == null) {
+			return result.hasMoreResults();
+		}
+		long firstRow = startIndex == null || startIndex < 0 ? 0 : startIndex;
+		return firstRow + result.getData().size() < result.getTotalRecordCount();
 	}
 	
 	@Override

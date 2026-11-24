@@ -2713,8 +2713,9 @@ public class StockManagementDao extends DaoBase {
 		}
 		
 		StockInventoryResult result = new StockInventoryResult();
+		int firstResult = filter.getStartIndex() == null ? 0 : Math.max(0, filter.getStartIndex());
 		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
+			result.setPageIndex(filter.getLimit() > 0 ? firstResult / filter.getLimit() : 0);
 			result.setPageSize(filter.getLimit());
 			List<String> countGroupColumns = new ArrayList<>();
 			if (groupByParty) {
@@ -2759,8 +2760,14 @@ public class StockManagementDao extends DaoBase {
 			orderColumns.add("sit.stockBatch.id");
 		}
 		String orderBy = orderColumns.isEmpty() ? null : " order by " + String.join(", ", orderColumns);
-		result.setData(executeQuery(StockItemInventory.class, hqlQuery, result, filter.getLimit() != null ? orderBy : null,
-		    parameterList, parameterWithList));
+		if (filter.getLimit() != null) {
+			Query query = createPagingQuery(result, StockItemInventory.class, hqlQuery, orderBy, parameterList,
+			    parameterWithList);
+			query.setFirstResult(firstResult);
+			result.setData(query.list());
+		} else {
+			result.setData(executeQuery(StockItemInventory.class, hqlQuery, result, null, parameterList, parameterWithList));
+		}
 		
 		if ((!groupByStockBatch || filter.getAllowEmptyBatchInfo()) && filter.dispensing()) {
 			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : zeroStockQtyToReturn) {

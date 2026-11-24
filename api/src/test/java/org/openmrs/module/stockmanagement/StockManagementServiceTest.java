@@ -705,6 +705,35 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
+	public void getStockInventory_shouldUseStartIndexAsExactRowOffset() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch firstBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(firstBatch);
+		StockBatch secondBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(secondBatch);
+		dao().saveStockItemTransaction(eu().newStockItemTransaction(dao(), stockItem, firstBatch, packagingUom));
+		dao().saveStockItemTransaction(eu().newStockItemTransaction(dao(), stockItem, secondBatch, packagingUom));
+		
+		StockItemInventorySearchFilter allFilter = new StockItemInventorySearchFilter();
+		allFilter.setRequireItemGroupFilters(false);
+		List<StockItemInventory> allRows = stockManagementService.getStockInventory(allFilter, null).getData();
+		assertThat(allRows.size(), greaterThanOrEqualTo(2));
+		
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setRequireItemGroupFilters(false);
+		filter.setStartIndex(1);
+		filter.setLimit(1);
+		StockInventoryResult result = stockManagementService.getStockInventory(filter, null);
+		
+		assertEquals(1, result.getData().size());
+		assertEquals(allRows.get(1).getStockBatchId(), result.getData().get(0).getStockBatchId());
+	}
+	
+	@Test
 	public void findStockItemTransactions_shouldFilterOnAllCriteria() {
 		stockManagementService.setDao(dao());
 		StockItemTransaction so = eu().newStockItemTransaction(dao());

@@ -15,6 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
@@ -35,6 +37,7 @@ import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockBatchDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockBatchSearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
+import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
 import org.openmrs.module.stockmanagement.api.model.Party;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
@@ -55,7 +58,7 @@ public class StockItemInventoryResourceTest extends BaseModuleWebContextSensitiv
 		resource = new StockItemInventoryResource();
 		service = mock(StockManagementService.class);
 		resource.setStockManagementService(service);
-		when(service.getStockInventory(any(StockItemInventorySearchFilter.class)))
+		lenient().when(service.getStockInventory(any(StockItemInventorySearchFilter.class)))
 		        .thenReturn(new StockInventoryResult(new ArrayList<>(), 0));
 	}
 	
@@ -106,6 +109,46 @@ public class StockItemInventoryResourceTest extends BaseModuleWebContextSensitiv
 		StockItemInventorySearchFilter filter = capturedFilter();
 		assertEquals(Integer.valueOf(0), filter.getStartIndex());
 		assertEquals(Integer.valueOf(2), filter.getLimit());
+	}
+	
+	@Test
+	public void doSearch_shouldPreserveExactRowOffset() {
+		Map<String, String> params = new HashMap<>();
+		params.put("startIndex", "1");
+		params.put("limit", "2");
+		RequestContext context = contextWith(params);
+		context.setStartIndex(1);
+		context.setLimit(2);
+		
+		resource.doSearch(context);
+		
+		StockItemInventorySearchFilter filter = capturedFilter();
+		assertEquals(Integer.valueOf(1), filter.getStartIndex());
+		assertEquals(Integer.valueOf(2), filter.getLimit());
+	}
+	
+	@Test
+	public void doSearch_shouldKeepFullCountWhenTotalCountIsRequestedWithPaging() {
+		List<StockItemInventory> rows = new ArrayList<>();
+		for (int i = 0; i < 25; i++) {
+			rows.add(new StockItemInventory());
+		}
+		when(service.getStockInventory(any(StockItemInventorySearchFilter.class)))
+		        .thenReturn(new StockInventoryResult(rows, 25));
+		Map<String, String> params = new HashMap<>();
+		params.put("totalBy", "StockItemOnly");
+		params.put("limit", "10");
+		params.put("totalCount", "true");
+		RequestContext context = contextWith(params);
+		context.setLimit(10);
+		
+		PageableResult result = resource.doSearch(context);
+		
+		assertTrue(result instanceof StockInventoryPageableResult);
+		StockInventoryPageableResult pagedResult = (StockInventoryPageableResult) result;
+		assertEquals(10, pagedResult.getPageOfResults().size());
+		assertEquals(Long.valueOf(25), pagedResult.getTotalCount());
+		assertTrue(pagedResult.hasMoreResults());
 	}
 	
 	@Test
