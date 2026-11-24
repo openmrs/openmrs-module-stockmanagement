@@ -328,6 +328,27 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertFalse(users.contains(direct.getId()));
 	}
 	
+	@Test
+	public void getActiveUsersAssignedForScope_shouldApplyTheSameFiltersToScopesWithoutDescendants() {
+		User voided = createTestUser("direct_void_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		UserRoleScope scope = grantScope(voided, managerRole, childLocation, false, receiptType);
+		User retired = createTestUser("direct_ret_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(retired, managerRole, childLocation, false, receiptType);
+		List<String> roles = Collections.singletonList(managerRole.getRole());
+		assertTrue(stockManagementService.getActiveUsersAssignedForScope(childLocation.getId(), roles)
+		        .containsAll(Arrays.asList(voided.getId(), retired.getId())));
+		assertFalse(stockManagementService
+		        .getActiveUsersAssignedForScope(childLocation.getId(), Collections.singletonList("NonExistentRole"))
+		        .contains(voided.getId()));
+		stockManagementService.voidUserRoleScopes(Collections.singletonList(scope.getUuid()), "Testing");
+		Context.getUserService().retireUser(retired, "Testing");
+		Context.flushSession();
+		Context.clearSession();
+		List<Integer> users = stockManagementService.getActiveUsersAssignedForScope(childLocation.getId(), roles);
+		assertFalse(users.contains(voided.getId()));
+		assertFalse(users.contains(retired.getId()));
+	}
+	
 	// ---------------------------------------------------------------------------------------------
 	// Query 2: Flattened privilege scopes and permission checks (userHasStockManagementPrivilege)
 	// ---------------------------------------------------------------------------------------------
@@ -490,6 +511,25 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
 		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
 		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, stockIssueType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+	}
+	
+	@Test
+	public void userHasStockManagementPrivilege_shouldNotGrantPermissionThroughAnotherUsersScope() {
+		User user = createTestUser("perm_mine_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(createTestUser("perm_other_" + UUID.randomUUID().toString().substring(0, 8), managerRole), managerRole,
+		    childLocation, false, receiptType);
+		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, childLocation, receiptType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+	}
+	
+	@Test
+	public void userHasStockManagementPrivilege_shouldNotGrantPermissionAboveTheScopedLocation() {
+		User user = createTestUser("perm_up_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(user, managerRole, childLocation, true, receiptType);
+		assertTrue(stockManagementService.userHasStockManagementPrivilege(user, grandchildLocation, receiptType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertFalse(stockManagementService.userHasStockManagementPrivilege(user, parentLocation, receiptType,
 		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
 	}
 	
@@ -739,6 +779,64 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		Context.flushSession();
 		Context.clearSession();
 		return issue;
+	}
+	
+	@Test
+	public void stockOperationLifecycle_shouldRefuseActionsTheStatusDoesNotAllow() {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(50), "BATCH-STATUS");
+		StockOperationDTO issue = submitIssueOfTen(stockManagementService.getStockOperationByUuid(receipt.getUuid())
+		        .getStockOperationItems().iterator().next().getStockBatch().getUuid());
+		assertRefused("notupdateable", () -> stockManagementService.submitStockOperation(issue));
+		stockManagementService.dispatchStockOperation(issue);
+		Context.flushSession();
+		Context.clearSession();
+		assertRefused("approvalactionnotallowed", () -> stockManagementService.rejectStockOperation(issue, "No"));
+		stockManagementService.completeStockOperation(issue);
+		Context.flushSession();
+		Context.clearSession();
+		assertRefused("approvalactionnotallowed", () -> stockManagementService.returnStockOperation(issue, "No"));
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
+	}
+	
+	private void assertRefused(String messageKey, Runnable action) {
+		try {
+			action.run();
+			fail("Expected " + messageKey);
+		}
+		catch (StockManagementException e) {
+			assertEquals(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation." + messageKey),
+			    e.getMessage());
+		}
+	}
+	
+	@Test
+	public void stockOperationLifecycle_shouldLetTheDestinationReceiveOrReturnADispatchedIssue() {
+		Role receiverRole = createRoleWithPrivileges("Stock Receiver", Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS);
+		User receiver = createTestUser("receiver_" + UUID.randomUUID().toString().substring(0, 8), receiverRole);
+		grantScope(receiver, receiverRole, childLocation, false, stockIssueType);
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(50), "BATCH-BACK");
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		StockOperationDTO received = submitIssueOfTen(batchUuid);
+		StockOperationDTO returned = submitIssueOfTen(batchUuid);
+		stockManagementService.dispatchStockOperation(received);
+		stockManagementService.dispatchStockOperation(returned);
+		Context.flushSession();
+		Context.clearSession();
+		Context.authenticate(receiver.getUsername(), "TestPassword123!");
+		stockManagementService.completeStockOperation(received);
+		stockManagementService.returnStockOperation(returned, "Damaged");
+		Context.flushSession();
+		Context.clearSession();
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
 	}
 	
 	@Test

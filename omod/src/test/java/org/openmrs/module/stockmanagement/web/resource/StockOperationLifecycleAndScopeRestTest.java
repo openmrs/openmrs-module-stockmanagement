@@ -49,6 +49,7 @@ import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
+import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.api.ValidationException;
 import org.openmrs.util.PrivilegeConstants;
@@ -587,7 +588,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 			fail("User B must not be permitted to approve operation at child location without scope");
 		}
 		catch (ResponseException e) {
-			assertNotNull("Exception message should indicate not found or not permitted", e.getMessage());
+			assertTrue("User B must not even see the operation, got " + e, e instanceof ObjectNotFoundException);
 		}
 	}
 	
