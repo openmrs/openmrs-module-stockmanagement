@@ -789,14 +789,19 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		StockOperationDTO issue = submitIssueOfTen(stockManagementService.getStockOperationByUuid(receipt.getUuid())
 		        .getStockOperationItems().iterator().next().getStockBatch().getUuid());
 		assertRefused("notupdateable", () -> stockManagementService.submitStockOperation(issue));
+		assertRefused("approvalactionnotallowed", () -> stockManagementService.approveStockOperation(issue));
 		stockManagementService.dispatchStockOperation(issue);
 		Context.flushSession();
 		Context.clearSession();
+		assertRefused("notdispatcheable", () -> stockManagementService.dispatchStockOperation(issue));
 		assertRefused("approvalactionnotallowed", () -> stockManagementService.rejectStockOperation(issue, "No"));
+		assertRefused("cancelactionnotallowed", () -> stockManagementService.cancelStockOperation(issue, "No"));
 		stockManagementService.completeStockOperation(issue);
 		Context.flushSession();
 		Context.clearSession();
+		assertRefused("notupdateable", () -> stockManagementService.completeStockOperation(issue));
 		assertRefused("approvalactionnotallowed", () -> stockManagementService.returnStockOperation(issue, "No"));
+		assertRefused("cancelactionnotallowed", () -> stockManagementService.cancelStockOperation(issue, "No"));
 		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
 	}
