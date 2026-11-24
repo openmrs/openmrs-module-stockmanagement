@@ -38,6 +38,11 @@ public interface StockItemService extends OpenmrsService {
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
 	StockItem saveStockItem(StockItem stockItem);
 	
+	/** Resolves a preferred vendor when creating or editing a stock item. */
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
+	StockSource getPreferredVendorByUuid(String uuid);
+	
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
 	StockItem saveStockItem(StockItem stockItem, StockItemPackagingUOM stockItemPackagingUOM);

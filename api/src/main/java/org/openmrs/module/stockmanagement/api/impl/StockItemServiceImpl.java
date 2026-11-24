@@ -66,6 +66,10 @@ public class StockItemServiceImpl extends BaseOpenmrsService implements StockIte
 		return stockItem;
 	}
 	
+	public StockSource getPreferredVendorByUuid(String uuid) {
+		return dao.getPreferredVendorByUuid(uuid);
+	}
+	
 	public StockItemPackagingUOM getStockItemPackagingUOMByUuid(String uuid) {
 		return dao.getStockItemPackagingUOMByUuid(uuid);
 	}

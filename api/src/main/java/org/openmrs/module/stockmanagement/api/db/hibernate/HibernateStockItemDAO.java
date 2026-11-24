@@ -33,7 +33,8 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 	@SuppressWarnings("unchecked")
 	private <T> List<T> executeEntityQuery(StringBuilder hql, Result<T> paging, String order,
 	        HashMap<String, Object> parameters, HashMap<String, Collection> lists) {
-		loadPagingTotal(paging, hql, parameters, lists);
+		// Fetch joins belong only in the entity query, not its count projection.
+		loadPagingTotal(paging, new StringBuilder(hql.toString().replace("join fetch ", "join ")), parameters, lists);
 		Query query = getSession().createQuery(hql.toString() + (order == null ? "" : order));
 		if (parameters != null)
 			parameters.forEach(query::setParameter);
@@ -68,6 +69,11 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 	
 	public StockItem getStockItemByUuid(String uuid) {
 		return (StockItem) getSession().createCriteria(StockItem.class).add(Restrictions.eq("uuid", uuid)).uniqueResult();
+	}
+	
+	public StockSource getPreferredVendorByUuid(String uuid) {
+		return (StockSource) getSession().createCriteria(StockSource.class).add(Restrictions.eq("uuid", uuid))
+		        .uniqueResult();
 	}
 	
 	public List<StockItem> getStockItemsByUuids(List<String> uuids) {
@@ -249,6 +255,10 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 					conceptIds.add(unit.getPackagingUom().getConceptId());
 			}
 		}
+		loadConceptNames(conceptIds);
+	}
+	
+	private void loadConceptNames(Set<Integer> conceptIds) {
 		if (!conceptIds.isEmpty()) {
 			getSession().createQuery("select distinct c from Concept c left join fetch c.names where c.conceptId in (:ids)")
 			        .setParameterList("ids", conceptIds).list();
@@ -372,7 +382,10 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 		HashMap<String, Object> parameterList = new HashMap<>();
 		HashMap<String, Collection> parameterWithList = new HashMap<>();
 		StringBuilder hqlQuery = new StringBuilder(
-		        "select sipu from stockmanagement.StockItemPackagingUOM sipu join sipu.stockItem si join sipu.packagingUom c");
+		        "select sipu from stockmanagement.StockItemPackagingUOM sipu join fetch sipu.stockItem si join fetch sipu.packagingUom c");
+		if (filter.includingDispensingUnit()) {
+			hqlQuery.append(" left join fetch si.dispensingUnit");
+		}
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
@@ -407,8 +420,24 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 			result.setPageSize(filter.getLimit());
 		}
 		result.setData(executeEntityQuery(hqlQuery, result, " order by sipu.id", parameterList, parameterWithList));
+		loadPackagingConceptNames(result.getData(), filter.includingDispensingUnit());
 		
 		return result;
+	}
+	
+	private void loadPackagingConceptNames(List<StockItemPackagingUOM> units, boolean includeDispensingUnit) {
+		// Load collections only after SQL pagination; bound IN clauses for unpaged inventory searches too.
+		for (int start = 0; start < units.size(); start += STOCK_ITEM_FETCH_BATCH_SIZE) {
+			Set<Integer> conceptIds = new HashSet<>();
+			for (StockItemPackagingUOM unit : units.subList(start,
+			    Math.min(start + STOCK_ITEM_FETCH_BATCH_SIZE, units.size()))) {
+				conceptIds.add(unit.getPackagingUom().getConceptId());
+				if (includeDispensingUnit && unit.getStockItem().getDispensingUnit() != null) {
+					conceptIds.add(unit.getStockItem().getDispensingUnit().getConceptId());
+				}
+			}
+			loadConceptNames(conceptIds);
+		}
 	}
 	
 	public StockBatch findStockBatch(StockItem stockItem, String batchNo, Date expiration) {
@@ -427,7 +456,8 @@ public class HibernateStockItemDAO extends DaoBase implements StockItemDAO {
 	public Result<StockBatch> findStockBatches(StockItemSearch filter) {
 		HashMap<String, Object> parameterList = new HashMap<>();
 		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select sb from stockmanagement.StockBatch sb join sb.stockItem si");
+		StringBuilder hqlQuery = new StringBuilder(
+		        "select sb from stockmanagement.StockBatch sb join fetch sb.stockItem si");
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		

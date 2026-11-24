@@ -12,6 +12,7 @@ package org.openmrs.module.stockmanagement.web.resource;
 import org.hibernate.SessionFactory;
 import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.openmrs.Concept;
 import org.openmrs.ConceptName;
@@ -21,6 +22,9 @@ import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockItemDTO;
+import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUOMDTO;
+import org.openmrs.module.stockmanagement.api.dto.StockBatchDTO;
+import org.openmrs.module.stockmanagement.api.model.StockBatch;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
@@ -29,6 +33,7 @@ import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 
 import java.math.BigDecimal;
 import java.util.Locale;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -41,9 +46,18 @@ public class StockItemQueryCountTest extends BaseModuleWebContextSensitiveTest {
 	
 	private int created = 0;
 	
+	private Locale previousLocale;
+	
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
+		previousLocale = Context.getLocale();
+		Context.setLocale(Locale.ENGLISH);
+	}
+	
+	@AfterEach
+	public void restoreLocale() {
+		Context.setLocale(previousLocale);
 	}
 	
 	private void addItems(int count) {
@@ -72,6 +86,10 @@ public class StockItemQueryCountTest extends BaseModuleWebContextSensitiveTest {
 			item.setDispensingUnitPackagingUoM(unit);
 			item.setDefaultStockOperationsUoM(unit);
 			service.saveStockItem(item);
+			StockBatch batch = new StockBatch();
+			batch.setStockItem(item);
+			batch.setBatchNo("Query count batch " + (created - 1));
+			service.saveStockBatch(batch);
 		}
 	}
 	
@@ -89,6 +107,10 @@ public class StockItemQueryCountTest extends BaseModuleWebContextSensitiveTest {
 	}
 	
 	private long statementsToList() {
+		return statementsToList(mapper::findStockItems, false);
+	}
+	
+	private long statementsToList(Function<StockItemSearch, ? extends Result<?>> find, boolean includeDispensingUnit) {
 		SessionFactory sessionFactory = Context.getRegisteredComponent("sessionFactory", SessionFactory.class);
 		sessionFactory.getCurrentSession().flush();
 		sessionFactory.getCurrentSession().clear();
@@ -101,7 +123,8 @@ public class StockItemQueryCountTest extends BaseModuleWebContextSensitiveTest {
 			StockItemSearch search = new StockItemSearch();
 			search.setStartIndex(0);
 			search.setLimit(100);
-			Result<StockItemDTO> result = mapper.findStockItems(search);
+			search.setIncludeDispensingUnit(includeDispensingUnit);
+			Result<?> result = find.apply(search);
 			assertEquals(created, result.getData().size());
 			assertEquals(created, result.getTotalRecordCount());
 			return statistics.getPrepareStatementCount();
@@ -109,6 +132,68 @@ public class StockItemQueryCountTest extends BaseModuleWebContextSensitiveTest {
 		finally {
 			statistics.setStatisticsEnabled(statisticsEnabled);
 		}
+	}
+	
+	@Test
+	public void packagingShouldUseTheSameNumberOfQueriesForFewOrManyItems() {
+		assertConstantPackagingQueries(false);
+	}
+	
+	@Test
+	public void packagingWithDispensingUnitsShouldUseTheSameNumberOfQueriesForFewOrManyItems() {
+		assertConstantPackagingQueries(true);
+	}
+	
+	private void assertConstantPackagingQueries(boolean includeDispensingUnit) {
+		addItems(2);
+		long few = statementsToList(mapper::findStockItemPackagingUOMs, includeDispensingUnit);
+		addItems(20);
+		long many = statementsToList(mapper::findStockItemPackagingUOMs, includeDispensingUnit);
+		System.out.printf("Packaging statements (dispensing=%s): 2 rows=%d, 22 rows=%d%n", includeDispensingUnit, few, many);
+		assertEquals(few, many, "packaging statements for 2 items vs 22 items");
+		// Count, page and bulk names, plus core's eager creator/user details on a cold session.
+		assertTrue(many <= 12, "packaging statements for 22 items: " + many);
+	}
+	
+	@Test
+	public void batchesShouldUseTheSameNumberOfQueriesForFewOrManyItems() {
+		addItems(2);
+		long few = statementsToList(mapper::findStockBatches, false);
+		addItems(20);
+		long many = statementsToList(mapper::findStockBatches, false);
+		System.out.printf("Batch statements: 2 rows=%d, 22 rows=%d%n", few, many);
+		assertEquals(few, many, "batch statements for 2 items vs 22 items");
+		assertTrue(many <= 11, "batch statements for 22 items: " + many);
+	}
+	
+	@Test
+	public void packagingAndBatchesShouldPreservePagingWithMultipleConceptNames() {
+		addItems(6);
+		SessionFactory sessionFactory = Context.getRegisteredComponent("sessionFactory", SessionFactory.class);
+		sessionFactory.getCurrentSession().flush();
+		sessionFactory.getCurrentSession().clear();
+		sessionFactory.getCache().evictAllRegions();
+		StockItemSearch search = new StockItemSearch();
+		search.setStartIndex(1);
+		search.setLimit(2);
+		search.setIncludeDispensingUnit(true);
+		Result<StockItemPackagingUOMDTO> packaging = mapper.findStockItemPackagingUOMs(search);
+		assertEquals(6, packaging.getTotalRecordCount());
+		assertEquals(2, packaging.getData().size());
+		assertEquals("Query count package 2", packaging.getData().get(0).getPackagingUomName());
+		assertEquals("Query count package 3", packaging.getData().get(1).getPackagingUomName());
+		// Dispensing names use the first persisted fully specified name, regardless of locale.
+		String dispensingName = packaging.getData().get(0).getStockItemDispensingUnitName();
+		assertTrue("Query count dispensing unit 2".equals(dispensingName)
+		        || "Query count dispensing unit 2 francais".equals(dispensingName));
+		Result<StockBatchDTO> batches = mapper.findStockBatches(search);
+		assertEquals(6, batches.getTotalRecordCount());
+		assertEquals(2, batches.getData().size());
+		assertEquals("Query count batch 2", batches.getData().get(0).getBatchNo());
+		assertEquals("Query count batch 3", batches.getData().get(1).getBatchNo());
+		search.setStartIndex(3);
+		assertTrue(mapper.findStockItemPackagingUOMs(search).getData().isEmpty());
+		assertTrue(mapper.findStockBatches(search).getData().isEmpty());
 	}
 	
 	@Test

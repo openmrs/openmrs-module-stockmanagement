@@ -32,6 +32,8 @@ public interface StockItemDAO {
 	
 	StockItem saveStockItem(StockItem stockItem);
 	
+	StockSource getPreferredVendorByUuid(String uuid);
+	
 	List<StockItem> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems);
 	
 	Result<StockItem> findStockItems(StockItemSearch filter);

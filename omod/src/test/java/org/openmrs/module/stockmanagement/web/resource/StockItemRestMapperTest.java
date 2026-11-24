@@ -13,7 +13,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openmrs.*;
 import org.openmrs.api.ConceptNameType;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -66,6 +68,77 @@ public class StockItemRestMapperTest extends BaseModuleWebContextSensitiveTest {
 		item.setDispensingUnitPackagingUoM(unit);
 		item.setDefaultStockOperationsUoM(unit);
 		return service.saveStockItem(item);
+	}
+	
+	@Test
+	public void itemClerkShouldCreateAnItemWithAPreferredVendor() {
+		assertItemClerkCanSavePreferredVendor(false);
+	}
+	
+	@Test
+	public void itemClerkShouldEditAnItemWithAPreferredVendor() {
+		assertItemClerkCanSavePreferredVendor(true);
+	}
+	
+	@Test
+	public void itemViewerShouldNotResolvePreferredVendors() {
+		String vendorUuid = itemWithUnits().getPreferredVendor().getUuid();
+		Role viewer = new Role("Item-only viewer");
+		viewer.addPrivilege(new Privilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS));
+		User user = Context.getAuthenticatedUser();
+		Set<Role> originalRoles = new HashSet<>(user.getRoles());
+		try {
+			user.setRoles(Collections.singleton(viewer));
+			assertThrows(APIAuthenticationException.class,
+			    () -> Context.getService(StockItemService.class).getPreferredVendorByUuid(vendorUuid));
+		}
+		finally {
+			user.setRoles(originalRoles);
+		}
+	}
+	
+	private void assertItemClerkCanSavePreferredVendor(boolean edit) {
+		StockItem existing = itemWithUnits();
+		String vendorUuid = existing.getPreferredVendor().getUuid();
+		StockItemDTO dto = new StockItemDTO();
+		if (edit) {
+			dto.setUuid(existing.getUuid());
+		} else {
+			dto.setConceptUuid(Context.getConceptService().getConcept(6).getUuid());
+		}
+		dto.setPreferredVendorUuid(vendorUuid);
+		dto.setHasExpiration(false);
+		dto.setCommonName("Saved by item clerk");
+		Role clerk = new Role("Item-only clerk");
+		for (String name : Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE,
+		    Privileges.APP_STOCKMANAGEMENT_STOCKITEMS, "Get Concepts")) {
+			Privilege privilege = Context.getUserService().getPrivilege(name);
+			if (privilege == null) {
+				privilege = Context.getUserService().savePrivilege(new Privilege(name, name));
+			}
+			clerk.addPrivilege(privilege);
+		}
+		Context.getUserService().saveRole(clerk);
+		User user = Context.getAuthenticatedUser();
+		Set<Role> originalRoles = new HashSet<>(user.getRoles());
+		try {
+			user.setRoles(Collections.singleton(clerk));
+			assertEquals(3, user.getPrivileges().size());
+			assertFalse(Context.hasPrivilege(Privileges.APP_STOCKMANAGEMENT_STOCKSOURCES));
+			assertThrows(APIAuthenticationException.class,
+			    () -> Context.getService(StockManagementService.class).getStockSourceByUuid(vendorUuid));
+			StockItemDTO saved = new StockItemResource().save(dto);
+			assertNotNull(saved.getUuid());
+			StockItem reloaded = Context.getService(StockItemService.class).getStockItemByUuid(saved.getUuid());
+			assertEquals(vendorUuid, reloaded.getPreferredVendor().getUuid());
+			assertEquals("Saved by item clerk", reloaded.getCommonName());
+			if (edit) {
+				assertEquals(existing.getUuid(), saved.getUuid());
+			}
+		}
+		finally {
+			user.setRoles(originalRoles);
+		}
 	}
 	
 	@Test

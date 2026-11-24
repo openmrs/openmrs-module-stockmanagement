@@ -249,8 +249,7 @@ public class StockItemRestMapper {
 		stockItem.setExpiryNotice(stockItemDTO.getExpiryNotice());
 		
 		if (!StringUtils.isBlank(stockItemDTO.getPreferredVendorUuid())) {
-			StockSource stockSource = Context.getService(StockManagementService.class)
-			        .getStockSourceByUuid(stockItemDTO.getPreferredVendorUuid());
+			StockSource stockSource = service().getPreferredVendorByUuid(stockItemDTO.getPreferredVendorUuid());
 			if (stockSource == null) {
 				invalidRequest("stockmanagement.stockitem.preferredvendornoexist");
 			}
@@ -330,7 +329,7 @@ public class StockItemRestMapper {
 				StockItemPackagingUOM stockItemPackagingUOM = service()
 				        .getStockItemPackagingUOMByUuid(stockItemDTO.getDefaultStockOperationsUoMUuid());
 				if (stockItemPackagingUOM == null) {
-					throw new StockManagementException("stockmanagement.stockitem.defaultstockoperationsuomnoexist");
+					invalidRequest("stockmanagement.stockitem.defaultstockoperationsuomnoexist");
 				} else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
 					invalidRequest("stockmanagement.stockitem.defaultstockoperationsuomnotrelatedtostockitem");
 				}

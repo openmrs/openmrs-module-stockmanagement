@@ -216,10 +216,6 @@ public class StockItemSearch {
 		this.stockItemUuids = stockItemUuids;
 	}
 	
-	public boolean isIncludeVoided() {
-		return includeVoided;
-	}
-	
 	public boolean includingDispensingUnit() {
 		return includeDispensingUnit;
 	}
