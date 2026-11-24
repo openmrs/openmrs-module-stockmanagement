@@ -45,6 +45,7 @@ import org.openmrs.module.stockmanagement.api.model.StockOperation;
 import org.openmrs.module.stockmanagement.api.model.StockOperationStatus;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.module.stockmanagement.api.model.UserRoleScope;
+import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.tasks.LocationTreeSynchronize;
 import org.openmrs.module.stockmanagement.tasks.PartySynchronize;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
@@ -455,6 +456,38 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	}
 	
 	@Test
+	public void userHasStockManagementPrivilege_shouldAllowPermissionOnExactActiveFromAndToBoundaries() {
+		User descendantUser = createTestUser("perm_desc_b_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		User directUser = createTestUser("perm_dir_b_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		UserRoleScope descendantScope = grantScope(descendantUser, managerRole, parentLocation, true, receiptType);
+		UserRoleScope directScope = grantScope(directUser, managerRole, childLocation, false, receiptType);
+		List<String> roles = Collections.singletonList(managerRole.getRole());
+		Date today = DateUtil.today();
+		Date[][] windows = new Date[][] { { today, today }, { today, DateUtils.addDays(today, 5) },
+		        { DateUtils.addDays(today, -5), today } };
+		for (Date[] window : windows) {
+			for (UserRoleScope scope : Arrays.asList(descendantScope, directScope)) {
+				scope.setPermanent(false);
+				scope.setActiveFrom(window[0]);
+				scope.setActiveTo(window[1]);
+			}
+			Context.flushSession();
+			assertTrue(stockManagementService.userHasStockManagementPrivilege(descendantUser, parentLocation, receiptType,
+			    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+			assertTrue(stockManagementService.userHasStockManagementPrivilege(descendantUser, childLocation, receiptType,
+			    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+			assertTrue(stockManagementService.getActiveUsersAssignedForScope(parentLocation.getId(), roles)
+			        .contains(descendantUser.getId()));
+			assertTrue(stockManagementService.getActiveUsersAssignedForScope(childLocation.getId(), roles)
+			        .contains(descendantUser.getId()));
+			assertTrue(stockManagementService.userHasStockManagementPrivilege(directUser, childLocation, receiptType,
+			    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+			assertTrue(stockManagementService.getActiveUsersAssignedForScope(childLocation.getId(), roles)
+			        .contains(directUser.getId()));
+		}
+	}
+	
+	@Test
 	public void userHasStockManagementPrivilege_shouldDenyPermissionAtALocationRemovedFromTheScopes() {
 		User user = createTestUser("perm_less_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
 		UserRoleScope inherited = grantScope(user, managerRole, parentLocation, true, receiptType);
@@ -765,6 +798,12 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 			assertEquals(Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.nopermission"),
 			    e.getMessage());
 		}
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.DISPATCHED,
+		    stockManagementService.getStockOperationByUuid(saved.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		stockManagementService.completeStockOperation(issueDto);
 		Context.flushSession();
@@ -840,18 +879,28 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		        .getStockOperationItems().iterator().next().getStockBatch().getUuid());
 		assertRefused("notupdateable", () -> stockManagementService.submitStockOperation(issue));
 		assertRefused("approvalactionnotallowed", () -> stockManagementService.approveStockOperation(issue));
+		assertEquals(StockOperationStatus.SUBMITTED,
+		    stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		stockManagementService.dispatchStockOperation(issue);
 		Context.flushSession();
 		Context.clearSession();
 		assertRefused("notdispatcheable", () -> stockManagementService.dispatchStockOperation(issue));
 		assertRefused("approvalactionnotallowed", () -> stockManagementService.rejectStockOperation(issue, "No"));
 		assertRefused("cancelactionnotallowed", () -> stockManagementService.cancelStockOperation(issue, "No"));
+		assertEquals(StockOperationStatus.DISPATCHED,
+		    stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		stockManagementService.completeStockOperation(issue);
 		Context.flushSession();
 		Context.clearSession();
 		assertRefused("notupdateable", () -> stockManagementService.completeStockOperation(issue));
 		assertRefused("approvalactionnotallowed", () -> stockManagementService.returnStockOperation(issue, "No"));
 		assertRefused("cancelactionnotallowed", () -> stockManagementService.cancelStockOperation(issue, "No"));
+		assertEquals(StockOperationStatus.COMPLETED,
+		    stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
 		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
 	}
@@ -863,7 +912,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		    BigDecimal.valueOf(50), "BATCH-INSUFFICIENT");
 		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
 		        .iterator().next().getStockBatch().getUuid();
-
+		
 		StockOperationItemDTO item = new StockOperationItemDTO();
 		item.setStockItemUuid(sampleStockItem.getUuid());
 		item.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
@@ -1103,6 +1152,12 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		catch (StockManagementException e) {
 			assertNotNull("Exception should be thrown for missing permission", e.getMessage());
 		}
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.SUBMITTED,
+		    stockManagementService.getStockOperationByUuid(saved.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
 	@Test
@@ -1135,6 +1190,12 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 				    e.getMessage());
 			}
 		}
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.SUBMITTED,
+		    stockManagementService.getStockOperationByUuid(dto.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
 	@Test
@@ -1150,6 +1211,13 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		        .getStockOperationItems().iterator().next().getStockBatch().getUuid());
 		Context.authenticate(submitter.getUsername(), "TestPassword123!");
 		assertRefused("nopermission", () -> stockManagementService.dispatchStockOperation(issue));
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.SUBMITTED,
+		    stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
 	// ---------------------------------------------------------------------------------------------

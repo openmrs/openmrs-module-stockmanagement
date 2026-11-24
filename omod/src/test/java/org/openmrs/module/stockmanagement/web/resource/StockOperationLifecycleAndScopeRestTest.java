@@ -29,6 +29,8 @@ import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
+import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationItemDTO;
@@ -324,6 +326,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		assertEquals(StockOperationStatus.COMPLETED, approved.getStatus());
 		assertNotNull("completedBy must be recorded", approved.getCompletedBy());
 		assertNotNull("completedDate must be recorded", approved.getCompletedDate());
+		assertEquals(0, BigDecimal.valueOf(15).compareTo(balanceAt(childParty)));
 	}
 	
 	@Test
@@ -335,6 +338,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		    BigDecimal.valueOf(40), "REST-BATCH-INIT");
 		StockOperation receiptOp = stockManagementService.getStockOperationByUuid(initialReceipt.getUuid());
 		String batchUuid = receiptOp.getStockOperationItems().iterator().next().getStockBatch().getUuid();
+		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		
 		// Save Stock Issue via StockOperationResource from parentLocation to childLocation
 		StockOperationDTO issueDto = new StockOperationDTO();
@@ -383,6 +388,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		assertEquals(StockOperationStatus.DISPATCHED, dispatched.getStatus());
 		assertNotNull("dispatchedBy must be recorded", dispatched.getDispatchedBy());
 		assertNotNull("dispatchedDate must be recorded", dispatched.getDispatchedDate());
+		assertEquals(0, BigDecimal.valueOf(30).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		
 		// 3. COMPLETE via StockOperationActionResource
 		StockOperationAction completeAction = new StockOperationAction();
@@ -397,6 +404,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		assertEquals(StockOperationStatus.COMPLETED, completed.getStatus());
 		assertNotNull("completedBy must be recorded", completed.getCompletedBy());
 		assertNotNull("completedDate must be recorded", completed.getCompletedDate());
+		assertEquals(0, BigDecimal.valueOf(30).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
 	}
 	
 	@Test
@@ -431,6 +440,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		assertNotNull("rejectedBy must be recorded", rejected.getRejectedBy());
 		assertNotNull("rejectedDate must be recorded", rejected.getRejectedDate());
 		assertEquals("Rejection reason must match", reason, rejected.getRejectionReason());
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
 	@Test
@@ -466,6 +476,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		assertNotNull("returnedDate must be recorded", returned.getReturnedDate());
 		assertEquals("Return reason must match", reason, returned.getReturnReason());
 		assertTrue("Returned operation must be updateable again", returned.isUpdateable());
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		
 		// Re-submit returned operation
 		StockOperationAction resubmitAction = new StockOperationAction();
@@ -478,6 +489,19 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO resubmitted = stockOperationResource.getByUniqueId(saved.getUuid());
 		assertEquals(StockOperationStatus.SUBMITTED, resubmitted.getStatus());
+		
+		// Approve resubmitted operation
+		StockOperationAction approveAction = new StockOperationAction();
+		approveAction.setUuid(saved.getUuid());
+		approveAction.setName(StockOperationAction.Action.APPROVE);
+		stockOperationActionResource.save(approveAction);
+		
+		Context.flushSession();
+		Context.clearSession();
+		
+		StockOperationDTO approved = stockOperationResource.getByUniqueId(saved.getUuid());
+		assertEquals(StockOperationStatus.COMPLETED, approved.getStatus());
+		assertEquals(0, BigDecimal.valueOf(8).compareTo(balanceAt(childParty)));
 	}
 	
 	@Test
@@ -513,6 +537,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		assertNotNull("cancelledBy must be recorded", cancelled.getCancelledBy());
 		assertNotNull("cancelledDate must be recorded", cancelled.getCancelledDate());
 		assertEquals("Cancel reason must match", reason, cancelled.getCancelReason());
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		
 		// 2. Cancel directly from NEW status
 		StockOperationDTO newDto = newReceiptDto(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(3));
@@ -531,6 +556,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO cancelledNew = stockOperationResource.getByUniqueId(savedNew.getUuid());
 		assertEquals(StockOperationStatus.CANCELLED, cancelledNew.getStatus());
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
 	// ---------------------------------------------------------------------------------------------
@@ -758,5 +784,13 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		Context.flushSession();
 		Context.clearSession();
 		return saved;
+	}
+	
+	private BigDecimal balanceAt(Party party) {
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
+		        Collections.singletonList(party.getId()), sampleStockItem.getId(), null)));
+		return stockManagementService.getStockInventory(filter, null).getData().stream().map(StockItemInventory::getQuantity)
+		        .reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 }
