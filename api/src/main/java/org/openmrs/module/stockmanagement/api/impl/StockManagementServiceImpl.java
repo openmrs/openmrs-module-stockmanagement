@@ -3100,8 +3100,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			batchJob.setBatchJobType(batchJobDTO.getBatchJobType());
 			batchJob.setStatus(BatchJobStatus.Pending);
 			batchJob.setDescription(batchJobDTO.getDescription());
-			batchJob.setExpiration(DateUtils.addMinutes(new Date(), Math.max(1440, Context.getAdministrationService()
-			        .getGlobalPropertyValue(ModuleConstants.BATCH_JOB_EXPIRY_IN_MINUTES, 1440))));
+			batchJob.setExpiration(DateUtils.addMinutes(new Date(), ModuleConstants.atLeast(
+			    ModuleConstants.BATCH_JOB_EXPIRY_IN_MINUTES,
+			    Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.BATCH_JOB_EXPIRY_IN_MINUTES, 1440),
+			    1440)));
 			batchJob.setParameters(batchJobDTO.getParameters());
 			batchJob.setPrivilegeScope(batchJobDTO.getPrivilegeScope());
 			

@@ -105,6 +105,15 @@ public class ModuleConstants {
 		return Boolean.parseBoolean(value);
 	}
 	
+	/** Keeps the setting's lower bound, and logs when a configured value is raised to it. */
+	public static int atLeast(String key, int value, int minimum) {
+		if (value < minimum) {
+			log.warn("Invalid value '{}' for global property '{}'; using {}", value, key, minimum);
+			return minimum;
+		}
+		return value;
+	}
+	
 	public static Integer positiveValue(String key, Integer value, Integer defaultValue) {
 		if (value <= 0) {
 			log.warn("Invalid value '{}' for global property '{}'; using {}", value, key, defaultValue);

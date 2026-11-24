@@ -142,6 +142,33 @@ public class ModuleConstantsTest {
 	
 	@ParameterizedTest
 	@ValueSource(ints = { -1, 0, Integer.MIN_VALUE })
+	public void ruleBatchSizeBelowOneShouldWarnAndUseOne(int value) {
+		assertEquals(1, atLeast(STOCK_RULE_JOB_BATCH_SIZE, value, 1));
+		assertWarning(STOCK_RULE_JOB_BATCH_SIZE, String.valueOf(value));
+	}
+	
+	@Test
+	public void batchJobExpiryBelowADayShouldWarnAndUseADay() {
+		assertEquals(1440, atLeast(BATCH_JOB_EXPIRY_IN_MINUTES, 60, 1440));
+		assertWarning(BATCH_JOB_EXPIRY_IN_MINUTES, "60");
+	}
+	
+	@Test
+	public void negativeExpiryNoticePeriodShouldWarnAndUseZero() {
+		assertEquals(0, atLeast(STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, -5, 0));
+		assertWarning(STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, "-5");
+	}
+	
+	@Test
+	public void valuesWithinTheLowerBoundShouldBeKeptWithoutWarning() {
+		assertEquals(1, atLeast(STOCK_RULE_JOB_BATCH_SIZE, 1, 1));
+		assertEquals(0, atLeast(STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, 0, 0));
+		assertEquals(2000, atLeast(BATCH_JOB_EXPIRY_IN_MINUTES, 2000, 1440));
+		assertTrue(events.isEmpty());
+	}
+	
+	@ParameterizedTest
+	@ValueSource(ints = { -1, 0, Integer.MIN_VALUE })
 	public void reportingPageSizeShouldWarnAndFallBackForNonpositiveValues(int value) {
 		assertEquals(1000, positiveValue(REPORTING_RECORDS_PAGE_SIZE, value, 1000));
 		assertWarning(REPORTING_RECORDS_PAGE_SIZE, String.valueOf(value));

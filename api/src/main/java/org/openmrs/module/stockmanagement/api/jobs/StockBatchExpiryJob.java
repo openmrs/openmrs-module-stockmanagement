@@ -80,8 +80,10 @@ public class StockBatchExpiryJob extends AbstractTask {
 		log.debug("Fetching the batch numbers due for notification");
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		
-		Integer defaultExpNotificationPeriod = Math.max(0, Context.getAdministrationService()
-		        .getGlobalPropertyValue(ModuleConstants.STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, 120));
+		Integer defaultExpNotificationPeriod = ModuleConstants.atLeast(
+		    ModuleConstants.STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, Context.getAdministrationService()
+		            .getGlobalPropertyValue(ModuleConstants.STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, 120),
+		    0);
 		Map<Integer, StockBatchDTO> stockBatchNumbers = stockManagementService
 		        .getExpiringStockBatchesDueForNotification(defaultExpNotificationPeriod).stream()
 		        .collect(Collectors.toMap(StockBatchDTO::getId, p -> p));
