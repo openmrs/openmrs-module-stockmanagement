@@ -115,7 +115,7 @@ Stock operation alerts and emails are only sent for the operation types and acti
 
 The observation properties accept concept UUIDs, not numeric concept IDs. Leave them blank if your implementation does not record those observations; a configured UUID that does not resolve to a concept causes the report to fail. Releases up to 3.0.0 set both, and an upgrade keeps those values, so clear them on an upgraded installation unless they match your concepts.
 
-The O3 concept options above are frontend configuration, defined in its [`config-schema.ts`](https://github.com/openmrs/openmrs-esm-stock-management-app/blob/main/src/config-schema.ts). Set them to the UUIDs of concepts whose coded answers supply the corresponding dropdown choices. Setting the backend global properties does not configure those O3 choices.
+The O3 stock management app's concept options `stockSourceTypeUUID`, `stockAdjustmentReasonUUID`, `stockTakeReasonUUID`, `packingUnitsUUID` and `stockItemCategoryUUID` are frontend configuration, defined in its [`config-schema.ts`](https://github.com/openmrs/openmrs-esm-stock-management-app/blob/main/src/config-schema.ts). Each has a default. To change a dropdown's choices, set its option to the UUID of a concept whose coded answers supply them. An upgraded installation still has the old backend properties such as `stockSourceCodeConceptId`, and setting them does not configure those O3 choices.
 
 ### Scheduled tasks
 
