@@ -856,6 +856,44 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
 	}
 	
+	@Test
+	public void stockOperationLifecycle_shouldNotChangeBalancesWhenIssueSubmissionExceedsAvailableStock() {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(50), "BATCH-INSUFFICIENT");
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+
+		StockOperationItemDTO item = new StockOperationItemDTO();
+		item.setStockItemUuid(sampleStockItem.getUuid());
+		item.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		item.setStockBatchUuid(batchUuid);
+		item.setQuantity(BigDecimal.valueOf(51));
+		StockOperationDTO issue = new StockOperationDTO();
+		issue.setOperationTypeUuid(stockIssueType.getUuid());
+		issue.setOperationDate(DateUtils.addDays(new Date(), -1));
+		issue.setSourceUuid(parentParty.getUuid());
+		issue.setDestinationUuid(childParty.getUuid());
+		issue.setAtLocationUuid(parentLocation.getUuid());
+		issue.setStockOperationItems(Collections.singletonList(item));
+		issue.setUuid(stockManagementService.saveStockOperation(issue).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		
+		try {
+			stockManagementService.submitStockOperation(issue);
+			fail("Expected insufficient stock balance exception");
+		}
+		catch (StockManagementException e) {
+			assertTrue(e.getMessage().contains("negative balance"));
+		}
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.NEW, stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(50).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
+	}
+	
 	private void assertRefused(String messageKey, Runnable action) {
 		try {
 			action.run();
