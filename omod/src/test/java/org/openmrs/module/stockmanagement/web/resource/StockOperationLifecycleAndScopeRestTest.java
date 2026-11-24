@@ -10,8 +10,8 @@
 package org.openmrs.module.stockmanagement.web.resource;
 
 import org.apache.commons.lang.time.DateUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.openmrs.Concept;
 import org.openmrs.Drug;
 import org.openmrs.GlobalProperty;
@@ -55,13 +55,14 @@ import org.openmrs.module.webservices.rest.web.response.ObjectNotFoundException;
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 import org.openmrs.api.ValidationException;
 import org.openmrs.util.PrivilegeConstants;
-import org.openmrs.web.test.BaseModuleWebContextSensitiveTest;
+import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,10 +70,10 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * End-to-end regression tests verifying the stock operation lifecycle and permission checks through
@@ -139,7 +140,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		type.setNotifyCompleted(false);
 	}
 	
-	@Before
+	@BeforeEach
 	public void setUp() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
@@ -172,9 +173,9 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		childParty = stockManagementService.getPartyByLocation(childLocation);
 		grandchildParty = stockManagementService.getPartyByLocation(grandchildLocation);
 		
-		assertNotNull("Parent party must exist", parentParty);
-		assertNotNull("Child party must exist", childParty);
-		assertNotNull("Grandchild party must exist", grandchildParty);
+		assertNotNull(parentParty, "Parent party must exist");
+		assertNotNull(childParty, "Child party must exist");
+		assertNotNull(grandchildParty, "Grandchild party must exist");
 		
 		supplierParty = createSupplierParty();
 		
@@ -240,11 +241,11 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		// Verify create() reads request fields and converts nested stockOperationItems via getCreatableProperties()
 		Object created = stockOperationResource.create(post, requestContext);
-		assertNotNull("create() must return representation", created);
-		assertTrue("create() must return SimpleObject", created instanceof SimpleObject);
+		assertNotNull(created, "create() must return representation");
+		assertTrue(created instanceof SimpleObject, "create() must return SimpleObject");
 		SimpleObject createdObj = (SimpleObject) created;
 		String createdUuid = (String) createdObj.get("uuid");
-		assertNotNull("Created operation must have uuid in response", createdUuid);
+		assertNotNull(createdUuid, "Created operation must have uuid in response");
 		
 		Context.flushSession();
 		Context.clearSession();
@@ -255,7 +256,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		// Verify nested items were processed by the property setter and persisted
 		Collection<StockOperationItemDTO> items = stockOperationResource.getStockOperationItems(retrieved);
-		assertNotNull("Property getter getStockOperationItems must return line items", items);
+		assertNotNull(items, "Property getter getStockOperationItems must return line items");
 		assertEquals(1, items.size());
 		StockOperationItemDTO item = items.iterator().next();
 		assertEquals("REST-JSON-BATCH-1", item.getBatchNo());
@@ -269,21 +270,21 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		Object retrievedFull = stockOperationResource.retrieve(createdUuid, fullContext);
 		assertTrue(retrievedFull instanceof SimpleObject);
 		List<?> restItems = (List<?>) ((SimpleObject) retrievedFull).get("stockOperationItems");
-		assertNotNull("Full representation must include stockOperationItems", restItems);
+		assertNotNull(restItems, "Full representation must include stockOperationItems");
 		assertEquals(1, restItems.size());
 		
 		// Exercise the action REST request path via JSON payload and create()
 		String submitActionJson = "{\n" + "  \"uuid\": \"" + createdUuid + "\",\n" + "  \"name\": \"SUBMIT\"\n" + "}";
 		SimpleObject actionPost = SimpleObject.parseJson(submitActionJson);
 		Object actionResult = stockOperationActionResource.create(actionPost, requestContext);
-		assertNotNull("Action create() must return representation", actionResult);
+		assertNotNull(actionResult, "Action create() must return representation");
 		
 		Context.flushSession();
 		Context.clearSession();
 		
 		StockOperationDTO submitted = stockOperationResource.getByUniqueId(createdUuid);
 		assertEquals(StockOperationStatus.SUBMITTED, submitted.getStatus());
-		assertNotNull("submittedBy must be recorded", submitted.getSubmittedBy());
+		assertNotNull(submitted.getSubmittedBy(), "submittedBy must be recorded");
 	}
 	
 	@Test
@@ -311,7 +312,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO submitted = stockOperationResource.getByUniqueId(saved.getUuid());
 		assertEquals(StockOperationStatus.SUBMITTED, submitted.getStatus());
-		assertNotNull("submittedBy must be recorded", submitted.getSubmittedBy());
+		assertNotNull(submitted.getSubmittedBy(), "submittedBy must be recorded");
 		
 		// 2. APPROVE via StockOperationActionResource
 		StockOperationAction approveAction = new StockOperationAction();
@@ -324,8 +325,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO approved = stockOperationResource.getByUniqueId(saved.getUuid());
 		assertEquals(StockOperationStatus.COMPLETED, approved.getStatus());
-		assertNotNull("completedBy must be recorded", approved.getCompletedBy());
-		assertNotNull("completedDate must be recorded", approved.getCompletedDate());
+		assertNotNull(approved.getCompletedBy(), "completedBy must be recorded");
+		assertNotNull(approved.getCompletedDate(), "completedDate must be recorded");
 		assertEquals(0, BigDecimal.valueOf(15).compareTo(balanceAt(childParty)));
 	}
 	
@@ -386,8 +387,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO dispatched = stockOperationResource.getByUniqueId(savedIssue.getUuid());
 		assertEquals(StockOperationStatus.DISPATCHED, dispatched.getStatus());
-		assertNotNull("dispatchedBy must be recorded", dispatched.getDispatchedBy());
-		assertNotNull("dispatchedDate must be recorded", dispatched.getDispatchedDate());
+		assertNotNull(dispatched.getDispatchedBy(), "dispatchedBy must be recorded");
+		assertNotNull(dispatched.getDispatchedDate(), "dispatchedDate must be recorded");
 		assertEquals(0, BigDecimal.valueOf(30).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		
@@ -402,8 +403,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO completed = stockOperationResource.getByUniqueId(savedIssue.getUuid());
 		assertEquals(StockOperationStatus.COMPLETED, completed.getStatus());
-		assertNotNull("completedBy must be recorded", completed.getCompletedBy());
-		assertNotNull("completedDate must be recorded", completed.getCompletedDate());
+		assertNotNull(completed.getCompletedBy(), "completedBy must be recorded");
+		assertNotNull(completed.getCompletedDate(), "completedDate must be recorded");
 		assertEquals(0, BigDecimal.valueOf(30).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
 	}
@@ -437,9 +438,9 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO rejected = stockOperationResource.getByUniqueId(saved.getUuid());
 		assertEquals(StockOperationStatus.REJECTED, rejected.getStatus());
-		assertNotNull("rejectedBy must be recorded", rejected.getRejectedBy());
-		assertNotNull("rejectedDate must be recorded", rejected.getRejectedDate());
-		assertEquals("Rejection reason must match", reason, rejected.getRejectionReason());
+		assertNotNull(rejected.getRejectedBy(), "rejectedBy must be recorded");
+		assertNotNull(rejected.getRejectedDate(), "rejectedDate must be recorded");
+		assertEquals(reason, rejected.getRejectionReason(), "Rejection reason must match");
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
@@ -472,11 +473,21 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO returned = stockOperationResource.getByUniqueId(saved.getUuid());
 		assertEquals(StockOperationStatus.RETURNED, returned.getStatus());
-		assertNotNull("returnedBy must be recorded", returned.getReturnedBy());
-		assertNotNull("returnedDate must be recorded", returned.getReturnedDate());
-		assertEquals("Return reason must match", reason, returned.getReturnReason());
-		assertTrue("Returned operation must be updateable again", returned.isUpdateable());
+		assertNotNull(returned.getReturnedBy(), "returnedBy must be recorded");
+		assertNotNull(returned.getReturnedDate(), "returnedDate must be recorded");
+		assertEquals(reason, returned.getReturnReason(), "Return reason must match");
+		assertTrue(returned.isUpdateable(), "Returned operation must be updateable again");
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
+		
+		// Edit line item quantity (8 -> 12) while RETURNED via StockOperationResource.save before re-submitting
+		Collection<StockOperationItemDTO> returnedItems = stockOperationResource.getStockOperationItems(returned);
+		StockOperationItemDTO returnedItem = returnedItems.iterator().next();
+		receiptDto.setUuid(saved.getUuid());
+		receiptDto.getStockOperationItems().iterator().next().setUuid(returnedItem.getUuid());
+		receiptDto.getStockOperationItems().iterator().next().setQuantity(BigDecimal.valueOf(12));
+		stockOperationResource.save(receiptDto);
+		Context.flushSession();
+		Context.clearSession();
 		
 		// Re-submit returned operation
 		StockOperationAction resubmitAction = new StockOperationAction();
@@ -501,7 +512,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO approved = stockOperationResource.getByUniqueId(saved.getUuid());
 		assertEquals(StockOperationStatus.COMPLETED, approved.getStatus());
-		assertEquals(0, BigDecimal.valueOf(8).compareTo(balanceAt(childParty)));
+		assertEquals(0, BigDecimal.valueOf(12).compareTo(balanceAt(childParty)));
 	}
 	
 	@Test
@@ -534,9 +545,9 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		StockOperationDTO cancelled = stockOperationResource.getByUniqueId(saved.getUuid());
 		assertEquals(StockOperationStatus.CANCELLED, cancelled.getStatus());
-		assertNotNull("cancelledBy must be recorded", cancelled.getCancelledBy());
-		assertNotNull("cancelledDate must be recorded", cancelled.getCancelledDate());
-		assertEquals("Cancel reason must match", reason, cancelled.getCancelReason());
+		assertNotNull(cancelled.getCancelledBy(), "cancelledBy must be recorded");
+		assertNotNull(cancelled.getCancelledDate(), "cancelledDate must be recorded");
+		assertEquals(reason, cancelled.getCancelReason(), "Cancel reason must match");
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 		
 		// 2. Cancel directly from NEW status
@@ -557,6 +568,84 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		StockOperationDTO cancelledNew = stockOperationResource.getByUniqueId(savedNew.getUuid());
 		assertEquals(StockOperationStatus.CANCELLED, cancelledNew.getStatus());
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
+	}
+	
+	@Test
+	public void restLifecycle_shouldRejectInvalidActionAndInsufficientIssueAndPreserveStateAndBalances() {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceiptViaRest(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(20), "REST-BATCH-GUARD");
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		
+		// 1. Issue exceeding available stock (21 > 20) fails over REST and preserves NEW + balances
+		StockOperationDTO overIssue = newIssueDto(batchUuid, BigDecimal.valueOf(21));
+		StockOperationDTO savedOver = stockOperationResource.save(overIssue);
+		Context.flushSession();
+		Context.clearSession();
+		StockOperationAction submitOver = new StockOperationAction();
+		submitOver.setUuid(savedOver.getUuid());
+		submitOver.setName(StockOperationAction.Action.SUBMIT);
+		try {
+			stockOperationActionResource.save(submitOver);
+			fail("Expected insufficient stock IllegalRequestException");
+		}
+		catch (IllegalRequestException e) {
+			assertTrue(e.getMessage().contains("negative balance"));
+		}
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.NEW, stockOperationResource.getByUniqueId(savedOver.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(20).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
+		
+		// 2. Disallowed transition on DISPATCHED issue (REJECT) fails over REST and preserves DISPATCHED + balances
+		StockOperationDTO validIssue = newIssueDto(batchUuid, BigDecimal.valueOf(5));
+		StockOperationDTO savedValid = stockOperationResource.save(validIssue);
+		Context.flushSession();
+		Context.clearSession();
+		for (StockOperationAction.Action step : Arrays.asList(StockOperationAction.Action.SUBMIT,
+		    StockOperationAction.Action.DISPATCH)) {
+			StockOperationAction act = new StockOperationAction();
+			act.setUuid(savedValid.getUuid());
+			act.setName(step);
+			stockOperationActionResource.save(act);
+			Context.flushSession();
+			Context.clearSession();
+		}
+		StockOperationAction invalidReject = new StockOperationAction();
+		invalidReject.setUuid(savedValid.getUuid());
+		invalidReject.setName(StockOperationAction.Action.REJECT);
+		invalidReject.setReason("Too late");
+		try {
+			stockOperationActionResource.save(invalidReject);
+			fail("Expected IllegalRequestException rejecting a dispatched issue");
+		}
+		catch (IllegalRequestException e) {
+			assertNotNull(e.getMessage());
+		}
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.DISPATCHED,
+		    stockOperationResource.getByUniqueId(savedValid.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(15).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
+	}
+	
+	private StockOperationDTO newIssueDto(String batchUuid, BigDecimal quantity) {
+		StockOperationDTO issueDto = new StockOperationDTO();
+		issueDto.setOperationTypeUuid(stockIssueType.getUuid());
+		issueDto.setOperationDate(DateUtils.addDays(new Date(), -1));
+		issueDto.setSourceUuid(parentParty.getUuid());
+		issueDto.setDestinationUuid(childParty.getUuid());
+		issueDto.setAtLocationUuid(parentLocation.getUuid());
+		StockOperationItemDTO item = new StockOperationItemDTO();
+		item.setStockItemUuid(sampleStockItem.getUuid());
+		item.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		item.setStockBatchUuid(batchUuid);
+		item.setQuantity(quantity);
+		issueDto.setStockOperationItems(Collections.singletonList(item));
+		return issueDto;
 	}
 	
 	// ---------------------------------------------------------------------------------------------
@@ -600,9 +689,9 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 			fail("User B must not be permitted to create operation at child location without scope");
 		}
 		catch (ValidationException e) {
-			assertNotNull("Validation error must be reported", e.getMessage());
-			assertTrue("Validation message must indicate permission issue",
-			    e.getMessage().toLowerCase().contains("permission"));
+			assertNotNull(e.getMessage(), "Validation error must be reported");
+			assertTrue(e.getMessage().toLowerCase().contains("permission"),
+			    "Validation message must indicate permission issue");
 		}
 		
 		// User B attempting to act on operation at childLocation must be rejected (operation not visible or permission denied)
@@ -614,7 +703,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 			fail("User B must not be permitted to approve operation at child location without scope");
 		}
 		catch (ResponseException e) {
-			assertTrue("User B must not even see the operation, got " + e, e instanceof ObjectNotFoundException);
+			assertTrue(e instanceof ObjectNotFoundException, "User B must not even see the operation, got " + e);
 		}
 	}
 	
