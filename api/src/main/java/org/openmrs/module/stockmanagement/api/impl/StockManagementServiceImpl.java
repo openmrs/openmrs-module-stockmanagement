@@ -21,6 +21,7 @@ import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.api.context.Context;
@@ -186,11 +187,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	}
 	
 	public List<StockOperationType> getAllStockOperationTypes() {
-		return dao.getAllStockOperationTypes();
-	}
-	
-	public List<StockOperationTypeLocationScope> getAllStockOperationTypeLocationScopes() {
-		return dao.getAllStockOperationTypeLocationScopes();
+		return Arrays.asList(StockOperationType.values());
 	}
 	
 	public Result<UserRoleScopeDTO> findUserRoleScopes(UserRoleScopeSearchFilter filter) {
@@ -221,8 +218,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		    new UserRoleScopeLocationSearchFilter(userRoleScopes.getData()));
 		
 		List<Location> locations = Context.getLocationService().getAllLocations(true);
-		List<StockOperationType> operationTypes = getAllStockOperationTypes();
-		
 		for (UserRoleScope userRoleScope : userRoleScopes.getData()) {
 			UserRoleScopeDTO userRoleScopeDTO = new UserRoleScopeDTO();
 			userRoleScopeDTO.setId(userRoleScope.getId());
@@ -238,8 +233,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			userRoleScopeDTO.setUserGivenName(userRoleScope.getUser().getGivenName());
 			userRoleScopeDTO.setOperationTypes(mapToUserRoleScopeOperationTypeDTO(userRoleScopeOperationTypes.getData()
 			        .stream().filter(p -> p.getUserRoleScope().getId().equals(userRoleScope.getId()))
-			        .collect(Collectors.toList()),
-			    operationTypes));
+			        .collect(Collectors.toList())));
 			userRoleScopeDTO.setLocations(mapToUserRoleScopeLocationDTO(userRoleScopeLocations.getData().stream()
 			        .filter(p -> p.getUserRoleScope().getId().equals(userRoleScope.getId())).collect(Collectors.toList()),
 			    locations));
@@ -269,18 +263,14 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	}
 	
 	private List<UserRoleScopeOperationTypeDTO> mapToUserRoleScopeOperationTypeDTO(
-	        List<UserRoleScopeOperationType> userRoleScopeOperationTypes, List<StockOperationType> operationTypes) {
+	        List<UserRoleScopeOperationType> userRoleScopeOperationTypes) {
 		List<UserRoleScopeOperationTypeDTO> result = new ArrayList<>();
 		for (UserRoleScopeOperationType userRoleScopeOperationType : userRoleScopeOperationTypes) {
-			Optional<StockOperationType> stockOperationType = operationTypes.stream()
-			        .filter(p -> p.getUuid().equals(userRoleScopeOperationType.getStockOperationType().getUuid()))
-			        .findFirst();
-			if (!stockOperationType.isPresent())
-				continue;
+			StockOperationType stockOperationType = userRoleScopeOperationType.getStockOperationType();
 			UserRoleScopeOperationTypeDTO userRoleScopeOperationTypeDTO = new UserRoleScopeOperationTypeDTO();
 			userRoleScopeOperationTypeDTO.setUuid(userRoleScopeOperationType.getUuid());
-			userRoleScopeOperationTypeDTO.setOperationTypeName(stockOperationType.get().getName());
-			userRoleScopeOperationTypeDTO.setOperationTypeUuid(stockOperationType.get().getUuid());
+			userRoleScopeOperationTypeDTO.setOperationTypeName(stockOperationType.getName());
+			userRoleScopeOperationTypeDTO.setOperationType(stockOperationType.getOperationType());
 			userRoleScopeOperationTypeDTO.setUserRoleScopeId(userRoleScopeOperationType.getUserRoleScope().getId());
 			result.add(userRoleScopeOperationTypeDTO);
 		}
@@ -291,16 +281,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		return dao.getStockOperationByUuid(uuid);
 	}
 	
-	public StockOperationType getStockOperationTypeByUuid(String uuid) {
-		return dao.getStockOperationTypeByUuid(uuid);
-	}
-	
 	public StockOperationType getStockOperationTypeByType(String type) {
-		return dao.getStockOperationTypeByType(type);
-	}
-	
-	public StockOperationTypeLocationScope getStockOperationTypeLocationScopeByUuid(String uuid) {
-		return dao.getStockOperationTypeLocationScopeByUuid(uuid);
+		return StockOperationType.fromOperationType(type);
 	}
 	
 	public UserRoleScopeOperationType getUserRoleScopeOperationTypeByUuid(String uuid) {
@@ -748,7 +730,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	        StockOperationType stockOperationType, String stockManagementPrivilege) {
 		HashSet<RecordPrivilegeFilter> target = new HashSet<>();
 		List<Location> allLocations = Context.getLocationService().getAllLocations(true);
-		HashMap<String, Integer> operationTypes = new HashMap<>();
 		Set<Role> allRoles = user.getAllRoles();
 		List<PrivilegeScope> privilegeScopes = dao.getFlattenedUserRoleScopesByUser(user, allRoles, location,
 		    stockOperationType);
@@ -775,17 +756,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				if (!scopeLocation.isPresent())
 					continue;
 				recordPrivilegeFilter.setLocationId(scopeLocation.get().getId());
-				if (!operationTypes.containsKey(scope.getOperationTypeUuid())) {
-					StockOperationType stockOperationTypeEntity = getStockOperationTypeByUuid(scope.getOperationTypeUuid());
-					if (stockOperationTypeEntity != null) {
-						recordPrivilegeFilter.setOperationTypeId(stockOperationTypeEntity.getId());
-						operationTypes.putIfAbsent(scope.getOperationTypeUuid(), stockOperationTypeEntity.getId());
-					} else {
-						continue;
-					}
-				} else {
-					recordPrivilegeFilter.setOperationTypeId(operationTypes.get(scope.getOperationTypeUuid()));
-				}
+				recordPrivilegeFilter.setOperationType(scope.getStockOperationType());
 				target.add(recordPrivilegeFilter);
 			}
 		}
@@ -944,29 +915,24 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		                .collect(Collectors.toList());
 		
 		List<UserRoleScopeOperationType> stockOperationTypesToAdd = new ArrayList<>();
-		List<StockOperationType> allStockOperationTypes = getAllStockOperationTypes();
 		for (UserRoleScopeOperationTypeDTO userRoleScopeOperationTypeDTO : delegate.getOperationTypes() == null
 		        ? Collections.<UserRoleScopeOperationTypeDTO> emptyList()
 		        : delegate.getOperationTypes()) {
-			Optional<StockOperationType> stockOperationType = allStockOperationTypes.stream()
-			        .filter(p -> p.getUuid().equalsIgnoreCase(userRoleScopeOperationTypeDTO.getOperationTypeUuid()))
-			        .findFirst();
-			if (!stockOperationType.isPresent()) {
+			StockOperationType stockOperationType = StockOperationType
+			        .fromOperationType(userRoleScopeOperationTypeDTO.getOperationType());
+			if (stockOperationType == null) {
 				invalidRequest(
 				    Context.getMessageSourceService().getMessage("stockmanagement.userrolescopes.operationtype.invalid"),
-				    userRoleScopeOperationTypeDTO.getOperationTypeUuid());
+				    userRoleScopeOperationTypeDTO.getOperationType());
 			} else {
 				Optional<UserRoleScopeOperationType> exisitingOperationType = userRoleScope
-				        .getUserRoleScopeOperationTypes() != null
-				                ? userRoleScope.getUserRoleScopeOperationTypes().stream()
-				                        .filter(p -> !p.getVoided() && p.getStockOperationType().getUuid()
-				                                .equalsIgnoreCase(userRoleScopeOperationTypeDTO.getOperationTypeUuid()))
-				                        .findAny()
+				        .getUserRoleScopeOperationTypes() != null ? userRoleScope.getUserRoleScopeOperationTypes().stream()
+				                .filter(p -> !p.getVoided() && p.getStockOperationType() == stockOperationType).findAny()
 				                : Optional.<UserRoleScopeOperationType> empty();
 				if (exisitingOperationType.isPresent())
 					continue;
 				UserRoleScopeOperationType userRoleScopeOperationType = new UserRoleScopeOperationType();
-				userRoleScopeOperationType.setStockOperationType(stockOperationType.get());
+				userRoleScopeOperationType.setStockOperationType(stockOperationType);
 				userRoleScopeOperationType.setCreator(Context.getAuthenticatedUser());
 				userRoleScopeOperationType.setDateCreated(new Date());
 				stockOperationTypesToAdd.add(userRoleScopeOperationType);
@@ -979,7 +945,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		                .filter(
 		                    p -> !p.getVoided() && p.getStockOperationType() != null && delegate.getOperationTypes() != null
 		                            && !delegate.getOperationTypes().stream().anyMatch(
-		                                x -> x.getOperationTypeUuid().equalsIgnoreCase(p.getStockOperationType().getUuid())))
+		                                x -> p.getStockOperationType().getOperationType().equals(x.getOperationType())))
 		                .collect(Collectors.toList());
 		
 		saveUserRoleScope(userRoleScope);
@@ -1182,10 +1148,11 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			stockOperation.setStatus(StockOperationStatus.NEW);
 			stockOperation.setCreator(Context.getAuthenticatedUser());
 			stockOperation.setDateCreated(new Date());
-			stockOperationType = getStockOperationTypeByUuid(dto.getOperationTypeUuid());
+			stockOperationType = dto.getStockOperationType();
 			stockOperation.setStockOperationType(stockOperationType);
 			stockOperation.setLocked(false);
 		}
+		StockOperationTypeProcessor processor = stockOperationType.getProcessor();
 		
 		stockOperation.setApprovalRequired(dto.getApprovalRequired());
 		stockOperation.setOperationDate(dto.getOperationDate());
@@ -1228,8 +1195,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		
 		StockOperationLink stockOperationLink = null;
 		if (isNew) {
-			if (stockOperationType.canBeRelatedToRequisition()
-			        && !StringUtils.isBlank(dto.getRequisitionStockOperationUuid())) {
+			if (processor.canBeRelatedToRequisition() && !StringUtils.isBlank(dto.getRequisitionStockOperationUuid())) {
 				StockOperation parentStockOperation = getStockOperationByUuid(dto.getRequisitionStockOperationUuid());
 				if (parentStockOperation != null) {
 					stockOperationLink = new StockOperationLink();
@@ -1240,7 +1206,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 					throw new StockManagementException(messageSourceService
 					        .getMessage("stockmanagement.stockoperation.requisitionstocksperationnnotfound"));
 				}
-			} else if (StockOperationType.STOCK_ISSUE.equals(stockOperationType.getOperationType())
+			} else if (stockOperationType == StockOperationType.STOCK_ISSUE
 			        && !GlobalProperties.allowStockIssueWithoutRequisition()) {
 				throw new StockManagementException(messageSourceService
 				        .getMessage("stockmanagement.stockoperation.requisitionstocksperationnrequired"));
@@ -1314,7 +1280,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			if (isStockItemNew) {
 				item.setStockItem(stockItem);
 			}
-			if (stockOperationType.requiresBatchUuid()) {
+			if (processor.requiresBatchUuid()) {
 				StockBatch stockBatch = getStockBatchByUuid(itemDto.getStockBatchUuid());
 				if (stockBatch == null) {
 					throw new StockManagementException(String.format(
@@ -1322,7 +1288,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 					    itemDto.getStockBatchUuid()));
 				}
 				item.setStockBatch(stockBatch);
-			} else if (stockOperationType.requiresActualBatchInformation()) {
+			} else if (processor.requiresActualBatchInformation()) {
 				{
 					StockBatch stockBatch = findStockBatch(stockItem, itemDto.getBatchNo(), itemDto.getExpiration());
 					if (stockBatch == null) {
@@ -1350,12 +1316,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 						stockBatchMapping.putIfAbsent(item.getUuid(), stockBatch);
 					}
 				}
-				if (stockOperationType.canCapturePurchasePrice()) {
+				if (processor.canCapturePurchasePrice()) {
 					item.setPurchasePrice(itemDto.getPurchasePrice());
 				}
 			}
 			
-			if (isStockItemNew && stockOperationType.getOperationType().equals(StockOperationType.STOCK_ISSUE)) {
+			if (isStockItemNew && stockOperationType == StockOperationType.STOCK_ISSUE) {
 				if (itemDto.getQuantityRequested() != null) {
 					item.setQuantityRequested(itemDto.getQuantityRequested());
 					Optional<StockItemPackagingUOM> stockItemPackagingUOMOptional = preloadStockItemPackagingUOMs.stream()
@@ -1379,7 +1345,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		
 		dao.saveStockOperation(stockOperation);
 		if (isNew) {
-			stockOperation.setOperationNumber(String.format("%1s-%2s", stockOperationType.getAcronym(),
+			stockOperation.setOperationNumber(String.format("%1s-%2s", processor.getAcronym(),
 			    StringUtils.leftPad(Integer.toString(stockOperation.getId()), 4, '0')));
 			dao.saveStockOperation(stockOperation);
 		}
@@ -1456,7 +1422,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			throw new StockManagementException(
 			        messageSourceService.getMessage("stockmanagement.stockoperation.notupdateable"));
 		}
-		if (!stockOperation.getStockOperationType().userCanProcess(Context.getAuthenticatedUser(),
+		if (!stockOperation.getStockOperationType().getProcessor().userCanProcess(Context.getAuthenticatedUser(),
 		    stockOperation.getAtLocation())) {
 			throw new StockManagementException(
 			        messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
@@ -1494,15 +1460,15 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			return;
 		StockOperation stockOperation = getStockOperationByUuid(stockOperationDTO.getUuid());
 		StockOperationType stockOperationType = stockOperation.getStockOperationType();
+		StockOperationTypeProcessor processor = stockOperationType.getProcessor();
 		MessageSourceService messageSourceService = Context.getMessageSourceService();
-		if (!stockOperationType.requiresDispatchAcknowledgement() || !stockOperation.canReceiveItems()) {
+		if (!processor.requiresDispatchAcknowledgement() || !stockOperation.canReceiveItems()) {
 			throw new StockManagementException(
 			        messageSourceService.getMessage("stockmanagement.stockoperation.cannotreceiveitems"));
 		}
 		
 		if (stockOperation.getDestination() == null || stockOperation.getDestination().getLocation() == null
-		        || !stockOperationType.userCanProcess(Context.getAuthenticatedUser(),
-		            stockOperation.getDestination().getLocation(),
+		        || !processor.userCanProcess(Context.getAuthenticatedUser(), stockOperation.getDestination().getLocation(),
 		            Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS)) {
 			throw new StockManagementException(
 			        messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
@@ -1614,6 +1580,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	
 	private void validateStockInventoryAfterOperation(StockOperation stockOperation, StockOperationType stockOperationType,
 	        MessageSourceService messageSourceService) {
+		StockOperationTypeProcessor processor = stockOperationType.getProcessor();
 		List<StockOperationItem> applicableStockOperationItems = stockOperation.getStockOperationItems().stream()
 		        .filter(p -> !p.getVoided()).collect(Collectors.toList());
 		List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = applicableStockOperationItems.stream()
@@ -1628,7 +1595,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		
 		StockItemInventorySearchFilter searchFilter = new StockItemInventorySearchFilter();
 		searchFilter.setItemGroupFilters(itemsToSearch);
-		if (stockOperationType.getAllowExpiredBatchNumbers() != null && stockOperationType.getAllowExpiredBatchNumbers()) {
+		if (processor.getAllowExpiredBatchNumbers()) {
 			searchFilter.setRequireNonExpiredStockBatches(false);
 		}
 		List<StockItemInventory> stockItemInventories = dao.getStockItemInventory(searchFilter, null).getData();
@@ -1645,7 +1612,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			        .collect(Collectors.toList());
 			
 			BigDecimal batchEffect = itemGroupItems.stream()
-			        .map(p -> stockOperationType
+			        .map(p -> processor
 			                .getQuantityToApplyAtSource(p.getQuantity().multiply(p.getStockItemPackagingUOM().getFactor())))
 			        .reduce(BigDecimal.ZERO, BigDecimal::add);
 			
@@ -1739,7 +1706,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			        .collect(Collectors.toList());
 			
 			BigDecimal expectedBalance = itemGroupItems.stream()
-			        .map(p -> stockOperationType
+			        .map(p -> stockOperationType.getProcessor()
 			                .getQuantityToApplyAtSource(p.getQuantity().multiply(p.getStockItemPackagingUOM().getFactor())))
 			        .reduce(BigDecimal.ZERO, BigDecimal::add);
 			
@@ -1826,6 +1793,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		synchronized (STOCK_OPERATION_PROCESSING_LOCK) {
 			MessageSourceService messageSourceService = Context.getMessageSourceService();
 			StockOperation stockOperation = getStockOperationByUuid(stockOperationDTO.getUuid());
+			StockOperationTypeProcessor processor = stockOperation.getStockOperationType().getProcessor();
 			if (action.equals(StockOperationAction.Action.SUBMIT)) {
 				if (!stockOperation.isUpdateable()) {
 					throw new StockManagementException(
@@ -1833,11 +1801,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				}
 			} else if (action.equals(StockOperationAction.Action.COMPLETE)) {
 				boolean canComplete = false;
-				if (stockOperation.isUpdateable()
-				        && !stockOperation.getStockOperationType().requiresDispatchAcknowledgement()) {
+				if (stockOperation.isUpdateable() && !processor.requiresDispatchAcknowledgement()) {
 					canComplete = true;
-				} else if (!stockOperation.isUpdateable()
-				        && stockOperation.getStockOperationType().requiresDispatchAcknowledgement()
+				} else if (!stockOperation.isUpdateable() && processor.requiresDispatchAcknowledgement()
 				        && stockOperation.getStatus().equals(StockOperationStatus.DISPATCHED)) {
 					canComplete = true;
 				}
@@ -1847,7 +1813,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				}
 			} else if (action.equals(StockOperationAction.Action.DISPATCH)) {
 				if (!((stockOperation.isUpdateable() || stockOperation.getStatus().equals(StockOperationStatus.SUBMITTED))
-				        && stockOperation.getStockOperationType().requiresDispatchAcknowledgement())) {
+				        && processor.requiresDispatchAcknowledgement())) {
 					throw new StockManagementException(
 					        messageSourceService.getMessage("stockmanagement.stockoperation.notdispatcheable"));
 				}
@@ -1869,7 +1835,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				}
 			} else if (action.equals(StockOperationAction.Action.APPROVE)) {
 				if (!(stockOperation.getStatus().equals(StockOperationStatus.SUBMITTED)
-				        && !stockOperation.getStockOperationType().requiresDispatchAcknowledgement())) {
+				        && !processor.requiresDispatchAcknowledgement())) {
 					throw new StockManagementException(
 					        messageSourceService.getMessage("stockmanagement.stockoperation.approvalactionnotallowed"));
 				}
@@ -1906,8 +1872,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				}
 			}
 			
-			if (location == null || !stockOperationType.userCanProcess(Context.getAuthenticatedUser(), location,
-			    requiredPrivilege.getValue1())) {
+			if (location == null
+			        || !processor.userCanProcess(Context.getAuthenticatedUser(), location, requiredPrivilege.getValue1())) {
 				throw new StockManagementException(
 				        messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
 			}
@@ -1916,14 +1882,14 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			if (action == StockOperationAction.Action.SUBMIT
 			        || (stockOperation.isUpdateable() && (action.equals(StockOperationAction.Action.COMPLETE)
 			                || action.equals(StockOperationAction.Action.DISPATCH)))) {
-				if (!stockOperationType.isQuantityOptional()) {
-					if (stockOperationType.shouldVerifyNegativeStockAmountsAtSource()
+				if (!processor.isQuantityOptional()) {
+					if (processor.shouldVerifyNegativeStockAmountsAtSource()
 					        && !GlobalProperties.getNegativeStockBalanceAllowed() && stockOperation.getSource() != null
 					        && stockOperation.getSource().getLocation() != null) {
 						validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
 					}
 					
-					if (StockOperationType.STOCKTAKE.equals(stockOperationType.getOperationType())) {
+					if (stockOperationType == StockOperationType.STOCKTAKE) {
 						reservedTransactions = calculateStockIssueAdjustments(stockOperation, stockOperationType,
 						    messageSourceService);
 					}
@@ -1934,31 +1900,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			    reservedTransactions);
 		}
 		
-		boolean notify = false;
-		switch (action) {
-			case SUBMIT:
-				notify = stockOperationType.getNotifySubmitted();
-				break;
-			case APPROVE:
-				notify = stockOperationType.getNotifyApproved();
-				break;
-			case DISPATCH:
-				notify = stockOperationType.getNotifyDispatched();
-				break;
-			case RETURN:
-				notify = stockOperationType.getNotifyReturned();
-				break;
-			case REJECT:
-				notify = stockOperationType.getNotifyRejected();
-				break;
-			case COMPLETE:
-				notify = stockOperationType.getNotifyCompleted();
-				break;
-			case CANCEL:
-				notify = stockOperationType.getNotifyCancelled();
-				break;
-		}
-		if (notify) {
+		if (stockOperationType.getProcessor().notifiesOn(action)) {
 			try {
 				StockOperationNotificationTask stockOperationNotificationTask = new StockOperationNotificationTask(
 				        stockOperationDTO.getUuid(), action, reason, Context.getAuthenticatedUser().getUserId());
@@ -1973,11 +1915,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	public void processStockOperationAction(StockOperationAction.Action action, String reason, StockOperation stockOperation,
 	        StockOperationType stockOperationType, MessageSourceService messageSourceService,
 	        List<ReservedTransaction> reservedTransactions) {
+		StockOperationTypeProcessor processor = stockOperationType.getProcessor();
 		if (action.equals(StockOperationAction.Action.SUBMIT)
 		        || (stockOperation.isUpdateable() && (action.equals(StockOperationAction.Action.COMPLETE)
 		                || action.equals(StockOperationAction.Action.DISPATCH)))) {
-			if (!stockOperationType.isQuantityOptional()) {
-				if (StockOperationType.STOCKTAKE.equals(stockOperationType.getOperationType())) {
+			if (!processor.isQuantityOptional()) {
+				if (stockOperationType == StockOperationType.STOCKTAKE) {
 					// reserved transactions
 					for (ReservedTransaction tx : reservedTransactions) {
 						stockOperation.addReservedTransaction(tx);
@@ -2015,9 +1958,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				stockOperation.setDispatchedDate(new Date());
 			}
 			
-			stockOperationType.onPending(stockOperation);
+			processor.onPending(stockOperation);
 			if (action == StockOperationAction.Action.COMPLETE) {
-				stockOperationType.onCompleted(stockOperation);
+				processor.onCompleted(stockOperation);
 			}
 		} else if (action == StockOperationAction.Action.DISPATCH) {
 			resetDispatchedQuantities(stockOperation);
@@ -2035,7 +1978,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			stockOperation.setChangedBy(Context.getAuthenticatedUser());
 			stockOperation.setDateChanged(new Date());
 			
-			stockOperationType.onCompleted(stockOperation);
+			processor.onCompleted(stockOperation);
 			
 		} else if (action == StockOperationAction.Action.APPROVE) {
 			stockOperation.setCompletedBy(Context.getAuthenticatedUser());
@@ -2044,7 +1987,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			stockOperation.setChangedBy(Context.getAuthenticatedUser());
 			stockOperation.setDateChanged(new Date());
 			
-			stockOperationType.onCompleted(stockOperation);
+			processor.onCompleted(stockOperation);
 		} else if (action == StockOperationAction.Action.RETURN) {
 			stockOperation.setLocked(false);
 			stockOperation.setReturnedBy(Context.getAuthenticatedUser());
@@ -2054,7 +1997,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			stockOperation.setChangedBy(Context.getAuthenticatedUser());
 			stockOperation.setDateChanged(new Date());
 			
-			stockOperationType.onCancelled(stockOperation);
+			processor.onCancelled(stockOperation);
 		} else if (action == StockOperationAction.Action.REJECT) {
 			stockOperation.setRejectedBy(Context.getAuthenticatedUser());
 			stockOperation.setStatus(StockOperationStatus.REJECTED);
@@ -2063,7 +2006,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			stockOperation.setChangedBy(Context.getAuthenticatedUser());
 			stockOperation.setDateChanged(new Date());
 			
-			stockOperationType.onCancelled(stockOperation);
+			processor.onCancelled(stockOperation);
 		} else if (action == StockOperationAction.Action.CANCEL) {
 			stockOperation.setCancelledBy(Context.getAuthenticatedUser());
 			stockOperation.setStatus(StockOperationStatus.CANCELLED);
@@ -2072,7 +2015,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			stockOperation.setChangedBy(Context.getAuthenticatedUser());
 			stockOperation.setDateChanged(new Date());
 			
-			stockOperationType.onCancelled(stockOperation);
+			processor.onCancelled(stockOperation);
 		}
 		dao.saveStockOperation(stockOperation);
 	}
@@ -3348,7 +3291,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			
 			StockOperation stockOperation = dao.getStockOperationByUuid(stockOperationDTO.getUuid());
 			StockOperationType stockOperationType = stockOperation.getStockOperationType();
-			if (!stockOperationType.requiresActualBatchInformation()) {
+			if (!stockOperationType.getProcessor().requiresActualBatchInformation()) {
 				invalidRequest("stockmanagement.stockoperation.updatebatchnumbersnotsupported");
 			}
 			

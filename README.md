@@ -12,7 +12,7 @@ It is inspired by the [OpenHMIS Inventory Module](https://github.com/banda-healt
 ## What it does
 
 - **Stock items** linked to a drug or a concept, with packaging units and batch numbers that carry expiry dates.
-- **Stock operations**. Nine operation types are created by Liquibase: Opening Stock, Receipt, Requisition, Stock Issue, Transfer Out, Return, Adjustment, Stock Take and Disposal. An operation moves between the statuses `NEW`, `SUBMITTED`, `DISPATCHED`, `RETURNED`, `REJECTED`, `CANCELLED` and `COMPLETED` through actions such as submit, approve, dispatch and complete.
+- **Stock operations**. There are nine operation types, defined in code: Opening Stock, Receipt, Requisition, Stock Issue, Transfer Out, Return, Adjustment, Stock Take and Disposal. An operation moves between the statuses `NEW`, `SUBMITTED`, `DISPATCHED`, `RETURNED`, `REJECTED`, `CANCELLED` and `COMPLETED` through actions such as submit, approve, dispatch and complete.
 - **Stock sources and parties**. A party is either an OpenMRS location or a stock source such as a supplier. Operations move stock between parties.
 - **Stock rules** that alert or email users when the quantity of an item at a location is at or below a threshold.
 - **Reports**, generated in the background as batch jobs and downloaded when they finish.
@@ -56,11 +56,11 @@ To install a module file by hand, [build it](#building), put the `.omod` in the 
 
 ### What the module creates and what you set up
 
-On start the module creates its tables, the nine stock operation types, its privileges and one scheduled task. It also creates a party for every location and fills the location tree it uses to resolve user role scopes.
+On start the module creates its tables, its privileges and one scheduled task. It also creates a party for every location and fills the location tree it uses to resolve user role scopes.
 
 Up to 3.0.0 the module also created the three location tags below and tagged matching locations, created a Main Store and a Main Pharmacy location where none existed, and seeded the email templates, two more scheduled tasks and default values for ten global properties. `master` and `3.x` no longer do any of this since [#63](https://github.com/openmrs/openmrs-module-stockmanagement/pull/63), so an implementation has to supply them:
 
-- **Location tags** named `Main Store`, `Main Pharmacy` and `Dispensary`. The module looks these up by name. Locations with any of the three tags hold stock, and locations tagged `Main Pharmacy` or `Dispensary` are dispensing locations. Each operation type also accepts only locations with certain tags. For example a Receipt can only go into a `Main Store` location, and a Stock Issue goes from `Main Store` to `Main Pharmacy` or `Dispensary`. `GET /ws/rest/v1/stockmanagement/stockoperationtype?v=default` lists these rules as `stockOperationTypeLocationScopes`.
+- **Location tags** named `Main Store`, `Main Pharmacy` and `Dispensary`. The module looks these up by name. Locations with any of the three tags hold stock, and locations tagged `Main Pharmacy` or `Dispensary` are dispensing locations. An operation type can also be limited to locations with certain tags; see [Location tags per operation type](#location-tags-per-operation-type).
 - **Email templates** named `STOCK_MGMT_OPERATION_ACTION`, `STOCK_MGMT_QTY_BELOW_THRESHOLD` and `STOCK_MGMT_BATCH_EXPIRING`. No email is sent for a template that is missing. The `%CENTER_NAME%` placeholder in the templates comes from the global property `ugandaemr.healthCenterName`, which this module doesn't declare. When it's blank, the module uses the name of the top-level location with the most child locations.
 - **Scheduled tasks** for stock rules and batch expiry. See [Scheduled tasks](#scheduled-tasks).
 - **Feature-specific global properties** for notifications and reporting. See [Global properties](#global-properties).
@@ -89,7 +89,7 @@ The MySQL trigger changesets are marked as `mysql` only, and on a MariaDB 10.11 
 
 ### Global properties
 
-The module declares 18 global properties, all prefixed with `stockmanagement.`. [`config.xml`](omod/src/main/resources/config.xml) has the full list with a description of each. These are the ones you are most likely to change:
+The module declares 30 global properties, all prefixed with `stockmanagement.`. [`config.xml`](omod/src/main/resources/config.xml) has the full list with a description of each. These are the ones you are most likely to change:
 
 | Property                                                          | Default | Description                                                                                                             |
 | ----------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------- |
@@ -111,7 +111,29 @@ These properties have no default. Their use on `master` is shown below; prefix e
 | `observationDispensingLocationConcept` | Optional: use with `observationDrugConcept` to resolve the fulfilment location from observations in prescription reports. | UUID of the concept used for the dispensing-location observation |
 | `observationDrugConcept` | Optional: use with `observationDispensingLocationConcept` to match the drug observation in the same observation group. | UUID of the concept used for the drug observation |
 
-Stock operation alerts and emails are only sent for the operation types and actions that have notifications turned on. Liquibase turns them on for submit, approve and complete on Receipt and Transfer Out operations only, and they can't be changed over REST.
+### Location tags per operation type
+
+An operation type can be limited to source or destination locations that carry one of a list of location tags. Each list is a global property holding comma-separated tag names:
+
+- `stockmanagement.<type>.sourceLocationTags`, for `adjustment`, `disposed`, `transferout`, `return`, `stockissue`, `requisition`, `stocktake` and `initial`.
+- `stockmanagement.<type>.destinationLocationTags`, for `receipt`, `return`, `stockissue` and `requisition`.
+
+All of them are blank by default, which allows any location. For example, setting `stockmanagement.receipt.destinationLocationTags` to `Main Store` only lets receipts arrive at locations tagged `Main Store`. `GET /ws/rest/v1/stockmanagement/stockoperationtype?v=default` returns the configured tags as `stockOperationTypeLocationScopes`.
+
+Up to 3.x these rules were rows in a table seeded by the module. On upgrade, the module copies a site's existing rules into the properties once, so an upgraded site keeps the rules it had. The copy skips voided rules and never overwrites a property that already has a row, so check the properties after upgrading before changing them.
+
+A fresh install has no rules. The module used to seed the ones below, which a site or content package can set to get the earlier behaviour. Adjustments were meant to allow `Main Store` too, but that row was never inserted because of a typo in its changeset:
+
+| Operation type | Source tags | Destination tags |
+| --- | --- | --- |
+| `disposed`, `stocktake`, `initial` | `Main Store`, `Main Pharmacy`, `Dispensary` | |
+| `adjustment` | `Main Pharmacy`, `Dispensary` | |
+| `transferout` | `Main Store` | |
+| `receipt` | | `Main Store` |
+| `return`, `requisition` | `Main Pharmacy`, `Dispensary` | `Main Store` |
+| `stockissue` | `Main Store` | `Main Pharmacy`, `Dispensary` |
+
+Stock operation alerts and emails are only sent for the operation types and actions that have notifications turned on. They are on for submit, approve and complete on Receipt and Transfer Out operations only. This is fixed in code and can't be configured.
 
 The observation properties accept concept UUIDs, not numeric concept IDs. Leave them blank if your implementation does not record those observations; a configured UUID that does not resolve to a concept causes the report to fail. Releases up to 3.0.0 set both, and an upgrade keeps those values, so clear them on an upgraded installation unless they match your concepts.
 
@@ -136,7 +158,7 @@ The resource classes are in [`omod/src/main/java/org/openmrs/module/stockmanagem
 
 - **Stock items**: `stockitem`, `stockitempackaginguom`, `stockitempackaginguomreference` (`master` only), `stockitemreference`, `stockbatch`, `stockrule`
 - **Inventory**: `stockiteminventory`, `stockitemtransaction`
-- **Stock operations**: `stockoperation`, `stockoperationitem`, `stockoperationaction`, `stockoperationactionlineitem`, `stockoperationlink`, `stockoperationitemcost`, `stockoperationbatchnumbers`, `stockoperationtype`, `stockoperationtypelocationscope`
+- **Stock operations**: `stockoperation`, `stockoperationitem`, `stockoperationaction`, `stockoperationactionlineitem`, `stockoperationlink`, `stockoperationitemcost`, `stockoperationbatchnumbers`, `stockoperationtype`
 - **Sources and locations**: `stocksource`, `party`, `location`
 - **Dispensing**: `dispenserequest`, `orderitem`
 - **Access**: `userrolescope` with the sub-resources `locations` and `operationtypes`, and `privilegescope`

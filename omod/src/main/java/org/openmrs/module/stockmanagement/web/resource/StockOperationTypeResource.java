@@ -15,8 +15,10 @@ import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.RestConstants;
+import org.openmrs.module.webservices.rest.web.annotation.PropertyGetter;
 import org.openmrs.module.webservices.rest.web.annotation.Resource;
 import org.openmrs.module.webservices.rest.web.representation.Representation;
 import org.openmrs.module.webservices.rest.web.representation.DefaultRepresentation;
@@ -28,6 +30,7 @@ import org.openmrs.module.webservices.rest.web.response.ResourceDoesNotSupportOp
 import org.openmrs.module.webservices.rest.web.response.ResponseException;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @Resource(name = RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID
         + "/stockoperationtype", supportedClass = StockOperationType.class, supportedOpenmrsVersions = { "1.9.*", "1.10.*",
@@ -36,7 +39,12 @@ public class StockOperationTypeResource extends ResourceBase<StockOperationType>
 	
 	@Override
 	public StockOperationType getByUniqueId(String uniqueId) {
-		return getStockManagementService().getStockOperationTypeByUuid(uniqueId);
+		return getStockManagementService().getStockOperationTypeByType(uniqueId);
+	}
+	
+	@Override
+	protected String getUniqueId(StockOperationType delegate) {
+		return delegate.getOperationType();
 	}
 	
 	@Override
@@ -57,7 +65,7 @@ public class StockOperationTypeResource extends ResourceBase<StockOperationType>
 	
 	@Override
 	public StockOperationType newDelegate() {
-		return new StockOperationType();
+		throw new ResourceDoesNotSupportOperationException();
 	}
 	
 	@Override
@@ -70,15 +78,53 @@ public class StockOperationTypeResource extends ResourceBase<StockOperationType>
 		throw new ResourceDoesNotSupportOperationException();
 	}
 	
+	@PropertyGetter("hasSource")
+	public boolean getHasSource(StockOperationType stockOperationType) {
+		return stockOperationType.getProcessor().getHasSource();
+	}
+	
+	@PropertyGetter("sourceType")
+	public LocationType getSourceType(StockOperationType stockOperationType) {
+		return stockOperationType.getProcessor().getSourceType();
+	}
+	
+	@PropertyGetter("hasDestination")
+	public boolean getHasDestination(StockOperationType stockOperationType) {
+		return stockOperationType.getProcessor().getHasDestination();
+	}
+	
+	@PropertyGetter("destinationType")
+	public LocationType getDestinationType(StockOperationType stockOperationType) {
+		return stockOperationType.getProcessor().getDestinationType();
+	}
+	
+	@PropertyGetter("availableWhenReserved")
+	public boolean getAvailableWhenReserved(StockOperationType stockOperationType) {
+		return stockOperationType.getProcessor().getAvailableWhenReserved();
+	}
+	
+	@PropertyGetter("allowExpiredBatchNumbers")
+	public boolean getAllowExpiredBatchNumbers(StockOperationType stockOperationType) {
+		return stockOperationType.getProcessor().getAllowExpiredBatchNumbers();
+	}
+	
+	@PropertyGetter("stockOperationTypeLocationScopes")
+	public List<SimpleObject> getStockOperationTypeLocationScopes(StockOperationType stockOperationType) {
+		List<SimpleObject> scopes = new ArrayList<>();
+		for (String tag : stockOperationType.getProcessor().getSourceLocationTags()) {
+			scopes.add(new SimpleObject().add("locationTag", tag).add("isSource", true).add("isDestination", false));
+		}
+		for (String tag : stockOperationType.getProcessor().getDestinationLocationTags()) {
+			scopes.add(new SimpleObject().add("locationTag", tag).add("isSource", false).add("isDestination", true));
+		}
+		return scopes;
+	}
+	
 	@Override
 	public DelegatingResourceDescription getRepresentationDescription(Representation rep) {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
-			description.addProperty("uuid");
-			description.addProperty("dateCreated");
-			description.addProperty("dateChanged");
 			description.addProperty("name");
-			description.addProperty("description");
 			description.addProperty("operationType");
 			description.addProperty("hasSource");
 			description.addProperty("sourceType");
@@ -86,7 +132,7 @@ public class StockOperationTypeResource extends ResourceBase<StockOperationType>
 			description.addProperty("destinationType");
 			description.addProperty("availableWhenReserved");
 			description.addProperty("allowExpiredBatchNumbers");
-			description.addProperty("stockOperationTypeLocationScopes", Representation.DEFAULT);
+			description.addProperty("stockOperationTypeLocationScopes");
 		}
 		
 		if (rep instanceof DefaultRepresentation) {
@@ -98,7 +144,7 @@ public class StockOperationTypeResource extends ResourceBase<StockOperationType>
 		}
 		
 		if (rep instanceof RefRepresentation) {
-			description.addProperty("uuid");
+			description.addProperty("operationType");
 			description.addProperty("name");
 		}
 		
@@ -109,14 +155,14 @@ public class StockOperationTypeResource extends ResourceBase<StockOperationType>
 	public Model getGETModel(Representation rep) {
 		ModelImpl modelImpl = (ModelImpl) super.getGETModel(rep);
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
-			modelImpl.property("uuid", new StringProperty()).property("dateCreated", new DateTimeProperty())
-			        .property("dateChanged", new DateTimeProperty()).property("name", new StringProperty())
-			        .property("description", new StringProperty()).property("operationType", new StringProperty())
+			modelImpl.property("name", new StringProperty()).property("operationType", new StringProperty())
 			        .property("hasSource", new BooleanProperty()).property("sourceType", new StringProperty())
 			        .property("hasDestination", new BooleanProperty()).property("destinationType", new StringProperty())
 			        .property("availableWhenReserved", new BooleanProperty())
 			        .property("allowExpiredBatchNumbers", new BooleanProperty()).property("stockOperationTypeLocationScopes",
-			            new ArrayProperty(new RefProperty("#/definitions/StockOperationTypeLocationScopeResourceGet")));
+			            new ArrayProperty(new ObjectProperty().property("locationTag", new StringProperty())
+			                    .property("isSource", new BooleanProperty())
+			                    .property("isDestination", new BooleanProperty())));
 		}
 		if (rep instanceof DefaultRepresentation) {}
 		
@@ -125,7 +171,7 @@ public class StockOperationTypeResource extends ResourceBase<StockOperationType>
 		}
 		
 		if (rep instanceof RefRepresentation) {
-			modelImpl.property("uuid", new StringProperty()).property("name", new StringProperty());
+			modelImpl.property("operationType", new StringProperty()).property("name", new StringProperty());
 		}
 		
 		return modelImpl;

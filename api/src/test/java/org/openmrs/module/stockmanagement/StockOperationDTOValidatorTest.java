@@ -12,6 +12,8 @@ package org.openmrs.module.stockmanagement;
 import org.apache.commons.lang.time.DateUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.openmrs.Location;
+import org.openmrs.LocationTag;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
@@ -35,6 +37,7 @@ import java.util.HashMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -44,23 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * populated and actionable.
  */
 public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTest {
-	
-	// mirrors the production Receipt type: hasSource=true with source_type Other, destination_type Location
-	private static final String TEST_RECEIPT_TYPE_UUID = "aaaaaaaa-bbbb-cccc-dddd-eeeeffff0000";
-	
-	private void createReceiptOperationType() {
-		StockOperationType receipt = new StockOperationType();
-		receipt.setName("Test Receipt");
-		receipt.setOperationType(StockOperationType.RECEIPT);
-		receipt.setUuid(TEST_RECEIPT_TYPE_UUID);
-		receipt.setHasSource(true);
-		receipt.setSourceType(LocationType.Other);
-		receipt.setHasDestination(true);
-		receipt.setDestinationType(LocationType.Location);
-		receipt.setAvailableWhenReserved(false);
-		receipt.setAcronym("RCPT");
-		dao().saveStockOperationType(receipt);
-	}
 	
 	@Autowired
 	DbSessionFactory sessionFactory;
@@ -91,8 +77,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
-		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
-		createReceiptOperationType();
+		executeDataSet(EntityUtil.STOCK_MANAGEMENT_DATA_SET);
 		validator = new StockOperationDTOValidator();
 	}
 	
@@ -114,7 +99,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 	@Test
 	public void validate_shouldReportMissingOperationDate() {
 		StockOperationDTO dto = new StockOperationDTO();
-		dto.setOperationTypeUuid(TEST_RECEIPT_TYPE_UUID);
+		dto.setOperationType(StockOperationType.RECEIPT.getOperationType());
 		
 		Errors errors = validate(dto);
 		
@@ -124,7 +109,7 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 	
 	private StockOperationDTO newReceiptDto() {
 		StockOperationDTO dto = new StockOperationDTO();
-		dto.setOperationTypeUuid(TEST_RECEIPT_TYPE_UUID);
+		dto.setOperationType(StockOperationType.RECEIPT.getOperationType());
 		dto.setOperationDate(DateUtils.addDays(new Date(), -1));
 		// receipts originate from a stock source (source_type Other), not a location
 		org.openmrs.module.stockmanagement.api.model.StockSource stockSource = eu().newStockSource(dao());
@@ -200,16 +185,16 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 	@Test
 	public void validate_shouldRejectUnknownOperationTypeWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
-		dto.setOperationTypeUuid("00000000-0000-0000-0000-000000000000");
+		dto.setOperationType("unknown");
 		Errors errors = validate(dto);
 		assertTrue(errors.hasErrors());
 		assertNotNull(messageOf(errors.getAllErrors().get(0)));
 	}
 	
 	@Test
-	public void validate_shouldRejectMissingOperationTypeUuidWithNonNullMessage() {
+	public void validate_shouldRejectMissingOperationTypeWithNonNullMessage() {
 		StockOperationDTO dto = newReceiptDto();
-		dto.setOperationTypeUuid(null);
+		dto.setOperationType(null);
 		Errors errors = validate(dto);
 		assertTrue(errors.hasErrors());
 		for (Object error : errors.getAllErrors()) {
@@ -260,5 +245,83 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		Errors errors = validate(dto);
 		assertTrue(errors.hasErrors());
 		assertNotNull(messageOf(errors.getAllErrors().get(0)));
+	}
+	
+	// clears the session so the validator loads the location and its tags from the database
+	private Errors validateReceiptWithFreshSession() {
+		StockOperationDTO dto = newReceiptDto();
+		Context.flushSession();
+		Context.clearSession();
+		return validate(dto);
+	}
+	
+	@Test
+	public void validate_shouldRejectADestinationWithoutARequiredLocationTag() {
+		Context.getAdministrationService().setGlobalProperty("stockmanagement.receipt.destinationLocationTags",
+		    "Some Store Tag, Another Tag");
+		
+		Errors errors = validateReceiptWithFreshSession();
+		
+		assertNotNull(errors.getFieldError("destinationUuid"));
+		assertEquals("Destination location specified does not match required operation tags",
+		    messageOf(errors.getFieldError("destinationUuid")));
+	}
+	
+	@Test
+	public void validate_shouldAcceptADestinationWithOneOfTheRequiredLocationTags() {
+		LocationTag tag = Context.getLocationService().saveLocationTag(new LocationTag("Some Store Tag", "Marks a store"));
+		Location location = Context.getLocationService().getLocation(eu().getLocation().getId());
+		location.addTag(tag);
+		Context.getLocationService().saveLocation(location);
+		Context.getAdministrationService().setGlobalProperty("stockmanagement.receipt.destinationLocationTags",
+		    "Some Store Tag, Another Tag");
+		
+		Errors errors = validateReceiptWithFreshSession();
+		
+		assertNull(errors.getFieldError("destinationUuid"));
+	}
+	
+	@Test
+	public void validate_shouldAcceptAnyDestinationWhenNoLocationTagsAreConfigured() {
+		Errors errors = validateReceiptWithFreshSession();
+		
+		assertNull(errors.getFieldError("destinationUuid"));
+	}
+	
+	// an adjustment happens at a location, which is its source, and has no destination
+	private Errors validateAdjustmentWithFreshSession() {
+		StockOperationDTO dto = newReceiptDto();
+		dto.setOperationType(StockOperationType.ADJUSTMENT.getOperationType());
+		dto.setSourceUuid(dto.getDestinationUuid());
+		dto.setDestinationUuid(null);
+		Context.flushSession();
+		Context.clearSession();
+		return validate(dto);
+	}
+	
+	@Test
+	public void validate_shouldRejectASourceWithoutARequiredLocationTag() {
+		Context.getAdministrationService().setGlobalProperty("stockmanagement.adjustment.sourceLocationTags",
+		    "Some Store Tag");
+		
+		Errors errors = validateAdjustmentWithFreshSession();
+		
+		assertNotNull(errors.getFieldError("sourceUuid"));
+		assertEquals("Source location specified does not match required operation tags",
+		    messageOf(errors.getFieldError("sourceUuid")));
+	}
+	
+	@Test
+	public void validate_shouldAcceptASourceWithARequiredLocationTag() {
+		LocationTag tag = Context.getLocationService().saveLocationTag(new LocationTag("Some Store Tag", "Marks a store"));
+		Location location = Context.getLocationService().getLocation(eu().getLocation().getId());
+		location.addTag(tag);
+		Context.getLocationService().saveLocation(location);
+		Context.getAdministrationService().setGlobalProperty("stockmanagement.adjustment.sourceLocationTags",
+		    "Some Store Tag");
+		
+		Errors errors = validateAdjustmentWithFreshSession();
+		
+		assertNull(errors.getFieldError("sourceUuid"));
 	}
 }

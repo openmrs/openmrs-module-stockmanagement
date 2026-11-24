@@ -9,11 +9,13 @@
  */
 package org.openmrs.module.stockmanagement.api.dto;
 
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
+
 public class RecordPrivilegeFilter {
 	
 	private Integer locationId;
 	
-	private Integer operationTypeId;
+	private StockOperationType operationType;
 	
 	public Integer getLocationId() {
 		return locationId;
@@ -23,12 +25,12 @@ public class RecordPrivilegeFilter {
 		this.locationId = locationId;
 	}
 	
-	public Integer getOperationTypeId() {
-		return operationTypeId;
+	public StockOperationType getOperationType() {
+		return operationType;
 	}
 	
-	public void setOperationTypeId(Integer operationTypeId) {
-		this.operationTypeId = operationTypeId;
+	public void setOperationType(StockOperationType operationType) {
+		this.operationType = operationType;
 	}
 	
 	@Override
@@ -42,14 +44,14 @@ public class RecordPrivilegeFilter {
 		
 		if (locationId != null ? !locationId.equals(that.locationId) : that.locationId != null)
 			return false;
-		return !(operationTypeId != null ? !operationTypeId.equals(that.operationTypeId) : that.operationTypeId != null);
+		return operationType == that.operationType;
 		
 	}
 	
 	@Override
 	public int hashCode() {
 		int result = locationId != null ? locationId.hashCode() : 0;
-		result = 31 * result + (operationTypeId != null ? operationTypeId.hashCode() : 0);
+		result = 31 * result + (operationType != null ? operationType.hashCode() : 0);
 		return result;
 	}
 }

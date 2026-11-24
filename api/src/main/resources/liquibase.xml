@@ -3021,642 +3021,6 @@ CREATE TRIGGER stockmgmt_location_after_delete
             DROP FUNCTION IF EXISTS stockmgmt_location_after_delete();
         </rollback>
   </changeSet>
-  <changeSet id="stockmanagement-1758855877841-240" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'adjustment'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation type adjustment</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Adjustment</column>
-      <column name="operation_type">adjustment</column>
-      <column name="description">Physical item quantities that do not match the current system quantity.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="has_destination" valueBoolean="false">
-      </column>
-      <column name="available_when_reserved" valueBoolean="true">
-      </column>
-      <column name="acronym">ADJ</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">11111111-1111-1111-1111-111111111111</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-241" author="dev">
-    <validCheckSum>9:f6e2e923c452ebc888fde5855e916b32</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='11111111-1111-1111-1111-111111111111') AND
-        location_tag='Main Store'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting adjustment stock from the Main Store</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '019f2d4b-2a56-11ed-9cab-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='11111111-1111-1111-1111-11111111111'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-242" author="dev">
-    <validCheckSum>9:06cceebe184c6807ab532c25305b885b</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='11111111-1111-1111-1111-111111111111') AND
-        location_tag='Main Pharmacy'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting adjustment stock from the Main Pharmacy</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), 'f958ad0a-2a55-11ed-9cab-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='11111111-1111-1111-1111-111111111111'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-243" author="dev">
-    <validCheckSum>9:25396675e8678e9494ee1ef91d89f8b4</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='11111111-1111-1111-1111-111111111111') AND
-        location_tag='Dispensary'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting adjustment stock from the Dispensary</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '7228d114-2abc-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='11111111-1111-1111-1111-111111111111'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-244" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'disposed'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation type disposed</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Disposal</column>
-      <column name="operation_type">disposed</column>
-      <column name="description">Item stock quantities that have expired and must be removed from circulation.
-            </column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="has_destination" valueBoolean="false">
-      </column>
-      <column name="available_when_reserved" valueBoolean="true">
-      </column>
-      <column name="acronym">DIS</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">22222222-2222-2222-2222-222222222222</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-245" author="dev">
-    <validCheckSum>9:44cbca52d0cab33ddd2a4a88a026b699</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='22222222-2222-2222-2222-222222222222') AND
-        location_tag='Main Store'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting disposing stock from the main store only</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '12de41c9-28a1-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='22222222-2222-2222-2222-222222222222'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-246" author="dev">
-    <validCheckSum>9:352f95d37a5fa6384d3112e924ce1391</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-      SELECT COUNT(*)
-      FROM stockmgmt_operation_type_location_scope sotls
-      WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='22222222-2222-2222-2222-222222222222') AND
-      location_tag='Main Pharmacy'
-    </sqlCheck>
-    </preConditions>
-    <comment>Limiting adjustment stock from the Main Pharmacy</comment>
-    <sql>
-    INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-    SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '8bee3005-2ae6-11ed-ba4a-507b9dea1806'
-    FROM stockmgmt_stock_operation_type sot
-    WHERE uuid='22222222-2222-2222-2222-222222222222'
-  </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-247" author="dev">
-    <validCheckSum>9:e6add2863ac3cee76972b5e26ab1eff5</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='22222222-2222-2222-2222-222222222222') AND
-        location_tag='Dispensary'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting adjustment stock from the Dispensary</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '83fbf8ca-2ae6-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='22222222-2222-2222-2222-222222222222'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-248" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'transferout'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation type transferout</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Transfer Out</column>
-      <column name="operation_type">transferout</column>
-      <column name="description">Items that are distributed to other outside destination.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="has_destination" valueBoolean="true">
-      </column>
-      <column name="destination_type">Other</column>
-      <column name="available_when_reserved" valueBoolean="true">
-      </column>
-      <column name="acronym">TFO</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">33333333-3333-3333-3333-333333333333</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-249" author="dev">
-    <validCheckSum>9:24ca985c75caa29f24c58e2ea788f062</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='33333333-3333-3333-3333-333333333333') AND
-        location_tag='Main Store'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting transfering to outside destination from main store only</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '5b341a26-28a2-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='33333333-3333-3333-3333-333333333333'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-250" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'receipt'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation type receipt</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Receipt</column>
-      <column name="operation_type">receipt</column>
-      <column name="description">Items that are added into the inventory system from an outside provider.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Other</column>
-      <column name="destination_type">Location</column>
-      <column name="has_destination" valueBoolean="true">
-      </column>
-      <column name="available_when_reserved" valueBoolean="false">
-      </column>
-      <column name="acronym">RCPT</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">44444444-4444-4444-4444-444444444444</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-251" author="dev">
-    <validCheckSum>9:0dc1a53f668d4fe3ca650f1c1367c2bf</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='44444444-4444-4444-4444-444444444444') AND
-        location_tag='Main Store'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting receipt of stock main store only</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',false, true,1,now(), '01c9285a-28a3-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='44444444-4444-4444-4444-444444444444'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-252" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'return'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation type return</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Return</column>
-      <column name="operation_type">return</column>
-      <column name="description">Items that are returned to the main store from other stock holding areas.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="destination_type">Location</column>
-      <column name="has_destination" valueBoolean="true">
-      </column>
-      <column name="available_when_reserved" valueBoolean="true">
-      </column>
-      <column name="acronym">RTU</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">55555555-5555-5555-5555-555555555555</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-253" author="dev">
-    <validCheckSum>9:ae212714efc2fe915010a7f425f633af</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='55555555-5555-5555-5555-555555555555') AND
-        location_tag='Main Pharmacy'  AND is_source=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting initiating of return of stock from Main Pharmacy</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '2c5772e7-28a4-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='55555555-5555-5555-5555-555555555555'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-254" author="dev">
-    <validCheckSum>9:b7c01babdeb1ea3b902174642ca08e3b</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='55555555-5555-5555-5555-555555555555') AND
-        location_tag='Dispensary'  AND is_source=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting initiating of return of stock from dispensary</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '6e26757a-2abe-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='55555555-5555-5555-5555-555555555555'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-255" author="dev">
-    <validCheckSum>9:e25bca107681adfeecc5fdc60cd35de3</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='55555555-5555-5555-5555-555555555555') AND
-        location_tag='Main Store' AND is_destination=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting the destination of returned stock to main store only</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',false, true,1,now(), '27ff4a05-28a4-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='55555555-5555-5555-5555-555555555555'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-256" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'stockissue'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation type stockissue</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Stock Issue</column>
-      <column name="operation_type">stockissue</column>
-      <column name="description">Items that are transferred between two locations.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="destination_type">Location</column>
-      <column name="has_destination" valueBoolean="true">
-      </column>
-      <column name="available_when_reserved" valueBoolean="true">
-      </column>
-      <column name="acronym">SIS</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">66666666-6666-6666-6666-666666666666</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-257" author="dev">
-    <validCheckSum>9:179c8fd6dc51023e6769e22941a19801</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='66666666-6666-6666-6666-666666666666') AND
-        location_tag='Main Pharmacy'  AND is_destination=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting the destination of issued stock to Main Pharmacy</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',false, true,1,now(), '20fac1fa-28a4-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='66666666-6666-6666-6666-666666666666'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-258" author="dev">
-    <validCheckSum>9:b36a588ff669ba84f4b9f093684511e2</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='66666666-6666-6666-6666-666666666666') AND
-        location_tag='Dispensary'  AND is_destination=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting the destination of issued stock to Dispensary</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',false, true,1,now(), '11ebab13-2abf-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='66666666-6666-6666-6666-666666666666'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-259" author="dev">
-    <validCheckSum>9:a5676579e1621c9bc66a4a2c40810cf6</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='66666666-6666-6666-6666-666666666666') AND
-        location_tag='Main Store' AND is_source=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting the issuing of stock from main store only</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '1c984ba0-28a4-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='66666666-6666-6666-6666-666666666666'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-260" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'requisition'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation types</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Requisition</column>
-      <column name="operation_type">requisition</column>
-      <column name="description">Request for items from another location.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="destination_type">Location</column>
-      <column name="has_destination" valueBoolean="true">
-      </column>
-      <column name="available_when_reserved" valueBoolean="false">
-      </column>
-      <column name="acronym">REQ</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">77777777-7777-7777-7777-777777777777</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-261" author="dev">
-    <validCheckSum>9:08b9399d797889227cf3c53164acbddc</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='77777777-7777-7777-7777-777777777777') AND
-        location_tag='Main Pharmacy'  AND is_source=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting initiating of requisition of stock from Main Pharmacy</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '161ccea9-28a4-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='77777777-7777-7777-7777-777777777777'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-262" author="dev">
-    <validCheckSum>9:3e4a188fcaadfe5c510c5a907ef8dbf7</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='77777777-7777-7777-7777-777777777777') AND
-        location_tag='Dispensary'  AND is_source=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting initiating of requisition of stock from Dispensary</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), 'dfba06ad-2abe-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='77777777-7777-7777-7777-777777777777'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-263" author="dev">
-    <validCheckSum>9:5507ea3f0be800b24961932ff7bc1f34</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='77777777-7777-7777-7777-777777777777') AND
-        location_tag='Main Store' AND is_destination=true
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting the destination of requisition of stock to main store only</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',false, true,1,now(), '11ba3575-28a4-11ed-bdcb-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='77777777-7777-7777-7777-777777777777'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-264" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-                'stocktake'
-            </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation types</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Stock Take</column>
-      <column name="operation_type">stocktake</column>
-      <column name="description">Physical verification of item quantities.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="has_destination" valueBoolean="false">
-      </column>
-      <column name="available_when_reserved" valueBoolean="true">
-      </column>
-      <column name="acronym">STK</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">88888888-8888-8888-8888-888888888888</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-265" author="dev">
-    <validCheckSum>9:2db356ff9940edcbbbf8c139e6b29b7e</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='88888888-8888-8888-8888-888888888888') AND
-        location_tag='Main Store'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting stocktake stock from the Main Store</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '90b9f544-2abf-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='88888888-8888-8888-8888-888888888888'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-266" author="dev">
-    <validCheckSum>9:b0539ca6d55b7de8120afc82b1cc1eaa</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='88888888-8888-8888-8888-888888888888') AND
-        location_tag='Main Pharmacy'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting stock take stock from the Main Pharmacy</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '8ab5bb1d-2abf-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='88888888-8888-8888-8888-888888888888'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-267" author="dev">
-    <validCheckSum>9:2aa39c0de823b4644fbf00dcb9eb9619</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='88888888-8888-8888-8888-888888888888') AND
-        location_tag='Dispensary'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting stock take stock from the Dispensary</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), '86fad5b3-2abf-11ed-ba4a-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='88888888-8888-8888-8888-888888888888'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-268" author="dev">
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">SELECT COUNT(*) FROM stockmgmt_stock_operation_type WHERE operation_type =
-        'initial'
-      </sqlCheck>
-    </preConditions>
-    <comment>Creating the stock operation type initial</comment>
-    <insert tableName="stockmgmt_stock_operation_type">
-      <column name="name">Opening Stock</column>
-      <column name="operation_type">initial</column>
-      <column name="description">Initial physical item quantities.</column>
-      <column name="has_source" valueBoolean="true">
-      </column>
-      <column name="source_type">Location</column>
-      <column name="has_destination" valueBoolean="false">
-      </column>
-      <column name="available_when_reserved" valueBoolean="false">
-      </column>
-      <column name="acronym">IST</column>
-      <column name="creator">1</column>
-      <column name="date_created">2022-07-31</column>
-      <column name="uuid">99999999-9999-9999-9999-999999999999</column>
-    </insert>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-269" author="dev">
-    <validCheckSum>9:9e4d41e05672613c801b53636a2760b7</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='99999999-9999-9999-9999-999999999999') AND
-        location_tag='Main Store'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting initial stock from the Main Store</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Store',true, false,1,now(), '886b6f2d-2e90-11ed-a5a0-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='99999999-9999-9999-9999-999999999999'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-270" author="dev">
-    <validCheckSum>9:5a82368945da4354372f2b6e2438c1d6</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='99999999-9999-9999-9999-999999999999') AND
-        location_tag='Main Pharmacy'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting initial stock from the Main Pharmacy</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Main Pharmacy',true, false,1,now(), '99e64f69-2e90-11ed-a5a0-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='99999999-9999-9999-9999-999999999999'
-    </sql>
-  </changeSet>
-  <changeSet id="stockmanagement-1758855877841-271" author="dev">
-    <validCheckSum>9:647e980ac308e68db0f6cd44b89f7055</validCheckSum>
-    <preConditions onFail="MARK_RAN">
-      <sqlCheck expectedResult="0">
-        SELECT COUNT(*)
-        FROM stockmgmt_operation_type_location_scope sotls
-        WHERE sotls.stock_operation_type_id = (SELECT sot.stock_operation_type_id FROM stockmgmt_stock_operation_type sot WHERE uuid='99999999-9999-9999-9999-999999999999') AND
-        location_tag='Dispensary'
-      </sqlCheck>
-    </preConditions>
-    <comment>Limiting initial stock from the Dispensary</comment>
-    <sql>
-      INSERT INTO stockmgmt_operation_type_location_scope(stock_operation_type_id,location_tag,is_source,is_destination,creator,date_created,uuid)
-      SELECT sot.stock_operation_type_id,'Dispensary',true, false,1,now(), 'a24c5c90-2e90-11ed-a5a0-507b9dea1806'
-      FROM stockmgmt_stock_operation_type sot
-      WHERE uuid='99999999-9999-9999-9999-999999999999'
-    </sql>
-  </changeSet>
   <changeSet author="dev" id="stockmanagement-1758855877841-272">
     <validCheckSum>9:6e70adff17ac717976ab76946d71c4c2</validCheckSum>
     <preConditions onFail="MARK_RAN">
@@ -4605,5 +3969,152 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <addUniqueConstraint tableName="stockmgmt_stock_item_packaging_uom_reference"
                          columnNames="stock_source_id,stock_reference_code"
                          constraintName="stockmgmt_stock_item_packaging_uom_reference_source_code_uk"/>
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-1">
+    <preConditions onFail="HALT">
+      <sqlCheck expectedResult="0">
+        SELECT COUNT(*)
+        FROM stockmgmt_stock_operation_type sot
+        WHERE (sot.operation_type IS NULL
+            OR sot.operation_type NOT IN ('adjustment', 'disposed', 'transferout', 'receipt', 'return', 'stockissue', 'requisition', 'stocktake', 'initial'))
+          AND (sot.stock_operation_type_id IN (SELECT so.operation_type_id FROM stockmgmt_stock_operation so)
+            OR sot.stock_operation_type_id IN (SELECT ursot.operation_type_id FROM stockmgmt_user_role_scope_operation_type ursot))
+      </sqlCheck>
+    </preConditions>
+    <comment>Stop the upgrade if existing data uses an operation type the module does not define</comment>
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-2">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="stockmgmt_stock_operation" columnName="operation_type" />
+      </not>
+    </preConditions>
+    <comment>Add a column for the operation type as the StockOperationType enum name on stockmgmt_stock_operation</comment>
+    <addColumn tableName="stockmgmt_stock_operation">
+      <column name="operation_type" type="VARCHAR(50)" />
+    </addColumn>
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-3">
+    <comment>
+      Fill operation_type on stockmgmt_stock_operation from the type row each row pointed to, then make it required.
+      Every step can be repeated, so a failure part-way is retried on the next start
+    </comment>
+    <sql>
+      UPDATE stockmgmt_stock_operation
+      SET operation_type = (
+        SELECT CASE sot.operation_type WHEN 'transferout' THEN 'TRANSFER_OUT' WHEN 'stockissue' THEN 'STOCK_ISSUE' ELSE UPPER(sot.operation_type) END
+        FROM stockmgmt_stock_operation_type sot
+        WHERE sot.stock_operation_type_id = stockmgmt_stock_operation.operation_type_id)
+      WHERE operation_type IS NULL
+    </sql>
+    <addNotNullConstraint tableName="stockmgmt_stock_operation" columnName="operation_type" columnDataType="VARCHAR(50)" />
+    <dropNotNullConstraint tableName="stockmgmt_stock_operation" columnName="operation_type_id" columnDataType="INT" />
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-4">
+    <preConditions onFail="MARK_RAN">
+      <not>
+        <columnExists tableName="stockmgmt_user_role_scope_operation_type" columnName="operation_type" />
+      </not>
+    </preConditions>
+    <comment>Add a column for the operation type as the StockOperationType enum name on stockmgmt_user_role_scope_operation_type</comment>
+    <addColumn tableName="stockmgmt_user_role_scope_operation_type">
+      <column name="operation_type" type="VARCHAR(50)" />
+    </addColumn>
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-5">
+    <comment>
+      Fill operation_type on stockmgmt_user_role_scope_operation_type from the type row each row pointed to, then make it required.
+      Every step can be repeated, so a failure part-way is retried on the next start
+    </comment>
+    <sql>
+      UPDATE stockmgmt_user_role_scope_operation_type
+      SET operation_type = (
+        SELECT CASE sot.operation_type WHEN 'transferout' THEN 'TRANSFER_OUT' WHEN 'stockissue' THEN 'STOCK_ISSUE' ELSE UPPER(sot.operation_type) END
+        FROM stockmgmt_stock_operation_type sot
+        WHERE sot.stock_operation_type_id = stockmgmt_user_role_scope_operation_type.operation_type_id)
+      WHERE operation_type IS NULL
+    </sql>
+    <addNotNullConstraint tableName="stockmgmt_user_role_scope_operation_type" columnName="operation_type" columnDataType="VARCHAR(50)" />
+    <dropNotNullConstraint tableName="stockmgmt_user_role_scope_operation_type" columnName="operation_type_id" columnDataType="INT" />
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-6">
+    <preConditions onFail="MARK_RAN">
+      <foreignKeyConstraintExists foreignKeyName="stockmgmt_stock_operation_operation_type_fk" />
+    </preConditions>
+    <comment>Drop the foreign key from stockmgmt_stock_operation to the operation type table, which is no longer used</comment>
+    <dropForeignKeyConstraint baseTableName="stockmgmt_stock_operation" constraintName="stockmgmt_stock_operation_operation_type_fk" />
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-7">
+    <preConditions onFail="MARK_RAN">
+      <foreignKeyConstraintExists foreignKeyName="stockmgmt_user_role_scope_operation_type_on_operation_type_fk" />
+    </preConditions>
+    <comment>Drop the foreign key from stockmgmt_user_role_scope_operation_type to the operation type table, which is no longer used</comment>
+    <dropForeignKeyConstraint baseTableName="stockmgmt_user_role_scope_operation_type" constraintName="stockmgmt_user_role_scope_operation_type_on_operation_type_fk" />
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-8" dbms="mysql,mariadb">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_operation_type_location_scope" />
+    </preConditions>
+    <comment>
+      Copy the location tags each operation type accepted as source or destination into the global
+      properties that now hold them, so an upgraded site keeps its rules
+    </comment>
+    <sql>
+      INSERT INTO global_property (property, property_value, description, uuid)
+      SELECT CONCAT('stockmanagement.', sot.operation_type, '.sourceLocationTags'), GROUP_CONCAT(DISTINCT s.location_tag ORDER BY s.location_tag SEPARATOR ','),
+        'Comma-separated names of the location tags a source location must have one of. Leave blank to allow any location.',
+        UUID()
+      FROM stockmgmt_operation_type_location_scope s
+        JOIN stockmgmt_stock_operation_type sot ON sot.stock_operation_type_id = s.stock_operation_type_id
+      WHERE s.is_source = true AND (s.voided IS NULL OR s.voided = false)
+        AND sot.operation_type IN ('adjustment', 'disposed', 'transferout', 'receipt', 'return', 'stockissue', 'requisition', 'stocktake', 'initial')
+        AND NOT EXISTS (SELECT 1 FROM global_property gp WHERE gp.property = CONCAT('stockmanagement.', sot.operation_type, '.sourceLocationTags'))
+      GROUP BY sot.operation_type
+    </sql>
+    <sql>
+      INSERT INTO global_property (property, property_value, description, uuid)
+      SELECT CONCAT('stockmanagement.', sot.operation_type, '.destinationLocationTags'), GROUP_CONCAT(DISTINCT s.location_tag ORDER BY s.location_tag SEPARATOR ','),
+        'Comma-separated names of the location tags a destination location must have one of. Leave blank to allow any location.',
+        UUID()
+      FROM stockmgmt_operation_type_location_scope s
+        JOIN stockmgmt_stock_operation_type sot ON sot.stock_operation_type_id = s.stock_operation_type_id
+      WHERE s.is_destination = true AND (s.voided IS NULL OR s.voided = false)
+        AND sot.operation_type IN ('adjustment', 'disposed', 'transferout', 'receipt', 'return', 'stockissue', 'requisition', 'stocktake', 'initial')
+        AND NOT EXISTS (SELECT 1 FROM global_property gp WHERE gp.property = CONCAT('stockmanagement.', sot.operation_type, '.destinationLocationTags'))
+      GROUP BY sot.operation_type
+    </sql>
+  </changeSet>
+  <changeSet author="wikumChamith" id="stockmanagement-O3-6310-9" dbms="postgresql">
+    <preConditions onFail="MARK_RAN">
+      <tableExists tableName="stockmgmt_operation_type_location_scope" />
+    </preConditions>
+    <comment>
+      Copy the location tags each operation type accepted as source or destination into the global
+      properties that now hold them, so an upgraded site keeps its rules
+    </comment>
+    <sql>
+      INSERT INTO global_property (property, property_value, description, uuid)
+      SELECT CONCAT('stockmanagement.', sot.operation_type, '.sourceLocationTags'), STRING_AGG(DISTINCT s.location_tag, ',' ORDER BY s.location_tag),
+        'Comma-separated names of the location tags a source location must have one of. Leave blank to allow any location.',
+        MD5(CONCAT(sot.operation_type, 'source', RANDOM()::text))
+      FROM stockmgmt_operation_type_location_scope s
+        JOIN stockmgmt_stock_operation_type sot ON sot.stock_operation_type_id = s.stock_operation_type_id
+      WHERE s.is_source = true AND (s.voided IS NULL OR s.voided = false)
+        AND sot.operation_type IN ('adjustment', 'disposed', 'transferout', 'receipt', 'return', 'stockissue', 'requisition', 'stocktake', 'initial')
+        AND NOT EXISTS (SELECT 1 FROM global_property gp WHERE gp.property = CONCAT('stockmanagement.', sot.operation_type, '.sourceLocationTags'))
+      GROUP BY sot.operation_type
+    </sql>
+    <sql>
+      INSERT INTO global_property (property, property_value, description, uuid)
+      SELECT CONCAT('stockmanagement.', sot.operation_type, '.destinationLocationTags'), STRING_AGG(DISTINCT s.location_tag, ',' ORDER BY s.location_tag),
+        'Comma-separated names of the location tags a destination location must have one of. Leave blank to allow any location.',
+        MD5(CONCAT(sot.operation_type, 'destination', RANDOM()::text))
+      FROM stockmgmt_operation_type_location_scope s
+        JOIN stockmgmt_stock_operation_type sot ON sot.stock_operation_type_id = s.stock_operation_type_id
+      WHERE s.is_destination = true AND (s.voided IS NULL OR s.voided = false)
+        AND sot.operation_type IN ('adjustment', 'disposed', 'transferout', 'receipt', 'return', 'stockissue', 'requisition', 'stocktake', 'initial')
+        AND NOT EXISTS (SELECT 1 FROM global_property gp WHERE gp.property = CONCAT('stockmanagement.', sot.operation_type, '.destinationLocationTags'))
+      GROUP BY sot.operation_type
+    </sql>
   </changeSet>
 </databaseChangeLog>

@@ -17,7 +17,7 @@ public class UserRoleScopeOperationTypeDTO {
 	
 	private String operationTypeName;
 	
-	private String operationTypeUuid;
+	private String operationType;
 	
 	public Integer getUserRoleScopeId() {
 		return userRoleScopeId;
@@ -43,11 +43,11 @@ public class UserRoleScopeOperationTypeDTO {
 		this.operationTypeName = operationTypeName;
 	}
 	
-	public String getOperationTypeUuid() {
-		return operationTypeUuid;
+	public String getOperationType() {
+		return operationType;
 	}
 	
-	public void setOperationTypeUuid(String operationTypeUuid) {
-		this.operationTypeUuid = operationTypeUuid;
+	public void setOperationType(String operationType) {
+		this.operationType = operationType;
 	}
 }
