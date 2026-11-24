@@ -32,7 +32,7 @@ import org.openmrs.module.stockmanagement.api.reporting.Report;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.reporting.ReportParameter;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.utils.PropertiesUtil;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
@@ -96,7 +96,7 @@ public class BatchJobValidator implements Validator {
 		
 		Properties properties = null;
 		try {
-			properties = GlobalProperties.fromString(object.getParameters());
+			properties = PropertiesUtil.fromString(object.getParameters());
 		}
 		catch (IOException e) {
 			errors.rejectValue("parameters",

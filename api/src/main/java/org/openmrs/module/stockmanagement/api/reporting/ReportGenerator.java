@@ -300,7 +300,7 @@ public abstract class ReportGenerator {
 		boolean resetExecutionState = false;
 		if (batchJob.getExecutionState() != null) {
 			try {
-				executionState = GlobalProperties.fromString(batchJob.getExecutionState());
+				executionState = PropertiesUtil.fromString(batchJob.getExecutionState());
 				pageIndex = getCurrentPageIndex(executionState);
 				recordsProcessed = getRecordsProcessed(executionState);
 				lastRecordProcessed = getLastRecordProcessed(executionState);
@@ -371,7 +371,7 @@ public abstract class ReportGenerator {
 		
 		if (executionState != null) {
 			stockManagementService.updateBatchJobExecutionState(batchJob.getUuid(),
-			    GlobalProperties.toString(executionState, null));
+			    PropertiesUtil.toString(executionState, null));
 		}
 	}
 	

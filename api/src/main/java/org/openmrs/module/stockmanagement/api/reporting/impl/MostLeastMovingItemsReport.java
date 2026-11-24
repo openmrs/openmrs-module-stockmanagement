@@ -26,7 +26,7 @@ import org.openmrs.module.stockmanagement.api.model.BatchJob;
 import org.openmrs.module.stockmanagement.api.model.Party;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.utils.PropertiesUtil;
 import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
 
 import java.io.IOException;
@@ -74,7 +74,7 @@ public class MostLeastMovingItemsReport extends ReportGenerator {
 		Properties parameters = null;
 		
 		try {
-			parameters = GlobalProperties.fromString(batchJob.getParameters());
+			parameters = PropertiesUtil.fromString(batchJob.getParameters());
 		}
 		catch (IOException e) {
 			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
