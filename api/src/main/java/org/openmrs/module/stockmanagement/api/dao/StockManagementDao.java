@@ -17,6 +17,7 @@ import org.hibernate.criterion.Order;
 import org.hibernate.transform.AliasToBeanResultTransformer;
 import org.hibernate.type.IntegerType;
 import org.openmrs.*;
+import org.openmrs.api.APIException;
 import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
@@ -1452,7 +1453,7 @@ public class StockManagementDao extends DaoBase {
 				for (StockOperationItemDTO stockOperationItemDTO : result.getData()) {
 					
 					if (filter.getIncludePackagingUnitName()) {
-						Optional<ConceptNameDTO> conceptNameDTO = null;
+						Optional<ConceptNameDTO> conceptNameDTO = Optional.empty();
 						if (stockOperationItemDTO.getPackagingUoMId() != null
 						        && stockOperationItemDTO.getStockItemPackagingUOMUuid() != null) {
 							conceptNameDTO = conceptNameDTOs.stream()
@@ -3125,12 +3126,12 @@ public class StockManagementDao extends DaoBase {
 		        + "sb.batchNo as stockBatchNo,\n" + "sb.expiration as expiration,\n" + "so.uuid as stockOperationUuid,\n"
 		        + "so.status as stockOperationStatus,\n" + "so.operationNumber as stockOperationNumber,\n"
 		        + "sot.name as stockOperationTypeName,\n" + "sit.quantity as quantity,"
-		        + "sit.patient.id as patientId, sit.order.orderId as orderId, sit.encounter.encounterId as encounterId,\n"
+		        + "sit.patient.id as patientId, txPatient.uuid as patientUuid, sit.order.orderId as orderId, sit.encounter.encounterId as encounterId,\n"
 		        + "so.source.id as operationSourcePartyId, so.destination.id as operationDestinationPartyId\n"
 		        + "from stockmanagement.StockItemTransaction sit join\n"
 		        + "\t sit.stockItem si left join sit.party p left join\n" + " sit.stockBatch sb left join\n"
 		        + " sit.stockItemPackagingUOM sipu left join\n"
-		        + " sit.stockOperation so left join so.stockOperationType sot");
+		        + " sit.stockOperation so left join so.stockOperationType sot left join sit.patient txPatient");
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
@@ -3214,7 +3215,6 @@ public class StockManagementDao extends DaoBase {
 			        .map(p -> Arrays.asList(p.getPartyId(), p.getOperationSourcePartyId(),
 			            p.getOperationDestinationPartyId()))
 			        .flatMap(Collection::stream).filter(p -> p != null).distinct().collect(Collectors.toList());
-			namePartyIds.addAll(namePartyIds);
 			partySearchFilter.setPartyIds(namePartyIds);
 			Map<Integer, List<PartyDTO>> partyNameMap = findParty(partySearchFilter).getData().stream()
 			        .collect(Collectors.groupingBy(PartyDTO::getId));
@@ -3256,15 +3256,6 @@ public class StockManagementDao extends DaoBase {
 					if (party != null) {
 						stockItemTransactionDTO.setOperationDestinationPartyName(party.get(0).getName());
 					}
-				}
-				// stockItemTransactionDTO.setPatientId(1000);
-				Integer patientId = stockItemTransactionDTO.getPatientId();
-				System.out.println("Got patient id as: " + patientId);
-				if (patientId != null) {
-					Patient patient = Context.getPatientService().getPatient(patientId);
-					String patientUuid = patient.getUuid();
-					System.out.println("Got patient uuid as: " + patientUuid);
-					stockItemTransactionDTO.setPatientUuid(patientUuid);
 				}
 			}
 			
@@ -3630,7 +3621,6 @@ public class StockManagementDao extends DaoBase {
 			List<Integer> nameLocationIds = result.getData().stream()
 			        .map(p -> Arrays.asList(p.getCreatedFrom(), p.getFulfilmentLocationId())).flatMap(Collection::stream)
 			        .filter(p -> p != null).distinct().collect(Collectors.toList());
-			nameLocationIds.addAll(nameLocationIds);
 			partySearchFilter.setLocationIds(nameLocationIds);
 			Map<Integer, List<PartyDTO>> partyNameMap = nameLocationIds.isEmpty() ? null
 			        : findParty(partySearchFilter).getData().stream()
@@ -5366,5 +5356,74 @@ public class StockManagementDao extends DaoBase {
 		criteria.add(Restrictions.eq("stockItem", stockItem));
 		criteria.add(Restrictions.eq("voided", false));
 		return criteria.list();
+	}
+	
+	public StockItemPackagingUomReference saveStockItemPackagingUomReference(
+	        StockItemPackagingUomReference stockItemPackagingUomReference) {
+		DbSession dbSession = getSession();
+		dbSession.saveOrUpdate(stockItemPackagingUomReference);
+		dbSession.flush();
+		return stockItemPackagingUomReference;
+	}
+	
+	public StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid) {
+		return (StockItemPackagingUomReference) getSession().createCriteria(StockItemPackagingUomReference.class)
+		        .add(Restrictions.eq("uuid", uuid)).uniqueResult();
+	}
+	
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceByPackagingUom(
+	        StockItemPackagingUOM stockItemPackagingUOM, boolean includeVoided) {
+		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
+		criteria.add(Restrictions.eq("stockItemPackagingUOM", stockItemPackagingUOM));
+		if (!includeVoided) {
+			criteria.add(Restrictions.eq("voided", false));
+		}
+		return criteria.list();
+	}
+	
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferenceBySourceAndCode(StockSource stockSource,
+	        String stockReferenceCode) {
+		Criteria criteria = getSession().createCriteria(StockItemPackagingUomReference.class);
+		// run without auto-flush so a pending code edit on the checked reference isn't flushed
+		// (and rejected by the database unique constraint) before the duplicate check sees it
+		criteria.setFlushMode(FlushMode.MANUAL);
+		criteria.add(Restrictions.eq("referenceSource", stockSource));
+		criteria.add(Restrictions.eq("stockReferenceCode", stockReferenceCode));
+		criteria.add(Restrictions.eq("voided", false));
+		return criteria.list();
+	}
+	
+	public void voidStockItemPackagingUomReference(String uuid, String reason, int voidedBy) {
+		DbSession dbSession = getSession();
+		StockItemPackagingUomReference reference = getStockItemPackagingUomReferenceByUuid(uuid);
+		if (reference == null) {
+			throw new APIException("Stock item packaging UOM reference not found");
+		}
+		if (reference.getVoided()) {
+			return;
+		}
+		//compute and validate the suffix BEFORE mutating the managed entity: a failed void must
+		//leave the reference untouched, not half-voided (voided set, code unsuffixed) in session
+		String suffixedCode = StockItemPackagingUomReference.voidedCode(reference.getStockReferenceCode(),
+		    reference.getId());
+		//a row saved before the service's code-length guard could carry a code the suffix would
+		//push past the column length; a clear message beats the raw data-truncation error
+		if (suffixedCode.length() > StockItemPackagingUomReference.CODE_MAX_LENGTH) {
+			throw new APIException(
+			        "The stock reference code is too long to be voided: appending the (voided <id>) suffix would exceed "
+			                + StockItemPackagingUomReference.CODE_MAX_LENGTH + " characters");
+		}
+		reference.setVoided(true);
+		reference.setDateVoided(new Date());
+		//voidedBy maps to a User association, so bind a User reference, not the raw user id
+		reference.setVoidedBy((User) dbSession.load(User.class, voidedBy));
+		reference.setVoidReason(reason);
+		//the (stock_source_id, stock_reference_code) unique constraint covers voided rows too,
+		//so suffix the stored code to free the original code for reuse on the same source
+		reference.setStockReferenceCode(suffixedCode);
+		dbSession.saveOrUpdate(reference);
+		//flush so a create or rename of the freed code in the same transaction sees the voided
+		//row (the duplicate check reads under MANUAL flush mode, so it misses this pending edit)
+		dbSession.flush();
 	}
 }
