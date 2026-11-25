@@ -3216,7 +3216,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	 * Sums the rows per location and stock item, in the order each pair first appears in the rows, so
 	 * the order doesn't depend on how the grouping key hashes.
 	 */
-	static List<StockItemInventory> totalByLocationStockItem(List<StockItemInventory> rows) {
+	private static List<StockItemInventory> totalByLocationStockItem(List<StockItemInventory> rows) {
 		return rows.stream().collect(
 		    Collectors.groupingBy(p -> Pair.of(p.getPartyId(), p.getStockItemId()), LinkedHashMap::new, Collectors.toList()))
 		        .values().stream().map(group -> {

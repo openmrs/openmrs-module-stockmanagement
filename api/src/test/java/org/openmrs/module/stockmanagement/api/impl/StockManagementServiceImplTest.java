@@ -7,18 +7,17 @@
  * Copyright (C) OpenMRS Inc. OpenMRS is a registered trademark and the OpenMRS
  * graphic logo is a trademark of OpenMRS Inc.
  */
-package org.openmrs.module.stockmanagement;
+package org.openmrs.module.stockmanagement.api.impl;
 
 import org.junit.jupiter.api.Test;
 import org.openmrs.User;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
-import org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl;
 import org.openmrs.util.OpenmrsConstants;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class UserEmailAddressTest {
+public class StockManagementServiceImplTest {
 	
 	private static class EmailDao extends StockManagementDao {
 		
