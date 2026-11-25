@@ -709,6 +709,21 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		}
 	}
 	
+	@Test
+	public void stockItemInventory_shouldOnlyReturnTheStockAtTheRequestedLocation() {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		createAndCompleteReceiptViaRest(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.TEN, null);
+		createAndCompleteReceiptViaRest(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(4), null);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setParameter("stockItemUuid", sampleStockItem.getUuid());
+		request.setParameter("locationUuid", childLocation.getUuid());
+		RequestContext context = new RequestContext();
+		context.setRequest(request);
+		List<?> rows = (List<?>) new StockItemInventoryResource().search(context).get("results");
+		assertEquals(1, rows.size());
+		assertEquals(childParty.getUuid(), ((SimpleObject) rows.get(0)).get("partyUuid"));
+	}
+	
 	// ---------------------------------------------------------------------------------------------
 	// Helper Methods
 	// ---------------------------------------------------------------------------------------------
