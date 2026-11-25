@@ -55,8 +55,7 @@ import java.util.stream.Stream;
 
 public class StockManagementServiceImpl extends BaseOpenmrsService implements StockManagementService {
 	
-	// Preserve the notification email rules, including the two-to-seven-letter TLD limit. Possessive quantifiers
-	// give the same matches without backtracking, so a long address cannot overflow the stack.
+	// Possessive quantifiers match the same addresses without backtracking, so a long address can't overflow the stack.
 	private static final Pattern EMAIL_PATTERN = Pattern
 	        .compile("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*+@(?:[a-zA-Z0-9-]+\\.)++[a-zA-Z]{2,7}$");
 	
@@ -2463,18 +2462,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			if (filter.getTotalBy() != null) {
 				switch (filter.getTotalBy()) {
 					case LocationStockItem:
-						result.setTotals(result.getData().stream()
-						        .collect(Collectors.groupingBy(p -> Pair.of(p.getPartyId(), p.getStockItemId()))).entrySet()
-						        .stream().map(p -> {
-							        StockItemInventory stockItemInventory = new StockItemInventory();
-							        StockItemInventory inventory = p.getValue().get(0);
-							        stockItemInventory.setPartyId(inventory.getPartyId());
-							        stockItemInventory.setLocationUuid(inventory.getLocationUuid());
-							        stockItemInventory.setStockItemId(inventory.getStockItemId());
-							        stockItemInventory.setQuantity(p.getValue().stream().map(x -> x.getQuantity())
-							                .reduce(BigDecimal.ZERO, BigDecimal::add));
-							        return stockItemInventory;
-						        }).collect(Collectors.toList()));
+						result.setTotals(totalByLocationStockItem(result.getData()));
 						break;
 					case LocationStockItemBatchNo:
 						result.setTotals(result.getData());
@@ -3224,8 +3212,27 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		dao.saveBatchJob(batchJob);
 	}
 	
+	/**
+	 * Sums the rows per location and stock item, in the order each pair first appears in the rows, so
+	 * the order doesn't depend on how the grouping key hashes.
+	 */
+	static List<StockItemInventory> totalByLocationStockItem(List<StockItemInventory> rows) {
+		return rows.stream().collect(
+		    Collectors.groupingBy(p -> Pair.of(p.getPartyId(), p.getStockItemId()), LinkedHashMap::new, Collectors.toList()))
+		        .values().stream().map(group -> {
+			        StockItemInventory stockItemInventory = new StockItemInventory();
+			        StockItemInventory inventory = group.get(0);
+			        stockItemInventory.setPartyId(inventory.getPartyId());
+			        stockItemInventory.setLocationUuid(inventory.getLocationUuid());
+			        stockItemInventory.setStockItemId(inventory.getStockItemId());
+			        stockItemInventory
+			                .setQuantity(group.stream().map(x -> x.getQuantity()).reduce(BigDecimal.ZERO, BigDecimal::add));
+			        return stockItemInventory;
+		        }).collect(Collectors.toList());
+	}
+	
 	private static boolean isValidEmail(String email) {
-		return email != null && !email.endsWith(".") && EMAIL_PATTERN.matcher(email).matches();
+		return email != null && EMAIL_PATTERN.matcher(email).matches();
 	}
 	
 	public String getUserEmailAddress(User user) {

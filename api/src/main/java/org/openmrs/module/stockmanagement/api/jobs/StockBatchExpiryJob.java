@@ -126,8 +126,8 @@ public class StockBatchExpiryJob extends AbstractTask {
 		
 		log.debug("Processing alerts");
 		Map<Pair<Integer, Integer>, List<StockItemInventory>> partyStockItemMap = stockBatchBalance.entrySet().stream()
-		        .map(p -> p.getValue()).flatMap(Collection::stream)
-		        .collect(Collectors.groupingBy(p -> Pair.of(p.getPartyId(), p.getStockItemId())));
+		        .map(p -> p.getValue()).flatMap(Collection::stream).collect(Collectors.groupingBy(
+		            p -> Pair.of(p.getPartyId(), p.getStockItemId()), LinkedHashMap::new, Collectors.toList()));
 		Map<Integer, User> users = new HashMap<>();
 		Map<Integer, List<Pair<Integer, Integer>>> userLocationsToNotify = processAlerts(stockBatchBalance,
 		    stockBatchNumbers, usersToNotify, mainStoreLocationIds, locationMap, partyDTOLocationMap, locationPartyDTOMap,
