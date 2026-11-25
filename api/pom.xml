@@ -38,13 +38,6 @@
         <!-- End OpenMRS core -->
 
         <dependency>
-            <groupId>com.opencsv</groupId>
-            <artifactId>opencsv</artifactId>
-            <version>${opencsvVersion}</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
@@ -59,7 +52,6 @@
             <groupId>javax.activation</groupId>
             <artifactId>activation</artifactId>
             <version>1.1.1</version>
-            <scope>provided</scope>
         </dependency>
 
     </dependencies>

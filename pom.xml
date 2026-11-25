@@ -34,7 +34,6 @@
         <maven.compiler.target>8</maven.compiler.target>
         <webservicesRestVersion>3.0.0</webservicesRestVersion>
         <lombokVersion>1.18.38</lombokVersion>
-        <opencsvVersion>5.11</opencsvVersion>
     </properties>
 
     <dependencyManagement>
