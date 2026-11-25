@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Controller("${rootrootArtifactId}.LocationTreeSynchronizeController")
+@Controller("stockmanagement.LocationTreeSynchronizeController")
 @RequestMapping("/rest/" + RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/locationtreesynchronize")
 public class LocationTreeSynchronizeController {
 	

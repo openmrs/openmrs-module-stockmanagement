@@ -12,12 +12,13 @@ package org.openmrs.module.stockmanagement;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.hibernate.Query;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.openmrs.*;
+import org.openmrs.api.APIException;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
@@ -33,7 +34,7 @@ import org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl;
 import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
+import org.openmrs.test.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Array;
@@ -45,9 +46,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.mockito.Mockito.*;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.Assert.*;
 
 /**
  * This is a unit test, which verifies logic in StockManagementService. It doesn't extend
@@ -73,7 +73,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		return daoInstance;
 	}
 	
-	@BeforeEach
+	@Before
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
@@ -98,7 +98,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	//	@Mock
 	//	UserService userService;
 	
-	@BeforeEach
+	@Before
 	public void setupMocks() {
 		MockitoAnnotations.initMocks(this);
 	}
@@ -645,6 +645,38 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
+	public void findStockItemTransactions_shouldReturnPatientUuidWithoutGetPatientsPrivilege() {
+		StockItemTransaction patientTransaction = eu().newStockItemTransaction(dao());
+		patientTransaction.setPatient(eu().getPatient());
+		dao().saveStockItemTransaction(patientTransaction);
+		
+		StockItemTransaction nonPatientTransaction = eu().newStockItemTransaction(dao(), patientTransaction.getStockItem(),
+		    patientTransaction.getStockBatch(), patientTransaction.getStockItemPackagingUOM());
+		nonPatientTransaction.setPatient(null);
+		dao().saveStockItemTransaction(nonPatientTransaction);
+		Context.flushSession();
+		String expectedPatientUuid = eu().getPatient().getUuid();
+		
+		StockItemTransactionSearchFilter filter = new StockItemTransactionSearchFilter();
+		filter.setStockItemId(patientTransaction.getStockItem().getId());
+		
+		Context.logout();
+		Result<StockItemTransactionDTO> result;
+		try {
+			result = dao().findStockItemTransactions(filter, null);
+		}
+		finally {
+			authenticate();
+		}
+		
+		assertEquals(2, result.getData().size());
+		assertEquals(expectedPatientUuid, result.getData().stream()
+		        .filter(p -> p.getUuid().equals(patientTransaction.getUuid())).findFirst().get().getPatientUuid());
+		assertNull(result.getData().stream().filter(p -> p.getUuid().equals(nonPatientTransaction.getUuid())).findFirst()
+		        .get().getPatientUuid());
+	}
+	
+	@Test
 	public void dispenseStockItems() {
 		StockItem stockItem = eu().newStockItem(dao(), false);
 		dao().saveStockItem(stockItem);
@@ -721,7 +753,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertEquals(5, stockItemDTOs.getData().size());
 		Optional<StockItemDTO> stockItemOptional = stockItemDTOs.getData().stream().filter(p -> p.getDrugId().equals(2))
 		        .findFirst();
-		assertTrue(stockItemOptional.isPresent(), "Drug Stock item is present");
+		assertTrue("Drug Stock item is present", stockItemOptional.isPresent());
 		StockItemDTO stockItem = stockItemOptional.get();
 		assertTrue(stockItem.getHasExpiration());
 		assertEquals(stockItem.getCommonName(), "TEST 2");
@@ -735,7 +767,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertEquals(stockItem.getPurchasePriceConceptId(), (Integer) 20);
 		
 		stockItemOptional = stockItemDTOs.getData().stream().filter(p -> p.getConceptId().equals(5497)).findFirst();
-		assertTrue(stockItemOptional.isPresent(), "Concenpt Stock item is present");
+		assertTrue("Concenpt Stock item is present", stockItemOptional.isPresent());
 		stockItem = stockItemOptional.get();
 		assertFalse(stockItem.getHasExpiration());
 		assertEquals(stockItem.getCommonName(), "TEST 2");
@@ -1489,6 +1521,328 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertTrue(result.getData().isEmpty());
 	}
 	
+	private StockSource createNonVoidedStockSource() {
+		StockSource stockSource = eu().newStockSource(dao());
+		stockSource.setVoided(false);
+		dao().saveStockSource(stockSource);
+		return stockSource;
+	}
+	
+	private StockItemPackagingUomReference createReferenceForServiceTests() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		packagingUom.setFactor(BigDecimal.valueOf(30));
+		dao().saveStockItemPackagingUOM(packagingUom);
+		
+		StockSource stockSource = createNonVoidedStockSource();
+		
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(packagingUom);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode("M221680001EP30T");
+		reference.setName("UNHTS packaging reference");
+		reference.setDescription("UNHTS packaging reference description");
+		return stockManagementService.saveStockItemPackagingUomReference(reference);
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldSaveReferenceWithAllProperties() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		assertNotNull(savedReference);
+		assertNotNull(savedReference.getUuid());
+		
+		Context.flushSession();
+		Context.clearSession();
+		
+		StockItemPackagingUomReference fetched = stockManagementService
+		        .getStockItemPackagingUomReferenceByUuid(savedReference.getUuid());
+		assertNotNull(fetched);
+		assertEquals("M221680001EP30T", fetched.getStockReferenceCode());
+		assertEquals("UNHTS packaging reference", fetched.getName());
+		assertEquals("UNHTS packaging reference description", fetched.getDescription());
+		assertNotNull(fetched.getStockItemPackagingUOM());
+		assertEquals(0, fetched.getStockItemPackagingUOM().getFactor().compareTo(BigDecimal.valueOf(30)));
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectNonExistentPackagingUom() {
+		stockManagementService.setDao(dao());
+		StockSource stockSource = createNonVoidedStockSource();
+		
+		StockItemPackagingUOM nonExistentPackagingUom = new StockItemPackagingUOM();
+		nonExistentPackagingUom.setUuid("non-existent-packaging-uom-uuid");
+		
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(nonExistentPackagingUom);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode("M221680001EP30T");
+		
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(reference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("packaging UOM"));
+		}
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectMissingStockSource() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(packagingUom);
+		reference.setStockReferenceCode("M221680001EP30T");
+		
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(reference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("Stock source"));
+		}
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectBlankReferenceCode() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		
+		StockSource stockSource = createNonVoidedStockSource();
+		
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(packagingUom);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode("   ");
+		
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(reference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("Stock reference code is required"));
+		}
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectDuplicateActiveSourceAndCode() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		
+		StockItemPackagingUomReference duplicate = new StockItemPackagingUomReference();
+		duplicate.setStockItemPackagingUOM(savedReference.getStockItemPackagingUOM());
+		duplicate.setReferenceSource(savedReference.getReferenceSource());
+		duplicate.setStockReferenceCode("M221680001EP30T");
+		
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(duplicate);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			// the search stops finding dormant references, so the message names the reference
+			// that holds the code
+			assertThat(e.getMessage(), containsString("already exists"));
+			assertThat(e.getMessage(), containsString(savedReference.getUuid()));
+		}
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldAllowSameCodeFromDifferentSource() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		
+		StockSource otherSource = createNonVoidedStockSource();
+		StockItemPackagingUomReference otherNamespaceReference = new StockItemPackagingUomReference();
+		otherNamespaceReference.setStockItemPackagingUOM(savedReference.getStockItemPackagingUOM());
+		otherNamespaceReference.setReferenceSource(otherSource);
+		otherNamespaceReference.setStockReferenceCode("M221680001EP30T");
+		
+		StockItemPackagingUomReference saved = stockManagementService
+		        .saveStockItemPackagingUomReference(otherNamespaceReference);
+		assertNotNull(saved);
+		assertNotNull(saved.getUuid());
+	}
+	
+	@Test
+	public void getStockItemPackagingUomByReference_shouldResolvePackagingUomFromSourceAndCode() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		
+		StockItemPackagingUOM resolved = stockManagementService
+		        .getStockItemPackagingUomByReference(savedReference.getReferenceSource(), "M221680001EP30T");
+		assertNotNull(resolved);
+		assertEquals(0, resolved.getFactor().compareTo(BigDecimal.valueOf(30)));
+	}
+	
+	@Test
+	public void getStockItemPackagingUomByReference_shouldReturnNullWhenNoReferenceExists() {
+		stockManagementService.setDao(dao());
+		StockSource stockSource = createNonVoidedStockSource();
+		StockItemPackagingUOM resolved = stockManagementService.getStockItemPackagingUomByReference(stockSource,
+		    "UNKNOWN-CODE");
+		assertNull(resolved);
+	}
+	
+	@Test
+	public void getStockItemPackagingUomReferencesBySourceAndCode_shouldReturnEmptyListForUnknownSource() {
+		stockManagementService.setDao(dao());
+		List<StockItemPackagingUomReference> references = stockManagementService
+		        .getStockItemPackagingUomReferencesBySourceAndCode("unknown-source-uuid", "M221680001EP30T");
+		assertNotNull(references);
+		assertTrue(references.isEmpty());
+	}
+	
+	@Test
+	public void getStockItemPackagingUomReferencesByPackagingUom_shouldReturnReferencesOfThePackagingUom() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		
+		List<StockItemPackagingUomReference> references = stockManagementService
+		        .getStockItemPackagingUomReferencesByPackagingUom(savedReference.getStockItemPackagingUOM().getUuid(),
+		            false);
+		assertNotNull(references);
+		assertEquals(1, references.size());
+		assertEquals(savedReference.getUuid(), references.get(0).getUuid());
+	}
+	
+	@Test
+	public void voidStockItemPackagingUomReference_shouldVoidTheReference() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		
+		stockManagementService.voidStockItemPackagingUomReference(savedReference.getUuid(), "test void",
+		    savedReference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+		
+		StockItemPackagingUomReference voidedReference = stockManagementService
+		        .getStockItemPackagingUomReferenceByUuid(savedReference.getUuid());
+		assertNotNull(voidedReference);
+		assertTrue(voidedReference.getVoided());
+		assertEquals("test void", voidedReference.getVoidReason());
+	}
+	
+	@Test
+	public void voidStockItemPackagingUomReference_shouldBeANoOpWhenAlreadyVoided() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		
+		stockManagementService.voidStockItemPackagingUomReference(savedReference.getUuid(), "test void",
+		    savedReference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+		
+		// a second void must not append the suffix again or replace the original void reason
+		stockManagementService.voidStockItemPackagingUomReference(savedReference.getUuid(), "second void",
+		    savedReference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+		
+		StockItemPackagingUomReference voidedReference = stockManagementService
+		        .getStockItemPackagingUomReferenceByUuid(savedReference.getUuid());
+		assertTrue(voidedReference.getVoided());
+		assertTrue(voidedReference.getStockReferenceCode().endsWith("(voided " + savedReference.getId() + ")")
+		        && !voidedReference.getStockReferenceCode()
+		                .endsWith("(voided " + savedReference.getId() + ") (voided " + savedReference.getId() + ")"));
+		assertEquals("test void", voidedReference.getVoidReason());
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldReuseACodeVoidedInTheSameTransaction() {
+		StockItemPackagingUomReference reference = createReferenceForServiceTests();
+		stockManagementService.voidStockItemPackagingUomReference(reference.getUuid(), "moved",
+		    reference.getCreator().getUserId());
+		
+		StockItemPackagingUomReference replacement = new StockItemPackagingUomReference();
+		replacement.setStockItemPackagingUOM(reference.getStockItemPackagingUOM());
+		replacement.setReferenceSource(reference.getReferenceSource());
+		replacement.setStockReferenceCode("M221680001EP30T");
+		assertNotNull(stockManagementService.saveStockItemPackagingUomReference(replacement).getId());
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldAllowRecreatingAfterVoid() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		
+		stockManagementService.voidStockItemPackagingUomReference(savedReference.getUuid(), "test void",
+		    savedReference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+		
+		// voiding releases the source/code pair, so a replacement reference can reuse it
+		StockItemPackagingUomReference replacement = new StockItemPackagingUomReference();
+		replacement.setStockItemPackagingUOM(savedReference.getStockItemPackagingUOM());
+		replacement.setReferenceSource(savedReference.getReferenceSource());
+		replacement.setStockReferenceCode("M221680001EP30T");
+		StockItemPackagingUomReference recreated = stockManagementService.saveStockItemPackagingUomReference(replacement);
+		assertNotNull(recreated);
+		assertNotNull(recreated.getUuid());
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectDuplicateCodeWhenEditingAnExistingReference() {
+		StockItemPackagingUomReference firstReference = createReferenceForServiceTests();
+		
+		StockItemPackagingUomReference secondReference = new StockItemPackagingUomReference();
+		secondReference.setStockItemPackagingUOM(firstReference.getStockItemPackagingUOM());
+		secondReference.setReferenceSource(firstReference.getReferenceSource());
+		secondReference.setStockReferenceCode("OTHER-CODE");
+		secondReference = stockManagementService.saveStockItemPackagingUomReference(secondReference);
+		
+		// the duplicate check must run without flushing the pending code edit, or the database
+		// unique constraint rejects it before the service's "already exists" message is raised
+		secondReference.setStockReferenceCode("M221680001EP30T");
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(secondReference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("already exists"));
+		}
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldUpdateAnExistingReference() {
+		StockItemPackagingUomReference reference = createReferenceForServiceTests();
+		reference.setName("renamed");
+		stockManagementService.saveStockItemPackagingUomReference(reference);
+		Context.flushSession();
+		Context.clearSession();
+		
+		assertEquals("renamed",
+		    stockManagementService.getStockItemPackagingUomReferenceByUuid(reference.getUuid()).getName());
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectEditingAVoidedReference() {
+		StockItemPackagingUomReference reference = createReferenceForServiceTests();
+		
+		stockManagementService.voidStockItemPackagingUomReference(reference.getUuid(), "test void",
+		    reference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+		
+		StockItemPackagingUomReference voidedReference = stockManagementService
+		        .getStockItemPackagingUomReferenceByUuid(reference.getUuid());
+		voidedReference.setStockReferenceCode("M221680001EP30T");
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(voidedReference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("voided"));
+		}
+	}
+	
 	@Test
 	public void saveUserRoleScope_shouldDefaultNullLocationAndOperationTypeLists() {
 		stockManagementService.setDao(dao());
@@ -1501,6 +1855,219 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertNotNull(saved.getRole());
 		assertFalse(saved.getEnabled());
 		assertFalse(saved.getPermanent());
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectAReferenceCodeTooLongToVoid() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockSource stockSource = createNonVoidedStockSource();
+		
+		// 235 characters is the longest code voiding can still suffix within VARCHAR(255)
+		char[] longestVoidableCode = new char[235];
+		Arrays.fill(longestVoidableCode, 'X');
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(packagingUom);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode(new String(longestVoidableCode));
+		assertNotNull(stockManagementService.saveStockItemPackagingUomReference(reference).getId());
+		
+		// one character more and the (voided <id>) suffix would not fit
+		char[] tooLongCode = new char[236];
+		Arrays.fill(tooLongCode, 'X');
+		StockItemPackagingUomReference tooLong = new StockItemPackagingUomReference();
+		tooLong.setStockItemPackagingUOM(packagingUom);
+		tooLong.setReferenceSource(stockSource);
+		tooLong.setStockReferenceCode(new String(tooLongCode));
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(tooLong);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("too long"));
+		}
+	}
+	
+	@Test
+	public void voidStockItemPackagingUomReference_shouldRejectALegacyCodeTooLongForTheSuffix() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockSource stockSource = createNonVoidedStockSource();
+		
+		// a row saved before the save-side length guard existed: inserted through the dao, since
+		// the service would no longer accept a code the (voided <id>) suffix cannot fit
+		StockItemPackagingUomReference legacy = new StockItemPackagingUomReference();
+		legacy.setStockItemPackagingUOM(packagingUom);
+		legacy.setReferenceSource(stockSource);
+		char[] legacyCode = new char[250];
+		Arrays.fill(legacyCode, 'X');
+		legacy.setStockReferenceCode(new String(legacyCode));
+		StockItemPackagingUomReference saved = dao().saveStockItemPackagingUomReference(legacy);
+		
+		try {
+			stockManagementService.voidStockItemPackagingUomReference(saved.getUuid(), "test void",
+			    saved.getCreator().getUserId());
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("too long"));
+		}
+		
+		// the failed void must not have left the managed entity half-voided (voided set, code
+		// unsuffixed): re-reading after a flush shows the reference as it was
+		Context.flushSession();
+		Context.clearSession();
+		StockItemPackagingUomReference untouched = stockManagementService
+		        .getStockItemPackagingUomReferenceByUuid(saved.getUuid());
+		assertFalse(untouched.getVoided());
+		assertEquals(new String(legacyCode), untouched.getStockReferenceCode());
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectAPackagingUomVoidedInTheDatabase() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		dao().voidStockItemPackagingUOM(packagingUom.getUuid(), "test void", Context.getAuthenticatedUser().getUserId());
+		// the bulk-HQL void bypasses the session cache: clear it so the save path reads the row
+		Context.flushSession();
+		Context.clearSession();
+		
+		// a stale detached copy still claims non-voided: the guard must test the fetched row
+		StockItemPackagingUOM staleCopy = new StockItemPackagingUOM();
+		staleCopy.setId(packagingUom.getId());
+		staleCopy.setUuid(packagingUom.getUuid());
+		staleCopy.setVoided(false);
+		
+		StockSource stockSource = createNonVoidedStockSource();
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(staleCopy);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode("M221680001EP30T");
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(reference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("voided stock item packaging UOM"));
+		}
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectAStockSourceThatDoesNotExist() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		
+		// a fabricated source with a valid-looking id: the uuid existence check must catch it
+		// before it dies at flush on the foreign key
+		StockSource fabricated = new StockSource();
+		fabricated.setId(999999);
+		fabricated.setUuid("non-existent-source-uuid");
+		
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(packagingUom);
+		reference.setReferenceSource(fabricated);
+		reference.setStockReferenceCode("M221680001EP30T");
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(reference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("Stock source is required and must exist"));
+		}
+	}
+	
+	@Test
+	public void getStockItemPackagingUomByReference_shouldNotResolveAReferenceOfAVoidedPackagingUom() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		dao().voidStockItemPackagingUOM(savedReference.getStockItemPackagingUOM().getUuid(), "test void",
+		    savedReference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+		
+		// the reference row stays active, but its packaging UOM is voided: resolving the code
+		// must not hand back a voided packaging entity
+		StockItemPackagingUOM resolved = stockManagementService
+		        .getStockItemPackagingUomByReference(savedReference.getReferenceSource(), "M221680001EP30T");
+		assertNull(resolved);
+	}
+	
+	@Test
+	public void saveStockItemPackagingUomReference_shouldRejectAVoidedStockSource() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		
+		StockSource stockSource = createNonVoidedStockSource();
+		stockSource.setVoided(true);
+		dao().saveStockSource(stockSource);
+		Context.flushSession();
+		Context.clearSession();
+		
+		// the caller's copy still shows the source as active: the guard must test the fetched row
+		stockSource.setVoided(false);
+		StockItemPackagingUomReference reference = new StockItemPackagingUomReference();
+		reference.setStockItemPackagingUOM(packagingUom);
+		reference.setReferenceSource(stockSource);
+		reference.setStockReferenceCode("M221680001EP30T");
+		try {
+			stockManagementService.saveStockItemPackagingUomReference(reference);
+			fail("Expected an APIException to be thrown");
+		}
+		catch (APIException e) {
+			assertThat(e.getMessage(), containsString("voided stock source"));
+		}
+	}
+	
+	@Test
+	public void getStockItemPackagingUomByReference_shouldNotResolveAReferenceOfAVoidedSource() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		StockSource stockSource = savedReference.getReferenceSource();
+		stockSource.setVoided(true);
+		dao().saveStockSource(stockSource);
+		Context.flushSession();
+		Context.clearSession();
+		
+		// the source half of the dormancy filter: the reference row stays active, but resolving
+		// its code must not hand back anything for a voided source
+		StockItemPackagingUOM resolved = stockManagementService.getStockItemPackagingUomByReference(stockSource,
+		    "M221680001EP30T");
+		assertNull(resolved);
+	}
+	
+	@Test
+	public void getStockItemPackagingUomReferencesBySourceAndCode_shouldExcludeReferencesOfAVoidedPackagingUom() {
+		StockItemPackagingUomReference savedReference = createReferenceForServiceTests();
+		dao().voidStockItemPackagingUOM(savedReference.getStockItemPackagingUOM().getUuid(), "test void",
+		    savedReference.getCreator().getUserId());
+		Context.flushSession();
+		Context.clearSession();
+		
+		// the REST search uses the same resolvable filter as the resolve, so a client is never
+		// handed a stockItemPackagingUomUuid that stockitempackaginguom answers 404 for
+		List<StockItemPackagingUomReference> references = stockManagementService
+		        .getStockItemPackagingUomReferencesBySourceAndCode(savedReference.getReferenceSource().getUuid(),
+		            "M221680001EP30T");
+		assertNotNull(references);
+		assertTrue(references.isEmpty());
 	}
 	
 	@Test

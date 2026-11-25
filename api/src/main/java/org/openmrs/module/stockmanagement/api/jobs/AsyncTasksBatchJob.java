@@ -43,7 +43,7 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	
 	private volatile boolean shutDown = false;
 	
-	private volatile Integer idleTicks = 0;
+	private int idleTicks = 0;
 	
 	private List<Report> allReports = null;
 	
@@ -82,7 +82,7 @@ public class AsyncTasksBatchJob extends AbstractTask {
 				idleTicks++;
 				if (idleTicks >= 5) {
 					stopThisJob();
-				} else if (idleTicks.equals(1)) {
+				} else if (idleTicks == 1) {
 					cleanUpExpiredJobs();
 				}
 				break;
