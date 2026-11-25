@@ -2632,10 +2632,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		Map<String, Integer> stockItemIds = dao.getStockItemIds(Arrays.asList(stockItemUuid));
 		if (stockItemIds.isEmpty())
 			return null;
-		for (Integer stockItemId : stockItemIds.values()) {
-			return getStockItemPackagingUOMByConcept(stockItemId, conceptId);
-		}
-		return null;
+		return getStockItemPackagingUOMByConcept(stockItemIds.values().iterator().next(), conceptId);
 	}
 	
 	public StockItemPackagingUOM getStockItemPackagingUOMByConcept(String stockItemUuid, String conceptUuid) {
@@ -2645,10 +2642,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		Map<String, Integer> stockItemIds = dao.getStockItemIds(Arrays.asList(stockItemUuid));
 		if (stockItemIds.isEmpty())
 			return null;
-		for (Integer stockItemId : stockItemIds.values()) {
-			return getStockItemPackagingUOMByConcept(stockItemId, concept.getId());
-		}
-		return null;
+		return getStockItemPackagingUOMByConcept(stockItemIds.values().iterator().next(), concept.getId());
 	}
 	
 	public List<OrderItem> getOrderItemsByOrder(Integer... orderIds) {
@@ -3533,5 +3527,135 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		} else {
 			return null;
 		}
+	}
+	
+	@Override
+	public StockItemPackagingUomReference saveStockItemPackagingUomReference(
+	        StockItemPackagingUomReference stockItemPackagingUomReference) {
+		if (stockItemPackagingUomReference == null) {
+			throw new APIException("Stock item packaging UOM reference is required");
+		}
+		if (Boolean.TRUE.equals(stockItemPackagingUomReference.getVoided())) {
+			throw new APIException("A voided stock item packaging UOM reference cannot be edited");
+		}
+		
+		StockItemPackagingUOM stockItemPackagingUOM = stockItemPackagingUomReference.getStockItemPackagingUOM();
+		StockItemPackagingUOM storedPackagingUOM = stockItemPackagingUOM == null ? null
+		        : dao.getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid());
+		if (stockItemPackagingUOM == null || stockItemPackagingUOM.getId() == null || storedPackagingUOM == null) {
+			throw new APIException("Stock item packaging UOM is required and must exist");
+		}
+		//test the fetched row, not the caller's object: a detached copy may predate a void
+		if (storedPackagingUOM.getVoided()) {
+			throw new APIException("References cannot be created for a voided stock item packaging UOM");
+		}
+		
+		StockSource referenceSource = stockItemPackagingUomReference.getReferenceSource();
+		StockSource storedSource = referenceSource == null ? null : dao.getStockSourceByUuid(referenceSource.getUuid());
+		if (referenceSource == null || referenceSource.getId() == null || storedSource == null) {
+			throw new APIException("Stock source is required and must exist");
+		}
+		//mirror the packaging UOM check on the fetched row: a reference of a voided source would
+		//never resolve, yet its code would keep occupying the unique key on that source
+		if (Boolean.TRUE.equals(storedSource.getVoided())) {
+			throw new APIException("References cannot be created for a voided stock source");
+		}
+		
+		if (stockItemPackagingUomReference.getStockReferenceCode() == null
+		        || stockItemPackagingUomReference.getStockReferenceCode().trim().isEmpty()) {
+			throw new APIException("Stock reference code is required");
+		}
+		stockItemPackagingUomReference.setStockReferenceCode(stockItemPackagingUomReference.getStockReferenceCode().trim());
+		
+		// voiding suffixes the stored code with the (voided <id>) format the entity owns, to free
+		// the code for reuse, and stock_reference_code is a bounded column: refuse codes that
+		// could no longer hold that suffix, so every active reference can still be voided
+		if (stockItemPackagingUomReference.getStockReferenceCode().length() > StockItemPackagingUomReference
+		        .maxSaveableCodeLength()) {
+			throw new APIException("Stock reference code is too long: a code can be at most "
+			        + StockItemPackagingUomReference.maxSaveableCodeLength()
+			        + " characters so voiding can append its (voided <id>) suffix");
+		}
+		
+		// Mirrors the database unique constraint on (stock_source_id, stock_reference_code);
+		// voided rows are excluded because voiding suffixes their stored code, so only active
+		// references collide. The query must not auto-flush the pending edits or the database
+		// constraint fires before this friendly duplicate check runs. Dormant references (a
+		// voided packaging UOM or source) still hold the unique key, so they must collide too —
+		// the message names the reference that holds the code, which the resolve and search
+		// queries stop finding
+		List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(
+		    stockItemPackagingUomReference.getReferenceSource(), stockItemPackagingUomReference.getStockReferenceCode());
+		if (!matches.isEmpty() && !matches.get(0).getId().equals(stockItemPackagingUomReference.getId())) {
+			throw new APIException(
+			        "Stock item packaging UOM reference code " + stockItemPackagingUomReference.getStockReferenceCode()
+			                + " already exists for the given stock source (reference " + matches.get(0).getUuid() + ")");
+		}
+		
+		return dao.saveStockItemPackagingUomReference(stockItemPackagingUomReference);
+	}
+	
+	@Override
+	public void voidStockItemPackagingUomReference(String uuid, String reason, int userId) {
+		if (uuid == null || uuid.trim().isEmpty()) {
+			throw new APIException("Stock item packaging UOM reference uuid is required");
+		}
+		dao.voidStockItemPackagingUomReference(uuid, reason, userId);
+	}
+	
+	@Override
+	public StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid) {
+		return dao.getStockItemPackagingUomReferenceByUuid(uuid);
+	}
+	
+	@Override
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(
+	        String stockItemPackagingUomUuid, boolean includeVoided) {
+		StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(stockItemPackagingUomUuid);
+		if (stockItemPackagingUOM == null) {
+			return Collections.emptyList();
+		}
+		return dao.getStockItemPackagingUomReferenceByPackagingUom(stockItemPackagingUOM, includeVoided);
+	}
+	
+	@Override
+	public StockItemPackagingUOM getStockItemPackagingUomByReference(StockSource stockSource, String stockReferenceCode) {
+		if (stockSource == null || stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
+			throw new APIException("Stock source and stock reference code are required");
+		}
+		List<StockItemPackagingUomReference> matches = getResolvableReferences(stockSource, stockReferenceCode.trim());
+		if (matches.isEmpty()) {
+			return null;
+		}
+		if (matches.size() > 1) {
+			throw new APIException("Multiple stock item packaging UOM references found for stock reference code "
+			        + stockReferenceCode + " and the given stock source");
+		}
+		return matches.get(0).getStockItemPackagingUOM();
+	}
+	
+	@Override
+	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesBySourceAndCode(String stockSourceUuid,
+	        String stockReferenceCode) {
+		StockSource stockSource = getStockSourceByUuid(stockSourceUuid);
+		if (stockSource == null) {
+			//a stale source uuid is just an empty result, matching the stale packaging uuid lookup
+			return Collections.emptyList();
+		}
+		if (stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
+			throw new APIException("Stock reference code is required");
+		}
+		return getResolvableReferences(stockSource, stockReferenceCode.trim());
+	}
+	
+	//a voided packaging UOM or source must not resolve: its references stay stored but dormant,
+	//and a client must not be handed a stockItemPackagingUomUuid that the UOM resource answers
+	//404 for
+	private List<StockItemPackagingUomReference> getResolvableReferences(StockSource stockSource,
+	        String stockReferenceCode) {
+		return dao.getStockItemPackagingUomReferenceBySourceAndCode(stockSource, stockReferenceCode).stream()
+		        .filter(r -> !Boolean.TRUE.equals(r.getStockItemPackagingUOM().getVoided())
+		                && !Boolean.TRUE.equals(r.getReferenceSource().getVoided()))
+		        .collect(Collectors.toList());
 	}
 }
