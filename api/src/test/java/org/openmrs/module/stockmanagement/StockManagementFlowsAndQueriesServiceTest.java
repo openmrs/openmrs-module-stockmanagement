@@ -31,6 +31,7 @@ import org.openmrs.module.stockmanagement.api.dto.PrivilegeScope;
 import org.openmrs.module.stockmanagement.api.dto.SessionInfo;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
+import org.openmrs.module.stockmanagement.api.dto.StockItemTransactionSearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationActionLineItem;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationItemDTO;
@@ -39,6 +40,7 @@ import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeLocationDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeOperationTypeDTO;
+import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.Party;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
@@ -46,6 +48,7 @@ import org.openmrs.module.stockmanagement.api.model.StockOperation;
 import org.openmrs.module.stockmanagement.api.model.StockOperationItem;
 import org.openmrs.module.stockmanagement.api.model.StockOperationStatus;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
+import org.openmrs.module.stockmanagement.api.model.StockSource;
 import org.openmrs.module.stockmanagement.api.model.UserRoleScope;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
@@ -66,6 +69,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -787,6 +791,29 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertNull(grandchildNull.getQuantity());
 	}
 	
+	@Test
+	public void stockBalance_shouldOnlyShowAScopedUserTheStockAtTheirLocations() {
+		User childOnly = createTestUser("bal_child_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(childOnly, managerRole, childLocation, false, receiptType);
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.TEN, "BATCH-SCOPE-P");
+		createAndCompleteReceipt(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(5), "BATCH-SCOPE-C");
+		Context.authenticate(childOnly.getUsername(), "TestPassword123!");
+		for (List<Integer> parties : Arrays.<List<Integer>> asList(null,
+		    Arrays.asList(parentParty.getId(), childParty.getId()))) {
+			StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+			filter.setItemGroupFilters(Collections.singletonList(
+			    new StockItemInventorySearchFilter.ItemGroupFilter(parties, sampleStockItem.getId(), null)));
+			assertEquals(0, BigDecimal.valueOf(5).compareTo(stockManagementService.getStockInventory(filter).getData()
+			        .stream().map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add)));
+		}
+		StockItemTransactionSearchFilter transactions = new StockItemTransactionSearchFilter();
+		transactions.setStockItemId(sampleStockItem.getId());
+		assertEquals(Collections.singletonList(childParty.getUuid()),
+		    stockManagementService.findStockItemTransactions(transactions).getData().stream().map(t -> t.getPartyUuid())
+		            .collect(Collectors.toList()));
+	}
+	
 	// ---------------------------------------------------------------------------------------------
 	// Stock Operation Lifecycle: Submit, Approve, Dispatch, Complete, Reject, Return, Cancel
 	// ---------------------------------------------------------------------------------------------
@@ -1015,13 +1042,17 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		Context.flushSession();
 		Context.clearSession();
 		
-		try {
-			stockManagementService.submitStockOperation(issue);
-			fail("Expected insufficient stock balance exception");
+		for (Runnable action : Arrays.<Runnable> asList(() -> stockManagementService.submitStockOperation(issue),
+		    () -> stockManagementService.dispatchStockOperation(issue))) {
+			try {
+				action.run();
+				fail("Expected insufficient stock balance exception");
+			}
+			catch (StockManagementException e) {
+				assertTrue(e.getMessage().contains("negative balance"));
+			}
 		}
-		catch (StockManagementException e) {
-			assertTrue(e.getMessage().contains("negative balance"));
-		}
+		assertRefused("notupdateable", () -> stockManagementService.completeStockOperation(issue));
 		Context.flushSession();
 		Context.clearSession();
 		assertEquals(StockOperationStatus.NEW, stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
@@ -1430,14 +1461,206 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertEquals(StockOperationStatus.DISPATCHED,
 		    stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
 		
+		StockOperationDTO unwanted = newReceiptDto(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.ONE);
+		unwanted.setUuid(stockManagementService.saveStockOperation(unwanted).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.cancelStockOperation(unwanted, "Not needed");
+		assertEquals(StockOperationStatus.CANCELLED,
+		    stockManagementService.getStockOperationByUuid(unwanted.getUuid()).getStatus());
+		
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		assertEquals(0, BigDecimal.valueOf(15).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
 	
+	@Test
+	public void stockOperationLifecycle_shouldCompleteOperationsAcrossAllRemainingOperationTypes() {
+		StockOperationType adjustmentType = stockManagementService
+		        .getStockOperationTypeByUuid("288fd7fe-1374-4f7a-89e6-d5f1ac97d4a5");
+		StockOperationType disposedType = stockManagementService
+		        .getStockOperationTypeByUuid("84be0aaf-70cf-4ebb-83e3-088e5d375905");
+		StockOperationType transferOutType = stockManagementService
+		        .getStockOperationTypeByUuid("c264f34b-c795-4576-9928-454d1fa20e09");
+		StockOperationType returnType = stockManagementService
+		        .getStockOperationTypeByUuid("128924d7-72ee-414e-ae40-52f1f89d3e7d");
+		StockOperationType initialType = stockManagementService
+		        .getStockOperationTypeByUuid("20f3734f-5b1a-490d-8676-1225a9cdddf7");
+		StockOperationType requisitionType = createOperationType("Test Requisition", StockOperationType.REQUISITION, "REQ",
+		    LocationType.Location, LocationType.Location);
+		StockOperationType extRequisitionType = createOperationType("Test External Requisition",
+		    StockOperationType.EXTERNAL_REQUISITION, "EREQ", LocationType.Location, LocationType.Other);
+		StockOperationType stocktakeType = createOperationType("Test Stocktake", StockOperationType.STOCKTAKE, "STK",
+		    LocationType.Location, null);
+		for (StockOperationType type : Arrays.asList(adjustmentType, disposedType, transferOutType, returnType, initialType,
+		    requisitionType, extRequisitionType, stocktakeType)) {
+			assertNotNull(type);
+			setNotifyFlagsFalse(type);
+			dao().saveStockOperationType(type);
+			grantScope(clerkUser, managerRole, parentLocation, true, type);
+		}
+		Party externalParty = createExternalParty();
+		String reasonUuid = Context.getConceptService().getConcept(1067).getUuid();
+		Context.flushSession();
+		Context.clearSession();
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		
+		// 1. INITIAL (+30 at source)
+		StockOperationItemDTO initialItem = new StockOperationItemDTO();
+		initialItem.setStockItemUuid(sampleStockItem.getUuid());
+		initialItem.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		initialItem.setBatchNo("BATCH-TYPES");
+		initialItem.setExpiration(DateUtils.addDays(new Date(), 180));
+		initialItem.setQuantity(BigDecimal.valueOf(30));
+		StockOperationDTO initial = submitAndApprove(initialType, parentParty, null, parentLocation, null, initialItem);
+		assertEquals(0, BigDecimal.valueOf(30).compareTo(balanceAt(parentParty)));
+		String batchUuid = stockManagementService.getStockOperationByUuid(initial.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		
+		// 2. ADJUSTMENT (-5 at source -> 25)
+		submitAndApprove(adjustmentType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(-5)));
+		assertEquals(0, BigDecimal.valueOf(25).compareTo(balanceAt(parentParty)));
+		
+		// 3. DISPOSED (4 removed from source -> 21)
+		submitAndApprove(disposedType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(4)));
+		assertEquals(0, BigDecimal.valueOf(21).compareTo(balanceAt(parentParty)));
+		
+		// 4. STOCKTAKE (counted 26 -> adjusted +5 -> 26)
+		submitAndApprove(stocktakeType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(26)));
+		assertEquals(0, BigDecimal.valueOf(26).compareTo(balanceAt(parentParty)));
+		
+		// 5. TRANSFER_OUT (6 from parent -> externalParty -> parent 20, external 6)
+		submitAndApprove(transferOutType, parentParty, externalParty, parentLocation, null,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(6)));
+		assertEquals(0, BigDecimal.valueOf(20).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(externalParty)));
+		
+		// Move 10 to child so child holds stock of BATCH-TYPES before testing RETURN
+		StockOperationDTO issue = submitIssueOfTen(batchUuid);
+		stockManagementService.dispatchStockOperation(issue);
+		stockManagementService.completeStockOperation(issue);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)));
+		
+		// 6. RETURN (4 from child -> parent via SUBMIT -> DISPATCH -> COMPLETE -> parent 14, child 6)
+		StockOperationDTO ret = new StockOperationDTO();
+		ret.setOperationTypeUuid(returnType.getUuid());
+		ret.setOperationDate(DateUtils.addDays(new Date(), -1));
+		ret.setSourceUuid(childParty.getUuid());
+		ret.setDestinationUuid(parentParty.getUuid());
+		ret.setAtLocationUuid(childLocation.getUuid());
+		ret.setStockOperationItems(Collections.singletonList(newBatchItem(batchUuid, BigDecimal.valueOf(4))));
+		ret.setUuid(stockManagementService.saveStockOperation(ret).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(ret);
+		stockManagementService.dispatchStockOperation(ret);
+		stockManagementService.completeStockOperation(ret);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.COMPLETED,
+		    stockManagementService.getStockOperationByUuid(ret.getUuid()).getStatus());
+		assertEquals(0, BigDecimal.valueOf(14).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(childParty)));
+		
+		// 7 & 8. REQUISITION and EXTERNAL_REQUISITION (complete without changing stock balances)
+		StockOperationItemDTO reqItem = new StockOperationItemDTO();
+		reqItem.setStockItemUuid(sampleStockItem.getUuid());
+		reqItem.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		reqItem.setQuantity(BigDecimal.valueOf(3));
+		submitAndApprove(requisitionType, childParty, parentParty, childLocation, null, reqItem);
+		submitAndApprove(extRequisitionType, childParty, externalParty, childLocation, null, reqItem);
+		assertEquals(0, BigDecimal.valueOf(14).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(childParty)));
+		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(externalParty)));
+	}
+	
 	// ---------------------------------------------------------------------------------------------
 	// Helpers
 	// ---------------------------------------------------------------------------------------------
+	
+	private StockOperationType createOperationType(String name, String typeCode, String acronym, LocationType sourceType,
+	        LocationType destinationType) {
+		StockOperationType type = new StockOperationType();
+		type.setName(name);
+		type.setDescription(name);
+		type.setOperationType(typeCode);
+		type.setAcronym(acronym);
+		type.setHasSource(sourceType != null);
+		type.setSourceType(sourceType);
+		type.setHasDestination(destinationType != null);
+		type.setDestinationType(destinationType);
+		type.setAvailableWhenReserved(false);
+		type.setAllowExpiredBatchNumbers(false);
+		type.setAllowBatchInfoUpdate(false);
+		type.setCreator(Context.getAuthenticatedUser());
+		type.setDateCreated(new Date());
+		type.setVoided(false);
+		type.setUuid(UUID.randomUUID().toString());
+		return type;
+	}
+	
+	private Party createExternalParty() {
+		Concept sourceTypeConcept = Context.getConceptService().getConcept(1067);
+		StockSource stockSource = new StockSource();
+		stockSource.setName("External Party " + UUID.randomUUID());
+		stockSource.setAcronym("EXT");
+		stockSource.setSourceType(sourceTypeConcept);
+		stockSource.setVoided(false);
+		stockSource.setCreator(Context.getAuthenticatedUser());
+		stockSource.setDateCreated(new Date());
+		dao().saveStockSource(stockSource);
+		Party party = new Party();
+		party.setStockSource(stockSource);
+		party.setVoided(false);
+		party.setCreator(Context.getAuthenticatedUser());
+		party.setDateCreated(new Date());
+		dao().saveParty(party);
+		return party;
+	}
+	
+	private StockOperationItemDTO newBatchItem(String batchUuid, BigDecimal quantity) {
+		StockOperationItemDTO item = new StockOperationItemDTO();
+		item.setStockItemUuid(sampleStockItem.getUuid());
+		item.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		item.setStockBatchUuid(batchUuid);
+		item.setQuantity(quantity);
+		return item;
+	}
+	
+	private StockOperationDTO submitAndApprove(StockOperationType type, Party source, Party destination, Location atLocation,
+	        String reasonUuid, StockOperationItemDTO item) {
+		StockOperationDTO dto = new StockOperationDTO();
+		dto.setOperationTypeUuid(type.getUuid());
+		dto.setOperationDate(DateUtils.addDays(new Date(), -1));
+		if (source != null) {
+			dto.setSourceUuid(source.getUuid());
+		}
+		if (destination != null) {
+			dto.setDestinationUuid(destination.getUuid());
+		}
+		dto.setAtLocationUuid(atLocation.getUuid());
+		dto.setReasonUuid(reasonUuid);
+		dto.setStockOperationItems(Collections.singletonList(item));
+		dto.setUuid(stockManagementService.saveStockOperation(dto).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(dto);
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.approveStockOperation(dto);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.COMPLETED,
+		    stockManagementService.getStockOperationByUuid(dto.getUuid()).getStatus());
+		return dto;
+	}
 	
 	private Role createRoleWithPrivileges(String roleName, String... privileges) {
 		UserService userService = Context.getUserService();
