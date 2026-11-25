@@ -119,14 +119,13 @@ The O3 stock management app's concept options `stockSourceTypeUUID`, `stockAdjus
 
 ### Scheduled tasks
 
-Liquibase registers one task, which starts with OpenMRS:
+When the module starts, it registers any of its three tasks that is missing, set to start with OpenMRS. A task counts as registered when the scheduler has one with its class, whatever its name:
 
 - **Asynchronous Report Generation And Batch Jobs** (`org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob`) runs every 60 seconds and generates queued reports. It stops itself when the queue stays empty and is started again when a report is queued. Report files are written to `stockmgmt/batchjob` in the application data directory.
+- **Stock Rules Evaluation Job** (`org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob`) runs daily, checks stock rules and notifies users when a quantity is at or below its threshold. It does nothing while `stockmanagement.enableStockRuleJob` is `false`.
+- **Stock Batch Expiry Job** (`org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob`) runs daily and notifies users about batches that are about to expire. It does nothing while `stockmanagement.enableStockBatchJob` is `false`. It notifies users who have an active user role scope with the `Inventory Manager` or `Inventory Clerk` role at the batch's location or at a Main Store location. When neither role exists, it uses every role that has `Task: stockmanagement.stockoperations.mutate` instead.
 
-Two more task classes ship with the module. Up to 3.0.0 the module registered them with a daily interval, but not to start with OpenMRS, so they only ran once someone started them in the scheduler. `master` and `3.x` no longer register them, so register them yourself if you want the notifications, for example on the Manage Scheduler page of the Legacy UI, and tick Start on startup so they run again after a restart. A database that ran 3.0.0 or earlier still has them as Stock Rules Evaluation Job and Stock Batch Expiry Job, so edit those instead of adding new ones. The two classes are:
-
-- `org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob` checks stock rules and notifies users when a quantity is at or below its threshold. It does nothing while `stockmanagement.enableStockRuleJob` is `false`.
-- `org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob` notifies users about batches that are about to expire. It does nothing while `stockmanagement.enableStockBatchJob` is `false`. It notifies users who have an active user role scope with the `Inventory Manager` or `Inventory Clerk` role at the batch's location or at a Main Store location. When neither role exists, it uses every role that has `Task: stockmanagement.stockoperations.mutate` instead.
+Up to 3.0.0 the module registered the two alert tasks with a daily interval but not to start with OpenMRS, and a task that is already registered is left as it is. So on a database that ran 3.0.0 or earlier, tick Start on startup for Stock Rules Evaluation Job and Stock Batch Expiry Job, for example on the Manage Scheduler page of the Legacy UI, so they run again after a restart.
 
 ## REST API
 
