@@ -67,6 +67,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -221,7 +222,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	public void restLifecycle_shouldCreateReceiptAndActionThroughJsonPayloadAndCreatableProperties() throws Exception {
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.ROOT);
 		String opDateStr = dateFormat.format(DateUtils.addDays(new Date(), -1));
 		String expDateStr = dateFormat.format(DateUtils.addDays(new Date(), 365));
 		

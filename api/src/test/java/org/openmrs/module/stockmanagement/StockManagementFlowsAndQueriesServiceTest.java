@@ -51,7 +51,6 @@ import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
 import org.openmrs.module.stockmanagement.api.model.UserRoleScope;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 import org.openmrs.module.stockmanagement.tasks.LocationTreeSynchronize;
 import org.openmrs.module.stockmanagement.tasks.PartySynchronize;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
@@ -794,6 +793,11 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	public void stockBalance_shouldOnlyShowAScopedUserTheStockAtTheirLocations() {
 		User childOnly = createTestUser("bal_child_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
 		grantScope(childOnly, managerRole, childLocation, false, receiptType);
+		Role operationsOnly = createRoleWithPrivileges("Stock Operations Only",
+		    Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS);
+		childOnly.addRole(operationsOnly);
+		Context.getUserService().saveUser(childOnly);
+		grantScope(childOnly, operationsOnly, parentLocation, false, receiptType);
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.TEN, "BATCH-SCOPE-P");
 		createAndCompleteReceipt(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(5), "BATCH-SCOPE-C");
@@ -1347,8 +1351,10 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	
 	@Test
 	public void stockOperationLifecycle_shouldSupportPartialReceiveAtDestinationAndRejectExcessQuantity() {
+		Context.getAdministrationService()
+		        .saveGlobalProperty(new GlobalProperty("stockmanagement.excessReceivedItemThreshold", "25"));
 		Role receiverRole = createRoleWithPrivileges("Stock Receiver", Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
-		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS);
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS, PrivilegeConstants.GET_GLOBAL_PROPERTIES);
 		User receiver = createTestUser("part_recv_" + UUID.randomUUID().toString().substring(0, 8), receiverRole);
 		grantScope(receiver, receiverRole, childLocation, false, stockIssueType);
 		User sourceOnly = createTestUser("part_src_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
@@ -1380,7 +1386,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertRefused("nosupportreceivenegativeamount",
 		    () -> stockManagementService.stockOperationItemsReceived(issue, Collections.singletonList(lineItem)));
 		
-		BigDecimal threshold = GlobalProperties.getExcessReceivedItemThreshold();
+		BigDecimal threshold = BigDecimal.valueOf(25);
 		BigDecimal overThreshold = BigDecimal.TEN
 		        .multiply(
 		            BigDecimal.valueOf(100).add(threshold).divide(BigDecimal.valueOf(100), 5, BigDecimal.ROUND_HALF_EVEN))
@@ -1572,6 +1578,18 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertEquals(0, BigDecimal.valueOf(14).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(childParty)));
 		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(externalParty)));
+		
+		// Verify submitting and cancelling each stock-moving type reverses its source reservation
+		submitAndCancel(adjustmentType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(-5)));
+		submitAndCancel(disposedType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(4)));
+		submitAndCancel(stocktakeType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(26)));
+		submitAndCancel(transferOutType, parentParty, externalParty, parentLocation, null,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(6)));
+		submitAndCancel(returnType, childParty, parentParty, childLocation, null,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(4)));
 	}
 	
 	// ---------------------------------------------------------------------------------------------
@@ -1627,7 +1645,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		return item;
 	}
 	
-	private StockOperationDTO submitAndApprove(StockOperationType type, Party source, Party destination, Location atLocation,
+	private StockOperationDTO submitOperation(StockOperationType type, Party source, Party destination, Location atLocation,
 	        String reasonUuid, StockOperationItemDTO item) {
 		StockOperationDTO dto = new StockOperationDTO();
 		dto.setOperationTypeUuid(type.getUuid());
@@ -1647,12 +1665,30 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		stockManagementService.submitStockOperation(dto);
 		Context.flushSession();
 		Context.clearSession();
+		return dto;
+	}
+	
+	private StockOperationDTO submitAndApprove(StockOperationType type, Party source, Party destination, Location atLocation,
+	        String reasonUuid, StockOperationItemDTO item) {
+		StockOperationDTO dto = submitOperation(type, source, destination, atLocation, reasonUuid, item);
 		stockManagementService.approveStockOperation(dto);
 		Context.flushSession();
 		Context.clearSession();
 		assertEquals(StockOperationStatus.COMPLETED,
 		    stockManagementService.getStockOperationByUuid(dto.getUuid()).getStatus());
 		return dto;
+	}
+	
+	private void submitAndCancel(StockOperationType type, Party source, Party destination, Location atLocation,
+	        String reasonUuid, StockOperationItemDTO item) {
+		BigDecimal before = balanceAt(source);
+		StockOperationDTO dto = submitOperation(type, source, destination, atLocation, reasonUuid, item);
+		stockManagementService.cancelStockOperation(dto, "Not needed");
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.CANCELLED,
+		    stockManagementService.getStockOperationByUuid(dto.getUuid()).getStatus());
+		assertEquals(0, before.compareTo(balanceAt(source)));
 	}
 	
 	private Role createRoleWithPrivileges(String roleName, String... privileges) {
