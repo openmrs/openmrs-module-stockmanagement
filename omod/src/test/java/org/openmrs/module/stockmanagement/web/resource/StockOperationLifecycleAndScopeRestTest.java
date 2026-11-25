@@ -62,7 +62,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -622,7 +621,9 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 			fail("Expected IllegalRequestException rejecting a dispatched issue");
 		}
 		catch (IllegalRequestException e) {
-			assertNotNull(e.getMessage());
+			assertEquals(
+			    Context.getMessageSourceService().getMessage("stockmanagement.stockoperation.approvalactionnotallowed"),
+			    e.getMessage());
 		}
 		Context.flushSession();
 		Context.clearSession();

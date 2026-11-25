@@ -67,7 +67,6 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -1277,13 +1276,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		
 		// Switch auth context to User B -> cannot approve or process operation at childLocation
 		Context.authenticate(userB.getUsername(), "TestPassword123!");
-		try {
-			stockManagementService.approveStockOperation(dto);
-			fail("User B without scope at child location must be denied");
-		}
-		catch (StockManagementException e) {
-			assertNotNull(e.getMessage(), "Exception should be thrown for missing permission");
-		}
+		assertRefused("nopermission", () -> stockManagementService.approveStockOperation(dto));
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		Context.flushSession();
 		Context.clearSession();
