@@ -9,12 +9,22 @@
  */
 package org.openmrs.module.stockmanagement.web.resource;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.Collections;
+import java.util.HashSet;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openmrs.api.ValidationException;
+import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.dto.PrivilegeScope;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleDTO;
 import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 
@@ -34,5 +44,25 @@ public class StockRuleResourceTest extends BaseModuleWebContextSensitiveTest {
 		ValidationException exception = assertThrows(ValidationException.class, () -> resource.save(dto));
 		
 		assertNotNull(exception.getErrors().getFieldError("stockItemUuid"));
+	}
+	
+	@Test
+	public void getPermission_shouldUseTheRoleScopesOfTheCurrentRequest() {
+		StockManagementService service = mock(StockManagementService.class);
+		resource.setStockManagementService(service);
+		// the first user can edit rules at location-a only, the next one at location-b
+		when(service.getPrivilegeScopes(any(), any(), any(), anyList())).thenReturn(scopesAt("location-a"))
+		        .thenReturn(scopesAt("location-b"));
+		StockRuleDTO rule = new StockRuleDTO();
+		rule.setLocationUuid("location-b");
+		
+		assertEquals(false, resource.getPermission(rule).get("canEdit"));
+		assertEquals(true, resource.getPermission(rule).get("canEdit"));
+	}
+	
+	private static HashSet<PrivilegeScope> scopesAt(String locationUuid) {
+		PrivilegeScope scope = new PrivilegeScope();
+		scope.setLocationUuid(locationUuid);
+		return new HashSet<>(Collections.singletonList(scope));
 	}
 }
