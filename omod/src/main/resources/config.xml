@@ -109,14 +109,6 @@
         <lang>en</lang>
         <file>messages.properties</file>
     </messages>
-    <messages>
-        <lang>fr</lang>
-        <file>messages_fr.properties</file>
-    </messages>
-    <messages>
-        <lang>es</lang>
-        <file>messages_es.properties</file>
-    </messages>
 
     <globalProperty>
         <property>stockmanagement.locationTags</property>
@@ -127,55 +119,10 @@
     </globalProperty>
 
     <globalProperty>
-        <property>stockmanagement.environment</property>
-        <defaultValue>prod</defaultValue>
-        <description>
-            Allows one to set the environment mode to development so that the SpaHomeController does not cache the
-            index.html
-        </description>
-    </globalProperty>
-
-    <globalProperty>
         <property>stockmanagement.stockItemSearchMaxIntermediateResult</property>
         <defaultValue>50</defaultValue>
         <description>
             Maximum intermediate results to fetch when searching for stock items that are drugs or concepts.
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.stockSourceCodeConceptId</property>
-        <description>
-            The code concept for stock source types.
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.stockAdjustmentReasonCodeConceptId</property>
-        <description>
-            The code concept for stock adjustment reasons.
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.dispensingUnitsConceptId</property>
-        <defaultValue>162402AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</defaultValue>
-        <description>
-            The concept for dispensing units.
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.packagingUnitsConceptId</property>
-        <description>
-            The concept for packaging units.
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.stockItemCategoryConceptId</property>
-        <description>
-            The concept for stock item categories.
         </description>
     </globalProperty>
 
@@ -212,37 +159,6 @@
     </globalProperty>
 
     <globalProperty>
-        <property>stockmanagement.stockOperationPrintDisableBalanceOnHand</property>
-        <defaultValue>false</defaultValue>
-        <description>
-            Disables display of balance on hand value on the prints
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.stockOperationPrintDisableCosts</property>
-        <defaultValue>false</defaultValue>
-        <description>
-            Disables display of unit cost and total cost on the prints
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.printLogo</property>
-        <defaultValue>moduleResources/stockmanagement/assets/print-logo.svg</defaultValue>
-        <description>
-            Logo on print documents
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.printLogoText</property>
-        <description>
-            Text that appears below the logo on print documents
-        </description>
-    </globalProperty>
-
-    <globalProperty>
         <property>stockmanagement.enableStockRuleJob</property>
         <defaultValue>true</defaultValue>
         <description>
@@ -275,14 +191,6 @@
     </globalProperty>
 
     <globalProperty>
-        <property>stockmanagement.closePrintAfterPrint</property>
-        <defaultValue>true</defaultValue>
-        <description>
-            Close print after printing
-        </description>
-    </globalProperty>
-
-    <globalProperty>
         <property>stockmanagement.stockOperationNotificationEmail</property>
         <description>
             Email address to send notifications when a stock operation is submitted, approved, rejected etc.
@@ -309,13 +217,6 @@
         <defaultValue>1000</defaultValue>
         <description>
             Reporting: Records page size
-        </description>
-    </globalProperty>
-
-    <globalProperty>
-        <property>stockmanagement.applicationRootUrl</property>
-        <description>
-            The application root url including its context path e.g. https://hospital.gov.co.ug/openmrs
         </description>
     </globalProperty>
 

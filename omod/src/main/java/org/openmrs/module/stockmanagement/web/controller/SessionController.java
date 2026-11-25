@@ -36,7 +36,7 @@ import java.util.Map;
  * Controller that lets a client check the status of their session, and log out. (Authenticating is
  * handled through a filter, and may happen through this or any other resource.
  */
-@Controller("${rootrootArtifactId}.SessionController")
+@Controller("stockmanagement.SessionController")
 @RequestMapping("/rest/" + RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/session")
 public class SessionController {
 	
