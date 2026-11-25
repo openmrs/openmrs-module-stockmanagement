@@ -67,20 +67,6 @@ public class ModuleConstants {
 	
 	private static final Logger log = LoggerFactory.getLogger(ModuleConstants.class);
 	
-	/** Core's typed property API requires a non-null default, so nullable integers need parsing. */
-	public static Integer parseOptionalInteger(String key, String value) {
-		if (StringUtils.isEmpty(value)) {
-			return null;
-		}
-		try {
-			return Integer.valueOf(value);
-		}
-		catch (NumberFormatException exception) {
-			log.warn("Invalid value '{}' for global property '{}'; using null", value, key);
-			return null;
-		}
-	}
-	
 	/** Job switches historically also accept yes and 1, without trimming. */
 	public static boolean parseJobEnabled(String key, String value) {
 		if ("true".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "1".equals(value)) {
@@ -93,16 +79,23 @@ public class ModuleConstants {
 		return false;
 	}
 	
-	/** Blank values mean true, but all other values retain Boolean.parseBoolean semantics. */
-	public static boolean parseUomPriority(String value) {
+	/**
+	 * Reads a true/false setting the way Boolean.parseBoolean does, so anything other than true is
+	 * false, and logs values that are neither true nor false. Blank values give blankValue.
+	 */
+	public static boolean parseBoolean(String key, String value, boolean blankValue) {
 		if (StringUtils.isBlank(value)) {
-			return true;
+			return blankValue;
 		}
 		if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
-			log.warn("Invalid value '{}' for global property '{}'; using false", value,
-			    PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL);
+			log.warn("Invalid value '{}' for global property '{}'; using false", value, key);
 		}
 		return Boolean.parseBoolean(value);
+	}
+	
+	/** Blank values mean true, but all other values retain Boolean.parseBoolean semantics. */
+	public static boolean parseUomPriority(String value) {
+		return parseBoolean(PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, value, true);
 	}
 	
 	/** Keeps the setting's lower bound, and logs when a configured value is raised to it. */

@@ -33,6 +33,11 @@ public class StockConsumptionReport extends StockItemInventoryReport<StockItemIn
 			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
 			if (!stockInventoryResult.getData().isEmpty()) {
 				stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+				BigDecimal daysInMonth = ModuleConstants.positiveValue(
+				    ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH,
+				    Context.getAdministrationService().getGlobalPropertyValue(
+				        ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, BigDecimal.valueOf(30.5)),
+				    BigDecimal.valueOf(30.5));
 				stockInventoryResult.getData().forEach(p -> {
 					StockItemInventoryConsumption consumption = ((StockItemInventoryConsumption) p);
 					if (consumption.getQuantityFactor() != null) {
@@ -55,13 +60,8 @@ public class StockConsumptionReport extends StockItemInventoryReport<StockItemIn
 						    inventorySearchFilter.getEndDate().getTime() - inventorySearchFilter.getStartDate().getTime());
 						long dayCount = Math.max(TimeUnit.DAYS.convert(totalMiliseconds, TimeUnit.MILLISECONDS), 1);
 						consumption.setConsumptionRate(consumption.getQuantityConsumed().divide(
-						    BigDecimal.valueOf(dayCount).divide(
-						        ModuleConstants.positiveValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH,
-						            Context.getAdministrationService().getGlobalPropertyValue(
-						                ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, BigDecimal.valueOf(30.5)),
-						            BigDecimal.valueOf(30.5)),
-						        5, BigDecimal.ROUND_HALF_EVEN),
-						    5, BigDecimal.ROUND_HALF_EVEN));
+						    BigDecimal.valueOf(dayCount).divide(daysInMonth, 5, BigDecimal.ROUND_HALF_EVEN), 5,
+						    BigDecimal.ROUND_HALF_EVEN));
 					}
 				});
 			}

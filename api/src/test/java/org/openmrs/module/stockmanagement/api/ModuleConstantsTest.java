@@ -72,22 +72,26 @@ public class ModuleConstantsTest {
 	}
 	
 	@ParameterizedTest
-	@ValueSource(strings = { "invalid", " 10", "10 ", "2147483648", "1.5" })
-	public void optionalIntegerShouldWarnAndReturnNullForMalformedValues(String value) {
-		assertNull(parseOptionalInteger(STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, value));
-		assertWarning(STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, value);
+	@ValueSource(strings = { "yes", "1", "invalid", " true " })
+	public void booleanSettingsShouldWarnButRetainFalseForMalformedValues(String value) {
+		assertFalse(parseBoolean(ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION, value, false));
+		assertWarning(ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION, value);
+		assertFalse(parseBoolean(NEGATIVE_STOCK_BALANCE_ALLOWED, value, false));
+		assertWarning(NEGATIVE_STOCK_BALANCE_ALLOWED, value);
+	}
+	
+	@ParameterizedTest
+	@ValueSource(strings = { "true", "TrUe" })
+	public void booleanSettingsShouldAcceptTrueCaseInsensitively(String value) {
+		assertTrue(parseBoolean(ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION, value, false));
+		assertTrue(events.isEmpty());
 	}
 	
 	@ParameterizedTest
 	@NullAndEmptySource
-	public void optionalIntegerShouldRetainNullDefault(String value) {
-		assertNull(parseOptionalInteger(STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, value));
-	}
-	
-	@ParameterizedTest
-	@ValueSource(strings = { "-1", "0", "1", "2147483647", "-2147483648" })
-	public void optionalIntegerShouldNotImposeANewLowerBound(String value) {
-		assertEquals(Integer.valueOf(value), parseOptionalInteger(STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, value));
+	@ValueSource(strings = { " ", "false", "FaLsE" })
+	public void booleanSettingsShouldBeFalseWithoutWarningForBlankOrFalseValues(String value) {
+		assertFalse(parseBoolean(NEGATIVE_STOCK_BALANCE_ALLOWED, value, false));
 		assertTrue(events.isEmpty());
 	}
 	

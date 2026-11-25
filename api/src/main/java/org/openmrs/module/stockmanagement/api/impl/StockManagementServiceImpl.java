@@ -1241,9 +1241,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 					throw new StockManagementException(messageSourceService
 					        .getMessage("stockmanagement.stockoperation.requisitionstocksperationnnotfound"));
 				}
-			} else if (StockOperationType.STOCK_ISSUE.equals(stockOperationType.getOperationType())
-			        && !Context.getAdministrationService()
-			                .getGlobalPropertyValue(ModuleConstants.ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION, false)) {
+			} else if (StockOperationType.STOCK_ISSUE.equals(stockOperationType.getOperationType()) && !ModuleConstants
+			        .parseBoolean(ModuleConstants.ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION, Context.getAdministrationService()
+			                .getGlobalProperty(ModuleConstants.ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION),
+			            false)) {
 				throw new StockManagementException(messageSourceService
 				        .getMessage("stockmanagement.stockoperation.requisitionstocksperationnrequired"));
 			}
@@ -1923,8 +1924,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			                || action.equals(StockOperationAction.Action.DISPATCH)))) {
 				if (!stockOperationType.isQuantityOptional()) {
 					if (stockOperationType.shouldVerifyNegativeStockAmountsAtSource()
-					        && !Context.getAdministrationService()
-					                .getGlobalPropertyValue(ModuleConstants.NEGATIVE_STOCK_BALANCE_ALLOWED, false)
+					        && !ModuleConstants.parseBoolean(ModuleConstants.NEGATIVE_STOCK_BALANCE_ALLOWED,
+					            Context.getAdministrationService()
+					                    .getGlobalProperty(ModuleConstants.NEGATIVE_STOCK_BALANCE_ALLOWED),
+					            false)
 					        && stockOperation.getSource() != null && stockOperation.getSource().getLocation() != null) {
 						validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
 					}
