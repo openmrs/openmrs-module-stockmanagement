@@ -42,6 +42,7 @@ import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeLocationDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeOperationTypeDTO;
 import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.Party;
+import org.openmrs.module.stockmanagement.api.model.StockBatch;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
@@ -672,6 +673,20 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		}
 	}
 	
+	@Test
+	public void findStockOperations_shouldShowAnIssueToTheLocationItLeaves() {
+		User sourceOnly = createTestUser("src_only_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		grantScope(sourceOnly, managerRole, parentLocation, false, stockIssueType);
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.TEN, "BATCH-OUTGOING");
+		StockOperationSearchFilter filter = new StockOperationSearchFilter();
+		filter.setStockOperationUuid(submitIssueOfTen(stockManagementService.getStockOperationByUuid(receipt.getUuid())
+		        .getStockOperationItems().iterator().next().getStockBatch().getUuid()).getUuid());
+		Context.authenticate(sourceOnly.getUsername(), "TestPassword123!");
+		assertEquals(1, stockManagementService.findStockOperations(filter).getData().size());
+	}
+	
 	// ---------------------------------------------------------------------------------------------
 	// Query 3: Stock balances including child locations
 	// ---------------------------------------------------------------------------------------------
@@ -931,6 +946,42 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		
 		assertEquals(0, BigDecimal.valueOf(40).compareTo(balanceAt(parentParty)), "Parent should keep 40 after issuing 10");
 		assertEquals(0, BigDecimal.TEN.compareTo(balanceAt(childParty)), "Child should receive the 10 issued");
+	}
+	
+	@Test
+	public void stockOperationLifecycle_shouldMoveEveryLineOfAnIssue() {
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receiptA = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.TEN, "BATCH-LINE-A");
+		StockOperationDTO receiptB = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(5), "BATCH-LINE-B");
+		String batchA = stockManagementService.getStockOperationByUuid(receiptA.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		String batchB = stockManagementService.getStockOperationByUuid(receiptB.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		
+		StockOperationDTO issue = new StockOperationDTO();
+		issue.setOperationTypeUuid(stockIssueType.getUuid());
+		issue.setOperationDate(DateUtils.addDays(new Date(), -1));
+		issue.setSourceUuid(parentParty.getUuid());
+		issue.setDestinationUuid(childParty.getUuid());
+		issue.setAtLocationUuid(parentLocation.getUuid());
+		issue.setStockOperationItems(
+		    Arrays.asList(newBatchItem(batchA, BigDecimal.valueOf(4)), newBatchItem(batchB, BigDecimal.valueOf(5))));
+		issue.setUuid(stockManagementService.saveStockOperation(issue).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(issue);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(parentParty)));
+		
+		stockManagementService.dispatchStockOperation(issue);
+		stockManagementService.completeStockOperation(issue);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, BigDecimal.valueOf(6).compareTo(balanceAt(parentParty)));
+		assertEquals(0, BigDecimal.valueOf(9).compareTo(balanceAt(childParty)));
 	}
 	
 	private BigDecimal balanceAt(Party party) {
@@ -1328,6 +1379,24 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	}
 	
 	@Test
+	public void stockOperationLifecycle_shouldNotSubmitWhereTheScopedRoleLacksMutate() {
+		Role viewerRole = createRoleWithPrivileges("Stock Operations Viewer",
+		    Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS);
+		User user = createTestUser("viewer_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		user.addRole(viewerRole);
+		Context.getUserService().saveUser(user);
+		grantScope(user, managerRole, grandchildLocation, false, receiptType);
+		grantScope(user, viewerRole, childLocation, false, receiptType);
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO dto = newReceiptDto(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(4));
+		dto.setUuid(stockManagementService.saveStockOperation(dto).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		Context.authenticate(user.getUsername(), "TestPassword123!");
+		assertRefused("nopermission", () -> stockManagementService.submitStockOperation(dto));
+	}
+	
+	@Test
 	public void stockOperationLifecycle_shouldNotDispatchASubmittedIssueWithoutApprove() {
 		Role submitterRole = createRoleWithPrivileges("Stock Operations Submitter",
 		    Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS, Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE);
@@ -1469,6 +1538,22 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		    stockManagementService.getStockOperationByUuid(unwanted.getUuid()).getStatus());
 		
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO returned = newReceiptDto(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.ONE);
+		returned.setUuid(stockManagementService.saveStockOperation(returned).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(returned);
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.returnStockOperation(returned, "Wrong quantity");
+		Context.flushSession();
+		Context.clearSession();
+		Context.authenticate(mutateOnly.getUsername(), "TestPassword123!");
+		stockManagementService.cancelStockOperation(returned, "Not needed");
+		assertEquals(StockOperationStatus.CANCELLED,
+		    stockManagementService.getStockOperationByUuid(returned.getUuid()).getStatus());
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		assertEquals(0, BigDecimal.valueOf(15).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
 	}
@@ -1590,6 +1675,52 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		    newBatchItem(batchUuid, BigDecimal.valueOf(6)));
 		submitAndCancel(returnType, childParty, parentParty, childLocation, null,
 		    newBatchItem(batchUuid, BigDecimal.valueOf(4)));
+		
+		// Submitting more than the source holds is refused for each type that takes stock from it
+		assertSubmitRefusedAtSource(adjustmentType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(-15)));
+		assertSubmitRefusedAtSource(disposedType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(15)));
+		assertSubmitRefusedAtSource(transferOutType, parentParty, externalParty, parentLocation, null,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(15)));
+		assertSubmitRefusedAtSource(returnType, childParty, parentParty, childLocation, null,
+		    newBatchItem(batchUuid, BigDecimal.valueOf(7)));
+	}
+	
+	@Test
+	public void stockOperationLifecycle_shouldDisposeOfStockFromAnExpiredBatch() {
+		StockOperationType disposedType = stockManagementService
+		        .getStockOperationTypeByUuid("84be0aaf-70cf-4ebb-83e3-088e5d375905");
+		disposedType.setAllowExpiredBatchNumbers(true);
+		setNotifyFlagsFalse(disposedType);
+		dao().saveStockOperationType(disposedType);
+		grantScope(clerkUser, managerRole, parentLocation, true, disposedType);
+		String reasonUuid = Context.getConceptService().getConcept(1067).getUuid();
+		Context.flushSession();
+		Context.clearSession();
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.TEN, "BATCH-EXPIRED");
+		StockBatch batch = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch();
+		batch.setExpiration(DateUtils.addDays(new Date(), -1));
+		dao().saveStockBatch(batch);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(parentParty)));
+		
+		StockItemInventorySearchFilter withExpired = new StockItemInventorySearchFilter();
+		withExpired.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
+		        Collections.singletonList(parentParty.getId()), sampleStockItem.getId(), null)));
+		withExpired.setRequireNonExpiredStockBatches(false);
+		assertEquals(0, BigDecimal.TEN.compareTo(stockManagementService.getStockInventory(withExpired, null).getData()
+		        .stream().map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add)));
+		
+		submitAndApprove(disposedType, parentParty, null, parentLocation, reasonUuid,
+		    newBatchItem(batch.getUuid(), BigDecimal.TEN));
+		assertEquals(0, BigDecimal.ZERO.compareTo(stockManagementService.getStockInventory(withExpired, null).getData()
+		        .stream().map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add)));
 	}
 	
 	// ---------------------------------------------------------------------------------------------
@@ -1688,6 +1819,21 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		Context.clearSession();
 		assertEquals(StockOperationStatus.CANCELLED,
 		    stockManagementService.getStockOperationByUuid(dto.getUuid()).getStatus());
+		assertEquals(0, before.compareTo(balanceAt(source)));
+	}
+	
+	private void assertSubmitRefusedAtSource(StockOperationType type, Party source, Party destination, Location atLocation,
+	        String reasonUuid, StockOperationItemDTO item) {
+		BigDecimal before = balanceAt(source);
+		try {
+			submitOperation(type, source, destination, atLocation, reasonUuid, item);
+			fail("Expected a negative balance refusal for " + type.getOperationType());
+		}
+		catch (StockManagementException e) {
+			assertTrue(e.getMessage().contains("negative balance"));
+		}
+		Context.flushSession();
+		Context.clearSession();
 		assertEquals(0, before.compareTo(balanceAt(source)));
 	}
 	
