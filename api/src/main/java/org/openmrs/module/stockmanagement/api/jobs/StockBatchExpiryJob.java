@@ -72,7 +72,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 	
 	protected void executeInternal() {
 		if (!ModuleConstants.parseJobEnabled(ModuleConstants.ENABLE_STOCK_BATCH_JOB,
-		    Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.ENABLE_STOCK_BATCH_JOB, ""))) {
+		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.ENABLE_STOCK_BATCH_JOB, ""))) {
 			log.debug("Stock batch job is not enabled under settings");
 			return;
 		}
@@ -81,7 +81,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		
 		Integer defaultExpNotificationPeriod = ModuleConstants.atLeast(
-		    ModuleConstants.STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, Context.getAdministrationService()
+		    ModuleConstants.STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, ModuleConstants
 		            .getGlobalPropertyValue(ModuleConstants.STOCK_BATCH_DEFAULT_EXPIRY_NOTIFICATION_NOTICE_PERIOD, 120),
 		    0);
 		Map<Integer, StockBatchDTO> stockBatchNumbers = stockManagementService

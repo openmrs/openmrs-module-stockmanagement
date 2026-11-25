@@ -93,8 +93,7 @@ public class StockExpiryForecastReport extends ReportGenerator {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
 		Integer pageSize = ModuleConstants.positiveValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE,
-		    Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE, 1000),
-		    1000);
+		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE, 1000), 1000);
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;
@@ -115,9 +114,8 @@ public class StockExpiryForecastReport extends ReportGenerator {
 			return;
 		}
 		todaysDate = DateUtil.today();
-		daysInMonth = ModuleConstants.positiveValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH,
-		    Context.getAdministrationService().getGlobalPropertyValue(
-		        ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, BigDecimal.valueOf(30.5)),
+		daysInMonth = ModuleConstants.positiveValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, ModuleConstants
+		        .getGlobalPropertyValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, BigDecimal.valueOf(30.5)),
 		    BigDecimal.valueOf(30.5));
 		startDate = getStartDate(parameters);
 		endDate = getEndDate(parameters);

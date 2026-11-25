@@ -102,8 +102,7 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
 		Integer pageSize = ModuleConstants.positiveValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE,
-		    Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE, 1000),
-		    1000);
+		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE, 1000), 1000);
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;

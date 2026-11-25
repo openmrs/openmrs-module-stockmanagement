@@ -10,6 +10,8 @@
 package org.openmrs.module.stockmanagement.api;
 
 import org.apache.commons.lang.StringUtils;
+import org.openmrs.api.context.Context;
+import org.openmrs.util.PrivilegeConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,6 +68,35 @@ public class ModuleConstants {
 	        + ".packagingUnitPackSizePriorityIsBigToSmall";
 	
 	private static final Logger log = LoggerFactory.getLogger(ModuleConstants.class);
+	
+	/**
+	 * Reads a setting for the current user. Core needs Get Global Properties for the read, which the
+	 * stock roles don't have, so the privilege is proxied for the call.
+	 */
+	public static <T> T getGlobalPropertyValue(String key, T defaultValue) {
+		Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		try {
+			return Context.getAdministrationService().getGlobalPropertyValue(key, defaultValue);
+		}
+		finally {
+			Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		}
+	}
+	
+	public static String getGlobalProperty(String key) {
+		return getGlobalProperty(key, null);
+	}
+	
+	/** Same as {@link #getGlobalPropertyValue(String, Object)} for the raw string value. */
+	public static String getGlobalProperty(String key, String defaultValue) {
+		Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		try {
+			return Context.getAdministrationService().getGlobalProperty(key, defaultValue);
+		}
+		finally {
+			Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		}
+	}
 	
 	/** Job switches historically also accept yes and 1, without trimming. */
 	public static boolean parseJobEnabled(String key, String value) {

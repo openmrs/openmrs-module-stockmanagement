@@ -67,7 +67,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 	
 	protected void executeInternal() {
 		if (!ModuleConstants.parseJobEnabled(ModuleConstants.ENABLE_STOCK_RULE_JOB,
-		    Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.ENABLE_STOCK_RULE_JOB, ""))) {
+		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.ENABLE_STOCK_RULE_JOB, ""))) {
 			log.debug("Stock rule job is not enabled under settings");
 			return;
 		}
@@ -76,7 +76,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		Integer lastStockRuleId = 0;
 		int batchSize = ModuleConstants.atLeast(ModuleConstants.STOCK_RULE_JOB_BATCH_SIZE,
-		    Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.STOCK_RULE_JOB_BATCH_SIZE, 100), 1);
+		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.STOCK_RULE_JOB_BATCH_SIZE, 100), 1);
 		List<StockRuleNotificationUser> rules = new ArrayList<>();
 		boolean hasMoreResults = false;
 		do {

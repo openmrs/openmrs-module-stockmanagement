@@ -694,8 +694,8 @@ public class StockItemImportJob {
 				
 				if (stockSource == null) {
 					if (unknownConcept == null) {
-						String unknownConceptId = Context.getAdministrationService()
-						        .getGlobalProperty(ModuleConstants.UNKNOWN_CONCEPT_ID, null);
+						String unknownConceptId = ModuleConstants.getGlobalProperty(ModuleConstants.UNKNOWN_CONCEPT_ID,
+						    null);
 						if (unknownConceptId != null) {
 							if (StringUtils.isNumeric(unknownConceptId)) {
 								unknownConcept = Context.getConceptService().getConcept(unknownConceptId);
