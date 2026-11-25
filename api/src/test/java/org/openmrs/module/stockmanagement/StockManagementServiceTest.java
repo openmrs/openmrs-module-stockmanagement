@@ -472,6 +472,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		stockManagementService.setDao(dao());
 		StockOperationItem so = eu().newStockOperationItem(dao());
 		so.setVoided(false);
+		so.getStockItem().setVoided(false);
+		so.getStockBatch().setVoided(false);
+		so.getStockItemPackagingUOM().setVoided(false);
+		so.getStockItemPackagingUOM().setStockItem(so.getStockItem());
+		so.getStockItem().setPurchasePriceUoM(so.getStockItemPackagingUOM());
 		daoInstance.saveStockOperationItem(so);
 		StockOperationItemSearchFilter filter = new StockOperationItemSearchFilter();
 		filter.setIncludePackagingUnitName(true);
@@ -487,6 +492,8 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		filter.setStockItemUuid(so.getStockItem().getUuid());
 		result = stockManagementService.getStockOperationItemCosts(filter);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
+		assertEquals("ASPIRIN",
+		    result.getData().stream().filter(p -> p.getUuid().equals(so.getUuid())).findFirst().get().getUnitCostUOMName());
 		
 		filter = new StockOperationItemSearchFilter();
 		filter.setIncludePackagingUnitName(true);
@@ -513,13 +520,16 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void getStockInventory_shouldFilterOnAllCriteria() {
 		stockManagementService.setDao(dao());
 		StockItem stockItem = eu().newStockItem(dao(), false);
+		stockItem.setVoided(false);
 		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockItemPackagingUOM packagingUom = entityUtil.newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setVoided(false);
 		packagingUom.setFactor(BigDecimal.valueOf(2));
 		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		
 		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		stockBatch.setVoided(false);
 		Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 		
 		StockItemTransaction so = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
@@ -536,6 +546,16 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
 		assertTrue(result.getData().get(0).getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN)
 		        .compareTo(so.getQuantity().multiply(BigDecimal.valueOf(2))) == 0);
+		
+		filter.setIncludeStockItemName(true);
+		filter.setIncludeConceptRefIds(true);
+		Result<StockItemInventory> daoResult = dao().getStockItemInventory(filter, null);
+		assertEquals("ASPIRIN", daoResult.getData().get(0).getConceptName());
+		assertEquals("05ec820a-d297-44e3-be6e-698531d9dd3f", daoResult.getData().get(0).getDrugUuid());
+		
+		List<StockItemInventory> batchInventory = stockManagementService
+		        .getStockBatchLocationInventory(Arrays.asList(stockBatch.getId()));
+		assertEquals("ASPIRIN", batchInventory.get(0).getQuantityUoM());
 		
 		filter.setDoSetQuantityUoM(true);
 		result = stockManagementService.getStockInventory(filter, null);
