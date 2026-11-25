@@ -301,6 +301,10 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 	
 	@Test
 	public void validate_shouldRejectASourceWithoutARequiredLocationTag() {
+		LocationTag otherTag = Context.getLocationService().saveLocationTag(new LocationTag("Other Tag", "Marks a ward"));
+		Location location = Context.getLocationService().getLocation(eu().getLocation().getId());
+		location.addTag(otherTag);
+		Context.getLocationService().saveLocation(location);
 		Context.getAdministrationService().setGlobalProperty("stockmanagement.adjustment.sourceLocationTags",
 		    "Some Store Tag");
 		
