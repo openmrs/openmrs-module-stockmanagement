@@ -186,6 +186,24 @@ public interface StockManagementService extends OpenmrsService {
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKSOURCES_MUTATE)
 	void voidStockSources(List<String> stockSourceIds, String reason, int voidedBy);
 	
+	/**
+	 * @deprecated use {@link StockItemService#getStockItemByUuid(String)}. The billing module calls
+	 *             this until O3-6324 moves it to StockItemService.
+	 */
+	@Deprecated
+	@Transactional(readOnly = true)
+	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
+	StockItem getStockItemByUuid(String uuid);
+	
+	/**
+	 * @deprecated use {@link StockItemService#getStockItemByDrug(Integer)}. The billing module calls
+	 *             this until O3-6324 moves it to StockItemService.
+	 */
+	@Deprecated
+	@Transactional(readOnly = true)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
+	List<StockItem> getStockItemByDrug(Integer drugId);
+	
 	@Transactional(readOnly = true)
 	Party getPartyByStockSource(StockSource stockSource);
 	

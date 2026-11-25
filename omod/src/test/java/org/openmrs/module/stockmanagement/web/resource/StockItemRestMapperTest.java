@@ -81,6 +81,25 @@ public class StockItemRestMapperTest extends BaseModuleWebContextSensitiveTest {
 	}
 	
 	@Test
+	public void itemViewerShouldGetAnAuthorizationErrorWhenSaving() {
+		Role viewer = new Role("Item-only viewer");
+		viewer.addPrivilege(new Privilege(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS));
+		User user = Context.getAuthenticatedUser();
+		Set<Role> originalRoles = new HashSet<>(user.getRoles());
+		try {
+			user.setRoles(Collections.singleton(viewer));
+			// APIAuthenticationException is what REST turns into a 403
+			assertThrows(APIAuthenticationException.class,
+			    () -> new StockItemRestMapper().saveStockItem(new StockItemDTO()));
+			assertThrows(APIAuthenticationException.class,
+			    () -> new StockItemRestMapper().saveStockItemPackagingUOM(new StockItemPackagingUOMDTO()));
+		}
+		finally {
+			user.setRoles(originalRoles);
+		}
+	}
+	
+	@Test
 	public void itemViewerShouldNotResolvePreferredVendors() {
 		String vendorUuid = itemWithUnits().getPreferredVendor().getUuid();
 		Role viewer = new Role("Item-only viewer");

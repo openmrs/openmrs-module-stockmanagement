@@ -13,16 +13,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.math.BigDecimal;
 import java.util.ArrayList;
-
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.apache.commons.lang.time.DateUtils;
 import org.junit.jupiter.api.BeforeEach;
-
 import org.junit.jupiter.api.Test;
 import org.openmrs.Location;
 import org.openmrs.Privilege;
@@ -134,9 +134,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		Set<Role> roles = new HashSet<>(user.getRoles());
 		roles.add(clerk);
 		user.setRoles(roles);
-		// Match StockRuleTestSupport: persist role assignment without refreshing authentication
-		// or validating unrelated fields on the legacy admin fixture.
-		Context.flushSession();
+		Context.getUserService().saveUser(user);
 		// the permission checks run against the user context's cached instance, so grant the role
 		// there too
 		Context.getAuthenticatedUser().setRoles(roles);

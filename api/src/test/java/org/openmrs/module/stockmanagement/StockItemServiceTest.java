@@ -10,6 +10,7 @@
 package org.openmrs.module.stockmanagement;
 
 import org.openmrs.module.stockmanagement.api.StockItemService;
+import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.junit.jupiter.api.BeforeEach;
@@ -151,6 +152,21 @@ public class StockItemServiceTest extends BaseModuleContextSensitiveTest {
 		assertFalse(result.getSuccess());
 		assertFalse(result.getErrors().isEmpty());
 		assertTrue(result.getErrors().stream().anyMatch(e -> e.contains("Row 1")));
+	}
+	
+	@Test
+	public void deprecatedLookupsShouldStillFindItemsForTheBillingModule() {
+		// billing 2.5.0 calls these on StockManagementService until O3-6324 moves them
+		StockItem item = eu().newStockItem(dao(), true);
+		item.setVoided(false);
+		Context.getService(StockItemService.class).saveStockItem(item);
+		Context.flushSession();
+		assertNotNull(item.getDrug());
+		StockManagementService legacy = Context.getService(StockManagementService.class);
+		
+		assertEquals(item.getId(), legacy.getStockItemByUuid(item.getUuid()).getId());
+		assertTrue(legacy.getStockItemByDrug(item.getDrug().getDrugId()).stream()
+		        .anyMatch(found -> found.getId().equals(item.getId())));
 	}
 	
 	@Test

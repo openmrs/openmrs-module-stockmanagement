@@ -13,6 +13,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.*;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.*;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -171,8 +172,16 @@ public class StockItemRestMapper {
 	}
 	
 	public StockItem saveStockItem(StockItemDTO stockItemDTO) {
-		Context.requirePrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE);
+		requireItemMutatePrivilege();
 		return writeTransaction().execute(status -> saveItem(stockItemDTO));
+	}
+	
+	// Context.requirePrivilege throws ContextAuthenticationException, which REST answers with 500, not 403
+	private static void requireItemMutatePrivilege() {
+		if (!Context.hasPrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)) {
+			throw new APIAuthenticationException(Context.getMessageSourceService().getMessage("error.privilegesRequired",
+			    new Object[] { Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE }, null));
+		}
 	}
 	
 	private TransactionTemplate writeTransaction() {
@@ -345,7 +354,7 @@ public class StockItemRestMapper {
 	}
 	
 	public StockItemPackagingUOM saveStockItemPackagingUOM(StockItemPackagingUOMDTO stockItemPackagingUOMDTO) {
-		Context.requirePrivilege(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE);
+		requireItemMutatePrivilege();
 		return writeTransaction().execute(status -> savePackaging(stockItemPackagingUOMDTO));
 	}
 	

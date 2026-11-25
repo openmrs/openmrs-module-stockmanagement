@@ -62,6 +62,18 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		this.stockItemDAO = stockItemDAO;
 	}
 	
+	@Override
+	@Deprecated
+	public StockItem getStockItemByUuid(String uuid) {
+		return stockItemDAO.getStockItemByUuid(uuid);
+	}
+	
+	@Override
+	@Deprecated
+	public List<StockItem> getStockItemByDrug(Integer drugId) {
+		return stockItemDAO.getStockItemByDrug(drugId);
+	}
+	
 	private Log log = LogFactory.getLog(this.getClass());
 	
 	private static final UUID STOCK_OPERATION_PROCESSING_LOCK = UUID.randomUUID();
