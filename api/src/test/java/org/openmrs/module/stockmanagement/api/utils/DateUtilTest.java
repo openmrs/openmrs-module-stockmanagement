@@ -79,10 +79,10 @@ public class DateUtilTest {
 	
 	@Test
 	public void parseDate_shouldReadADateAsTheFirstMomentOfADayWhoseMidnightIsSkipped() {
-		// clocks in Cairo went from 00:00 to 01:00 (UTC+3) on 24 April 2026
-		TimeZone.setDefault(TimeZone.getTimeZone("Africa/Cairo"));
-		assertEquals(Instant.parse("2026-04-23T22:00:00Z"), DateUtil.parseDate("2026-04-24").toInstant());
-		assertThrows(StockManagementException.class, () -> DateUtil.parseDate("2026-04-24 00:30:00"));
+		// clocks in Beirut went from 00:00 to 01:00 (UTC+3) on 29 March 2026
+		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Beirut"));
+		assertEquals(Instant.parse("2026-03-28T22:00:00Z"), DateUtil.parseDate("2026-03-29").toInstant());
+		assertThrows(StockManagementException.class, () -> DateUtil.parseDate("2026-03-29 00:30:00"));
 	}
 	
 	@Test
