@@ -44,7 +44,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.UUID;
 
-@Controller("${rootrootArtifactId}.StockItemImportController")
+@Controller("stockmanagement.StockItemImportController")
 @RequestMapping("/rest/" + RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/stockitemimport")
 public class StockItemImportController {
 	
