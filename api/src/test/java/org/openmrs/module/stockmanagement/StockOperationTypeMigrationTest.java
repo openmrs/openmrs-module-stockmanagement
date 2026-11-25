@@ -125,6 +125,7 @@ public class StockOperationTypeMigrationTest {
 				createOldSchemaWithData(connection);
 				
 				runChangeSets(connection);
+				execute(connection, "DELETE FROM DATABASECHANGELOG");
 				runChangeSets(connection);
 				
 				for (StockOperationType type : StockOperationType.values()) {
