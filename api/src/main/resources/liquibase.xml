@@ -4728,8 +4728,8 @@ CREATE TRIGGER stockmgmt_location_after_delete
     <sql>
       UPDATE scheduler_task_config SET creator = created_by WHERE creator IS NULL AND created_by IS NOT NULL
       AND uuid IN ('5a0b041a-5796-11ed-a495-00155dc81c72', '911fc382-5797-11ed-a495-00155dc81c72', '73eb1d31-6e5e-11ed-9a5b-00155db5005a')
-      </sql>
-    </changeSet>
+    </sql>
+  </changeSet>
   <changeSet id="stockmanagement-2026-11-10-O3-6255" author="avanishkasar">
     <preConditions onFail="MARK_RAN">
       <sqlCheck expectedResult="0">
