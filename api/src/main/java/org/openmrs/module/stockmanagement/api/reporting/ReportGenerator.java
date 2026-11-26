@@ -51,9 +51,9 @@ public abstract class ReportGenerator {
 	
 	protected boolean hasRestoredExecutionState = false;
 	
-	protected static final SimpleDateFormat TIMESTAMP_FORMATTER = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
+	protected final SimpleDateFormat TIMESTAMP_FORMATTER = new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss");
 	
-	protected static final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("dd-MMM-yyyy");
+	protected final SimpleDateFormat DATE_FORMATTER = new SimpleDateFormat("dd-MMM-yyyy");
 	
 	public void stop() {
 		stopExecution = true;
