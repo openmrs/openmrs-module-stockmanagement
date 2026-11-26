@@ -29,7 +29,7 @@ import org.springframework.web.context.request.WebRequest;
 /**
  * Controller that lets a client check refresh the indexes for stock item common name and accronym
  */
-@Controller("${rootrootArtifactId}.IndexRebuildController")
+@Controller("stockmanagement.IndexRebuildController")
 @RequestMapping("/rest/" + RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/indexrebuild")
 public class IndexRebuildController {
 	
