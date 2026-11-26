@@ -2858,6 +2858,7 @@ public class StockManagementDao extends DaoBase {
 			
 			if (!result.getData().isEmpty()) {
 				StockItemSearchFilter itemFilter = new StockItemSearchFilter();
+				itemFilter.setIncludeVoided(true);
 				itemFilter.setStockItemIds(
 				    result.getData().stream().map(p -> p.getStockItemId()).collect(Collectors.toList()));
 				Result<StockItemDTO> stockItemDTOResult = findStockItems(itemFilter);
