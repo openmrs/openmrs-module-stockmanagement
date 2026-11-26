@@ -48,13 +48,47 @@
         </property>
     </bean>
 
-    <!-- Adds StockManagementService to OpenMRS context so it can be accessed
-    calling Context.getService(StockManagementService.class) -->
+    <bean id="stockmanagement.StockInventoryService"
+            class="org.springframework.transaction.interceptor.TransactionProxyFactoryBean">
+        <property name="transactionManager">
+            <ref bean="transactionManager" />
+        </property>
+        <property name="target">
+            <bean class="org.openmrs.module.stockmanagement.api.impl.StockInventoryServiceImpl">
+                <property name="dao">
+                    <bean class="org.openmrs.module.stockmanagement.api.dao.HibernateStockInventoryDao">
+                        <property name="sessionFactory">
+                            <ref bean="dbSessionFactory" />
+                        </property>
+                        <property name="searchSessionFactory" ref="searchSessionFactory"/>
+                    </bean>
+                </property>
+            </bean>
+        </property>
+        <property name="preInterceptors">
+            <ref bean="serviceInterceptors" />
+        </property>
+        <property name="transactionAttributeSource">
+            <ref bean="transactionAttributeSource" />
+        </property>
+    </bean>
+
+    <!-- Adds module services to OpenMRS context so they can be accessed
+    calling Context.getService(...) -->
     <bean parent="serviceContext">
         <property name="moduleService">
             <list>
                 <value>org.openmrs.module.stockmanagement.api.StockManagementService</value>
                 <ref bean="stockmanagement.StockManagementService" />
+            </list>
+        </property>
+    </bean>
+
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
+                <value>org.openmrs.module.stockmanagement.api.StockInventoryService</value>
+                <ref bean="stockmanagement.StockInventoryService" />
             </list>
         </property>
     </bean>

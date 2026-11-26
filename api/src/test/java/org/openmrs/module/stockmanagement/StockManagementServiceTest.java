@@ -25,11 +25,13 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.dao.HibernateStockInventoryDao;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItem;
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItemFilter;
+import org.openmrs.module.stockmanagement.api.impl.StockInventoryServiceImpl;
 import org.openmrs.module.stockmanagement.api.impl.StockManagementServiceImpl;
 import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -63,7 +65,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	
 	private StockManagementDao daoInstance;
 	
+	private HibernateStockInventoryDao inventoryDaoInstance;
+	
 	private static EntityUtil entityUtil;
+	
+	private StockInventoryServiceImpl stockInventoryService;
 	
 	private StockManagementDao dao() {
 		if (daoInstance == null) {
@@ -73,10 +79,20 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		return daoInstance;
 	}
 	
+	private HibernateStockInventoryDao inventoryDao() {
+		if (inventoryDaoInstance == null) {
+			inventoryDaoInstance = new HibernateStockInventoryDao();
+			inventoryDaoInstance.setSessionFactory(sessionFactory);
+		}
+		return inventoryDaoInstance;
+	}
+	
 	@Before
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
+		stockInventoryService = new StockInventoryServiceImpl();
+		stockInventoryService.setDao(inventoryDao());
 	}
 	
 	private EntityUtil eu() {
@@ -587,154 +603,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	public void getStockInventory_shouldFilterOnAllCriteria() {
-		stockManagementService.setDao(dao());
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		StockItemPackagingUOM packagingUom = entityUtil.newStockItemPackagingUOM(dao(), false, stockItem);
-		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
-		
-		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
-		dao().saveStockBatch(stockBatch);
-		
-		StockItemTransaction so = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
-		so.setQuantity(BigDecimal.valueOf(10));
-		dao().saveStockItemTransaction(so);
-		
-		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
-		List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = new ArrayList<>();
-		StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter(
-		        Arrays.asList(so.getParty().getId()), so.getStockItem().getId(), so.getStockBatch().getId());
-		itemsToSearch.add(itemGroupFilter);
-		filter.setItemGroupFilters(itemsToSearch);
-		Result<StockItemInventory> result = stockManagementService.getStockInventory(filter, null);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		assertTrue(result.getData().get(0).getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN)
-		        .compareTo(so.getQuantity().multiply(BigDecimal.valueOf(2))) == 0);
-		
-		filter.setDoSetQuantityUoM(true);
-		result = stockManagementService.getStockInventory(filter, null);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		//assertEquals(result.getData().get(0).getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN),so.getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN).multiply(packagingUom.getFactor()));
-		//assertTrue(result.getData().get(0).getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN).compareTo(so.getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN)) == 0);
-	}
-	
-	@Test
-	public void findStockItemTransactions_shouldFilterOnAllCriteria() {
-		stockManagementService.setDao(dao());
-		StockItemTransaction so = eu().newStockItemTransaction(dao());
-		so.setQuantity(BigDecimal.TEN);
-		dao().saveStockItemTransaction(so);
-		
-		StockItemTransactionSearchFilter filter = new StockItemTransactionSearchFilter();
-		filter.setStockItemId(so.getStockItem().getId());
-		Result<StockItemTransactionDTO> result = dao().findStockItemTransactions(filter, null);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		assertTrue(
-		    result.getData().get(0).getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN).compareTo(so.getQuantity()) == 0);
-		
-		filter = new StockItemTransactionSearchFilter();
-		filter.setUuid(so.getUuid());
-		result = dao().findStockItemTransactions(filter, null);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
-		assertTrue(
-		    result.getData().get(0).getQuantity().setScale(2, BigDecimal.ROUND_HALF_EVEN).compareTo(so.getQuantity()) == 0);
-		assertEquals(result.getData().get(0).getUuid(), so.getUuid());
-	}
-	
-	@Test
-	public void findStockItemTransactions_shouldReturnPatientUuidWithoutGetPatientsPrivilege() {
-		StockItemTransaction patientTransaction = eu().newStockItemTransaction(dao());
-		patientTransaction.setPatient(eu().getPatient());
-		dao().saveStockItemTransaction(patientTransaction);
-		
-		StockItemTransaction nonPatientTransaction = eu().newStockItemTransaction(dao(), patientTransaction.getStockItem(),
-		    patientTransaction.getStockBatch(), patientTransaction.getStockItemPackagingUOM());
-		nonPatientTransaction.setPatient(null);
-		dao().saveStockItemTransaction(nonPatientTransaction);
-		Context.flushSession();
-		String expectedPatientUuid = eu().getPatient().getUuid();
-		
-		StockItemTransactionSearchFilter filter = new StockItemTransactionSearchFilter();
-		filter.setStockItemId(patientTransaction.getStockItem().getId());
-		
-		Context.logout();
-		Result<StockItemTransactionDTO> result;
-		try {
-			result = dao().findStockItemTransactions(filter, null);
-		}
-		finally {
-			authenticate();
-		}
-		
-		assertEquals(2, result.getData().size());
-		assertEquals(expectedPatientUuid, result.getData().stream()
-		        .filter(p -> p.getUuid().equals(patientTransaction.getUuid())).findFirst().get().getPatientUuid());
-		assertNull(result.getData().stream().filter(p -> p.getUuid().equals(nonPatientTransaction.getUuid())).findFirst()
-		        .get().getPatientUuid());
-	}
-	
-	@Test
-	public void dispenseStockItems() {
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		StockItemPackagingUOM packagingUom = entityUtil.newStockItemPackagingUOM(dao(), false, stockItem);
-		dao().saveStockItemPackagingUOM(packagingUom);
-		
-		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
-		dao().saveStockBatch(stockBatch);
-		
-		for (int i = 3; i > 0; i--) {
-			StockItemTransaction stockItemTransaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch,
-			    packagingUom);
-			stockItemTransaction.setQuantity(BigDecimal.valueOf(200));
-			stockItemTransaction.setPatient(null);
-			dao().saveStockItemTransaction(stockItemTransaction);
-		}
-		
-		List<DispenseRequest> dispenseRequests = new ArrayList<>();
-		DispenseRequest dispenseRequest = new DispenseRequest();
-		dispenseRequest.setPatientId(eu().getPatient().getId());
-		dispenseRequest.setLocationUuid(eu().getLocation().getUuid());
-		dispenseRequest.setQuantity(BigDecimal.valueOf(50));
-		dispenseRequest.setStockItemUuid(stockItem.getUuid());
-		dispenseRequest.setOrderId(eu().getOrder().getId());
-		dispenseRequest.setEncounterId(eu().getEncounter().getId());
-		dispenseRequest.setStockBatchUuid(stockBatch.getUuid());
-		dispenseRequest.setStockItemPackagingUOMUuid(packagingUom.getUuid());
-		dispenseRequests.add(dispenseRequest);
-		
-		dispenseRequest = new DispenseRequest();
-		dispenseRequest.setPatientId(eu().getPatient().getId());
-		dispenseRequest.setLocationUuid(eu().getLocation().getUuid());
-		dispenseRequest.setQuantity(BigDecimal.valueOf(100));
-		dispenseRequest.setStockItemUuid(stockItem.getUuid());
-		dispenseRequests.add(dispenseRequest);
-		dispenseRequest.setOrderId(eu().getOrder().getId());
-		dispenseRequest.setEncounterId(eu().getEncounter().getId());
-		dispenseRequest.setStockBatchUuid(stockBatch.getUuid());
-		dispenseRequest.setStockItemPackagingUOMUuid(packagingUom.getUuid());
-		stockManagementService.setDao(dao());
-		
-		stockManagementService.dispenseStockItems(dispenseRequests);
-		
-		StockItemTransactionSearchFilter searchFilter = new StockItemTransactionSearchFilter();
-		searchFilter.setPartyId(eu().getParty(dao()).getId());
-		searchFilter.setStockItemId(stockItem.getId());
-		
-		Result<StockItemTransactionDTO> result = dao().findStockItemTransactions(searchFilter, null);
-		assertThat(result.getData().size(), greaterThanOrEqualTo(4));
-		List<StockItemTransactionDTO> entity = result.getData().stream()
-		        .filter(p -> dispenseRequests.get(0).getPatientId().equals(p.getPatientId())).collect(Collectors.toList());
-		assertEquals(entity.size(), 2);
-		assertTrue(entity.stream().anyMatch(p -> dispenseRequests.stream().anyMatch(x -> p.getQuantity()
-		        .multiply(BigDecimal.valueOf(-1)).setScale(2, BigDecimal.ROUND_HALF_EVEN).compareTo(x.getQuantity()) == 0)));
-	}
-	
-	@Test
 	public void importStockItems() throws Exception {
 		URL resource = getClass().getClassLoader().getResource(EntityUtil.STOCK_ITEMS_IMPORT_CSV);
 		Path path = Paths.get(resource.toURI()).toFile().toPath();
@@ -892,8 +760,8 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		dao().saveStockItemPackagingUOM(packagingUom);
 		//Given
 		OrderItem orderItem = eu().newOrderItem(dao(), stockItem, packagingUom);
-		dao().saveOrderItem(orderItem);
-		List<OrderItem> orderItems = stockManagementService.getOrderItemsByOrder(orderItem.getOrder().getId());
+		inventoryDao().saveOrderItem(orderItem);
+		List<OrderItem> orderItems = stockInventoryService.getOrderItemsByOrder(orderItem.getOrder().getId());
 		assertNotNull(orderItems);
 		assertEquals(orderItems.size(), 1);
 		assertEquals(orderItems.get(0).getUuid(), orderItem.getUuid());
@@ -910,8 +778,8 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		dao().saveStockItemPackagingUOM(packagingUom);
 		//Given
 		OrderItem orderItem = eu().newOrderItem(dao(), stockItem, packagingUom);
-		dao().saveOrderItem(orderItem);
-		List<OrderItem> orderItems = stockManagementService
+		inventoryDao().saveOrderItem(orderItem);
+		List<OrderItem> orderItems = stockInventoryService
 		        .getOrderItemsByEncounter(orderItem.getOrder().getEncounter().getEncounterId());
 		assertNotNull(orderItems);
 		assertEquals(orderItems.size(), 1);
@@ -945,7 +813,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		orderItem.setCreatedFrom(party.getLocation());
 		orderItem.setFulfilmentLocation(party.getLocation());
 		orderItem.setVoided(false);
-		dao().saveOrderItem(orderItem);
+		inventoryDao().saveOrderItem(orderItem);
 		
 		Date scheduledDate = DateUtil.today();
 		updateOrderScheduledDate(orderItem.getOrder(), scheduledDate);
@@ -953,234 +821,234 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		OrderItemSearchFilter filter = new OrderItemSearchFilter();
 		filter.setLimit(10);
 		filter.setStartIndex(0);
-		Result<OrderItemDTO> result = stockManagementService.findOrderItems(filter, null);
+		Result<OrderItemDTO> result = stockInventoryService.findOrderItems(filter, null);
 		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
 		assertEquals(result.getData().get(0).getUuid(), orderItem.getUuid());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setId(orderItem.getId());
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setId(Integer.MAX_VALUE);
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setEncounterIds(Arrays.asList(orderItem.getOrder().getEncounter().getEncounterId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setEncounterIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setEncounterUuids(Arrays.asList(orderItem.getOrder().getEncounter().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setEncounterUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setUuid(orderItem.getUuid());
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setUuid(UUID.randomUUID().toString());
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setOrderDateMin(DateUtils.addDays(scheduledDate, 1));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setOrderDateMax(scheduledDate);
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setOrderDateMax(DateUtils.addDays(scheduledDate, -1));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setOrderIds(Arrays.asList(orderItem.getOrder().getId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setOrderIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setOrderUuids(Arrays.asList(orderItem.getOrder().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setOrderUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setOrderNumber(orderItem.getOrder().getOrderNumber());
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setOrderNumber(
 		    orderItem.getOrder().getOrderNumber().substring(0, orderItem.getOrder().getOrderNumber().length() - 1));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setOrderNumber(UUID.randomUUID().toString());
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setPatientIds(Arrays.asList(orderItem.getOrder().getPatient().getId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setPatientIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setStockItemIds(Arrays.asList(stockItem.getId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setStockItemIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setStockItemUuids(Arrays.asList(orderItem.getStockItem().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setStockItemUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setDrugIds(Arrays.asList(stockItem.getDrug().getId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setDrugIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setDrugUuids(Arrays.asList(stockItem.getDrug().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setDrugUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setConceptIds(Arrays.asList(stockItem.getConcept().getId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setConceptIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setConceptUuids(Arrays.asList(stockItem.getConcept().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setConceptUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setDrugIds(Arrays.asList(stockItem.getDrug().getId()));
 		filter.setConceptUuids(Arrays.asList(stockItem.getConcept().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setSearchEitherDrugOrConceptStockItems(true);
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setConceptUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setDrugIds(Arrays.asList(Integer.MAX_VALUE));
 		filter.setConceptUuids(Arrays.asList(stockItem.getConcept().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setConceptUuids(Arrays.asList(UUID.randomUUID().toString()));
 		filter.setConceptUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setCreatedFromLocationIds(Arrays.asList(orderItem.getCreatedFrom().getId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setCreatedFromLocationIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setCreatedFromLocationUuids(Arrays.asList(orderItem.getCreatedFrom().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setCreatedFromLocationUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setFulfilmentLocationIds(Arrays.asList(orderItem.getFulfilmentLocation().getId()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setFulfilmentLocationIds(Arrays.asList(Integer.MAX_VALUE));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setFulfilmentLocationUuids(Arrays.asList(orderItem.getFulfilmentLocation().getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setFulfilmentLocationUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setCreatedFromPartyUuids(Arrays.asList(party.getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setCreatedFromPartyUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
 		filter.setCreatedFromPartyUuids(Arrays.asList(party.getUuid()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setCreatedFromPartyUuids(Arrays.asList(UUID.randomUUID().toString()));
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 		
 		filter = new OrderItemSearchFilter();
@@ -1206,11 +1074,11 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		filter.setCreatedFromPartyUuids(Arrays.asList(party.getUuid()));
 		filter.setOrderDateMin(scheduledDate);
 		filter.setOrderDateMax(scheduledDate);
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(orderItem.getUuid())));
 		
 		filter.setId(Integer.MAX_VALUE);
-		result = stockManagementService.findOrderItems(filter, null);
+		result = stockInventoryService.findOrderItems(filter, null);
 		assertTrue(result.getData().isEmpty());
 	}
 	

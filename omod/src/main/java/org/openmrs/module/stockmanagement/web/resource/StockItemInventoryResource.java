@@ -189,7 +189,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 						return emptyResult(context);
 					}
 					
-					List<PartyDTO> partyList = getStockManagementService()
+					List<PartyDTO> partyList = getStockInventoryService()
 					        .getCompleteStockDispensingLocationPartyList(location.getLocationId());
 					partyIds = partyList.stream().map(p -> p.getId()).collect(Collectors.toList());
 					
@@ -336,7 +336,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 		filter.setItemGroupFilters(itemsToSearch);
 		//filter.setStartIndex(context.getStartIndex());
 		//filter.setLimit(context.getLimit());
-		StockInventoryResult stockItemInventoryResult = getStockManagementService().getStockInventory(filter);
+		StockInventoryResult stockItemInventoryResult = getStockInventoryService().getStockInventory(filter);
 		return new StockInventoryPageableResult(context, stockItemInventoryResult, stockItemInventoryResult.hasMoreResults(),
 		        stockItemInventoryResult.getTotalRecordCount());
 	}

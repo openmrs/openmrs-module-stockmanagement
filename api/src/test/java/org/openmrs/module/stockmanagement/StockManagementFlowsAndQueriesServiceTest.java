@@ -28,9 +28,14 @@ import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.dto.DispenseRequest;
 import org.openmrs.module.stockmanagement.api.dto.PartyDTO;
+import org.openmrs.module.stockmanagement.api.dto.Result;
+import org.openmrs.module.stockmanagement.api.dto.StockBatchDTO;
+import org.openmrs.module.stockmanagement.api.dto.StockBatchSearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.PrivilegeScope;
 import org.openmrs.module.stockmanagement.api.dto.SessionInfo;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -59,7 +64,9 @@ import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.tasks.LocationTreeSynchronize;
 import org.openmrs.module.stockmanagement.tasks.PartySynchronize;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
+import org.openmrs.module.stockmanagement.api.dao.HibernateStockInventoryDao;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.impl.StockInventoryServiceImpl;
 import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.openmrs.util.PrivilegeConstants;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,6 +104,8 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	
 	private StockManagementService stockManagementService;
 	
+	private StockInventoryServiceImpl stockInventoryService;
+	
 	private Location parentLocation;
 	
 	private Location childLocation;
@@ -126,12 +135,22 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	
 	private StockManagementDao daoInstance;
 	
+	private HibernateStockInventoryDao inventoryDaoInstance;
+	
 	private StockManagementDao dao() {
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
 			daoInstance.setSessionFactory(sessionFactory);
 		}
 		return daoInstance;
+	}
+	
+	private HibernateStockInventoryDao inventoryDao() {
+		if (inventoryDaoInstance == null) {
+			inventoryDaoInstance = new HibernateStockInventoryDao();
+			inventoryDaoInstance.setSessionFactory(sessionFactory);
+		}
+		return inventoryDaoInstance;
 	}
 	
 	private void setNotifyFlagsFalse(StockOperationType type) {
@@ -150,6 +169,8 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
 		
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = new StockInventoryServiceImpl();
+		stockInventoryService.setDao(inventoryDao());
 		
 		// 1. Build a small 3-tier location hierarchy: parent -> child -> grandchild
 		LocationService locationService = Context.getLocationService();
@@ -770,7 +791,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 			location.addTag(dispensary);
 			locationService.saveLocation(location);
 		}
-		List<Integer> partyIds = stockManagementService.getCompleteStockDispensingLocationPartyList(parentLocation.getId())
+		List<Integer> partyIds = stockInventoryService.getCompleteStockDispensingLocationPartyList(parentLocation.getId())
 		        .stream().map(PartyDTO::getId).collect(Collectors.toList());
 		assertEquals(2, partyIds.size());
 		assertTrue(partyIds.containsAll(Arrays.asList(childParty.getId(), grandchildParty.getId())));
@@ -808,7 +829,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		descendantQuantities.add(childWithDesc);
 		descendantQuantities.add(grandchildWithDesc);
 		
-		stockManagementService.setStockItemCurrentBalanceWithDescendants(descendantQuantities);
+		stockInventoryService.setStockItemCurrentBalanceWithDescendants(descendantQuantities);
 		
 		assertNotNull(parentWithDesc.getQuantity(), "Parent balance with descendants should be calculated");
 		assertEquals(0, BigDecimal.valueOf(60).compareTo(parentWithDesc.getQuantity()),
@@ -830,7 +851,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		retire(childLocation);
 		StockRuleCurrentQuantity parent = new StockRuleCurrentQuantity(sampleStockItem.getId(), parentLocation.getId(), null,
 		        true);
-		stockManagementService.setStockItemCurrentBalanceWithDescendants(Collections.singletonList(parent));
+		stockInventoryService.setStockItemCurrentBalanceWithDescendants(Collections.singletonList(parent));
 		assertEquals(0, BigDecimal.valueOf(30).compareTo(parent.getQuantity()));
 	}
 	
@@ -856,15 +877,15 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		        BigDecimal.ZERO, true);
 		StockRuleCurrentQuantity other = new StockRuleCurrentQuantity(otherItem.getId(), parentLocation.getId(),
 		        BigDecimal.ZERO, true);
-		stockManagementService.setStockItemCurrentBalanceWithDescendants(Arrays.asList(sample, other));
+		stockInventoryService.setStockItemCurrentBalanceWithDescendants(Arrays.asList(sample, other));
 		assertEquals(0, BigDecimal.valueOf(17).compareTo(sample.getQuantity()));
 		assertEquals(0, BigDecimal.valueOf(5).compareTo(other.getQuantity()));
 	}
 	
 	@Test
 	public void stockBalance_shouldExcludeBatchesExpiringTodayReflectIssuesAndHandleEmptyInputs() {
-		stockManagementService.setStockItemCurrentBalanceWithDescendants(null);
-		stockManagementService.setStockItemCurrentBalanceWithDescendants(Collections.emptyList());
+		stockInventoryService.setStockItemCurrentBalanceWithDescendants(null);
+		stockInventoryService.setStockItemCurrentBalanceWithDescendants(Collections.emptyList());
 		
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		StockOperationDTO parentReceipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
@@ -886,7 +907,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		        BigDecimal.ZERO, true);
 		StockRuleCurrentQuantity grandchildNull = new StockRuleCurrentQuantity(sampleStockItem.getId(),
 		        grandchildLocation.getId(), null, true);
-		stockManagementService.setStockItemCurrentBalanceWithDescendants(Arrays.asList(parent, child, grandchildNull));
+		stockInventoryService.setStockItemCurrentBalanceWithDescendants(Arrays.asList(parent, child, grandchildNull));
 		
 		assertEquals(0, BigDecimal.valueOf(15).compareTo(parent.getQuantity()));
 		assertEquals(0, BigDecimal.ZERO.compareTo(child.getQuantity()));
@@ -911,13 +932,13 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 			StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
 			filter.setItemGroupFilters(Collections.singletonList(
 			    new StockItemInventorySearchFilter.ItemGroupFilter(parties, sampleStockItem.getId(), null)));
-			assertEquals(0, BigDecimal.valueOf(5).compareTo(stockManagementService.getStockInventory(filter).getData()
+			assertEquals(0, BigDecimal.valueOf(5).compareTo(stockInventoryService.getStockInventory(filter).getData()
 			        .stream().map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add)));
 		}
 		StockItemTransactionSearchFilter transactions = new StockItemTransactionSearchFilter();
 		transactions.setStockItemId(sampleStockItem.getId());
 		assertEquals(Collections.singletonList(childParty.getUuid()),
-		    stockManagementService.findStockItemTransactions(transactions).getData().stream().map(t -> t.getPartyUuid())
+		    stockInventoryService.findStockItemTransactions(transactions).getData().stream().map(t -> t.getPartyUuid())
 		            .collect(Collectors.toList()));
 	}
 	
@@ -1077,7 +1098,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
 		filter.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
 		        Collections.singletonList(party.getId()), sampleStockItem.getId(), null)));
-		return stockManagementService.getStockInventory(filter, null).getData().stream().map(StockItemInventory::getQuantity)
+		return stockInventoryService.getStockInventory(filter, null).getData().stream().map(StockItemInventory::getQuantity)
 		        .reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 	
@@ -1837,13 +1858,94 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		withExpired.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
 		        Collections.singletonList(parentParty.getId()), sampleStockItem.getId(), null)));
 		withExpired.setRequireNonExpiredStockBatches(false);
-		assertEquals(0, BigDecimal.TEN.compareTo(stockManagementService.getStockInventory(withExpired, null).getData()
+		assertEquals(0, BigDecimal.TEN.compareTo(stockInventoryService.getStockInventory(withExpired, null).getData()
 		        .stream().map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add)));
 		
 		submitAndApprove(disposedType, parentParty, null, parentLocation, reasonUuid,
 		    newBatchItem(batch.getUuid(), BigDecimal.TEN));
-		assertEquals(0, BigDecimal.ZERO.compareTo(stockManagementService.getStockInventory(withExpired, null).getData()
+		assertEquals(0, BigDecimal.ZERO.compareTo(stockInventoryService.getStockInventory(withExpired, null).getData()
 		        .stream().map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add)));
+	}
+	
+	@Test
+	public void approveStockOperation_shouldAllowApproverWithoutStockItemOrOperationEditAccess() {
+		Role approveOnlyRole = createRoleWithPrivileges("Stock Approve Only " + UUID.randomUUID().toString().substring(0, 8),
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE, PrivilegeConstants.GET_LOCATIONS,
+		    PrivilegeConstants.GET_CONCEPTS, PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		User approver = createTestUser("approve_only_" + UUID.randomUUID().toString().substring(0, 8), approveOnlyRole);
+		grantScope(approver, approveOnlyRole, parentLocation, true, receiptType);
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO dto = newReceiptDto(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(15));
+		dto.setUuid(stockManagementService.saveStockOperation(dto).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(dto);
+		Context.flushSession();
+		Context.clearSession();
+		
+		Context.authenticate(approver.getUsername(), "TestPassword123!");
+		stockManagementService.approveStockOperation(dto);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.COMPLETED, dao().getStockOperationByUuid(dto.getUuid()).getStatus());
+	}
+	
+	@Test
+	public void dispenseStockItems_shouldAllowDispenseOnlyUserWithoutStockItemAppAccess() {
+		Role dispenseOnlyRole = createRoleWithPrivileges(
+		    "Stock Dispense Only " + UUID.randomUUID().toString().substring(0, 8),
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE, PrivilegeConstants.GET_LOCATIONS,
+		    PrivilegeConstants.GET_PATIENTS, PrivilegeConstants.GET_ORDERS, PrivilegeConstants.GET_ENCOUNTERS,
+		    PrivilegeConstants.GET_CONCEPTS, PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		User dispenser = createTestUser("dispense_only_" + UUID.randomUUID().toString().substring(0, 8), dispenseOnlyRole);
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(100), "DISPENSE-" + UUID.randomUUID().toString().substring(0, 8));
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		BigDecimal before = balanceAt(parentParty);
+		
+		DispenseRequest request = new DispenseRequest();
+		request.setPatientId(2);
+		request.setLocationUuid(parentLocation.getUuid());
+		request.setQuantity(BigDecimal.TEN);
+		request.setStockItemUuid(sampleStockItem.getUuid());
+		request.setOrderId(1);
+		request.setEncounterId(3);
+		request.setStockBatchUuid(batchUuid);
+		request.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		
+		Context.authenticate(dispenser.getUsername(), "TestPassword123!");
+		Context.getService(StockInventoryService.class).dispenseStockItems(Collections.singletonList(request));
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, before.subtract(BigDecimal.TEN).compareTo(balanceAt(parentParty)));
+	}
+	
+	@Test
+	public void findStockBatches_shouldAllowOperationsOnlyUserWhenFilteredByLocation() {
+		Role operationsOnlyRole = createRoleWithPrivileges(
+		    "Stock Operations Only " + UUID.randomUUID().toString().substring(0, 8),
+		    Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS, PrivilegeConstants.GET_LOCATIONS,
+		    PrivilegeConstants.GET_CONCEPTS, PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		User operationsUser = createTestUser("ops_only_" + UUID.randomUUID().toString().substring(0, 8), operationsOnlyRole);
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(20), "OPS-BATCH-" + UUID.randomUUID().toString().substring(0, 8));
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		
+		StockBatchSearchFilter filter = new StockBatchSearchFilter();
+		filter.setStockItemUuid(sampleStockItem.getUuid());
+		filter.setLocationUuid(parentLocation.getUuid());
+		filter.setExcludeEmptyStock(false);
+		
+		Context.authenticate(operationsUser.getUsername(), "TestPassword123!");
+		Result<StockBatchDTO> result = stockManagementService.findStockBatches(filter);
+		assertTrue(result.getData().stream().anyMatch(p -> batchUuid.equals(p.getUuid())));
 	}
 	
 	// ---------------------------------------------------------------------------------------------

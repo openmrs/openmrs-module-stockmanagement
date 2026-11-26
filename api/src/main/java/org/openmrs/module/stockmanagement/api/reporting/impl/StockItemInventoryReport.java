@@ -10,13 +10,10 @@
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -42,12 +39,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class StockItemInventoryReport<T extends StockItemInventory> extends ReportGenerator {
-	
-	protected final Log log = LogFactory.getLog(this.getClass());
-	
-	protected StockManagementService stockManagementService = null;
-	
-	protected BatchJob batchJob = null;
 	
 	private File step1File = null;
 	
@@ -98,11 +89,9 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 	
 	@Override
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
-		this.batchJob = batchJob;
-		stockManagementService = Context.getService(StockManagementService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
-		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
+		if (!initializeReport(batchJob)) {
 			return;
 		}
 		
@@ -110,14 +99,8 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 			return;
 		}
 		
-		Properties parameters = null;
-		
-		try {
-			parameters = GlobalProperties.fromString(batchJob.getParameters());
-		}
-		catch (IOException e) {
-			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
-			log.error(e);
+		Properties parameters = loadReportParameters(batchJob, false);
+		if (parameters == null) {
 			return;
 		}
 		
@@ -285,40 +268,17 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 			log.error(e.getMessage(), e);
 		}
 		finally {
-			if (bufferedStagingReader != null) {
-				try {
-					bufferedStagingReader.close();
-				}
-				catch (Exception e) {}
-			}
-			if (csvWriter != null) {
-				try {
-					try {
-						csvWriter.flush();
-					}
-					catch (Exception e) {}
-					csvWriter.close();
-				}
-				catch (Exception csvWriterException) {}
-			}
-			if (writer != null) {
-				try {
-					try {
-						writer.flush();
-					}
-					catch (Exception e) {}
-					writer.close();
-				}
-				catch (Exception we) {}
-			}
+			closeReader(bufferedStagingReader);
+			closeCsvWriter(csvWriter);
+			closeWriter(writer);
 		}
 	}
 	
 	protected void preWriteBuffer(StockItemInventorySearchFilter inventorySearchFilter,
 	        StockInventoryResult stockInventoryResult) {
 		if (!stockInventoryResult.getData().isEmpty()) {
-			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
-			stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+			stockInventoryService.setStockItemInformation(stockInventoryResult.getData());
+			stockInventoryService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
 		}
 	}
 	
@@ -434,7 +394,7 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 			    StandardOpenOption.TRUNCATE_EXISTING);
 			final BufferedWriter finalBufferedWriter = bufferedWriter;
 			setFilters(filter, parameters);
-			stockManagementService.getStockInventory(filter, null, inventory -> {
+			stockInventoryService.getStockInventory(filter, null, inventory -> {
 				if (shouldStopExecution.apply(batchJob)) {
 					setAbortReadingInventory(1);
 					return false;
@@ -480,16 +440,7 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 			}
 		}
 		finally {
-			if (bufferedWriter != null) {
-				try {
-					try {
-						bufferedWriter.flush();
-					}
-					catch (Exception e) {}
-					bufferedWriter.close();
-				}
-				catch (Exception exception) {}
-			}
+			closeWriter(bufferedWriter);
 		}
 		return true;
 	}

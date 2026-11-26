@@ -27,6 +27,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -90,6 +91,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	
 	private StockManagementService stockManagementService;
 	
+	private StockInventoryService stockInventoryService;
+	
 	private StockOperationResource stockOperationResource;
 	
 	private StockOperationActionResource stockOperationActionResource;
@@ -146,6 +149,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
 		
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
 		stockOperationResource = new StockOperationResource();
 		stockOperationActionResource = new StockOperationActionResource();
 		
@@ -905,7 +909,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
 		filter.setItemGroupFilters(Collections.singletonList(new StockItemInventorySearchFilter.ItemGroupFilter(
 		        Collections.singletonList(party.getId()), sampleStockItem.getId(), null)));
-		return stockManagementService.getStockInventory(filter, null).getData().stream().map(StockItemInventory::getQuantity)
+		return stockInventoryService.getStockInventory(filter, null).getData().stream().map(StockItemInventory::getQuantity)
 		        .reduce(BigDecimal.ZERO, BigDecimal::add);
 	}
 }

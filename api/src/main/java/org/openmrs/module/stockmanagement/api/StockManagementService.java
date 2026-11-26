@@ -48,9 +48,6 @@ public interface StockManagementService extends OpenmrsService {
 	List<PartyDTO> getCompletePartyList(Integer atLocationId);
 	
 	@Transactional(readOnly = true)
-	List<PartyDTO> getCompleteStockDispensingLocationPartyList(Integer atLocationId);
-	
-	@Transactional(readOnly = true)
 	List<Location> getMainPharmacyLocations();
 	
 	@Transactional(readOnly = true)
@@ -309,28 +306,6 @@ public interface StockManagementService extends OpenmrsService {
 	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE })
 	void cancelStockOperation(StockOperationDTO stockOperationDTO, String reason);
 	
-	@Transactional
-	@Authorized({ Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE })
-	void dispenseStockItems(List<DispenseRequest> dispenseRequests);
-	
-	@Transactional
-	void deleteReservedTransations(Integer stockOperationId);
-	
-	List<StockItemInventory> getStockBatchLocationInventory(List<Integer> stockBatchIds);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockInventoryResult getStockInventory(StockItemInventorySearchFilter filter);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	StockInventoryResult getStockInventory(StockItemInventorySearchFilter filter,
-	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
-	Result<StockItemTransactionDTO> findStockItemTransactions(StockItemTransactionSearchFilter filter);
-	
 	@Transactional(readOnly = true)
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS }, requireAll = false)
 	StockItemPackagingUOM getStockItemPackagingUOMByUuid(String uuid);
@@ -383,26 +358,6 @@ public interface StockManagementService extends OpenmrsService {
 	StockItemPackagingUOM getStockItemPackagingUOMByConcept(String stockItemUuid, String conceptUuid);
 	
 	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE_QTY }, requireAll = false)
-	List<OrderItem> getOrderItemsByOrder(Integer... orderIds);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE_QTY }, requireAll = false)
-	List<OrderItem> getOrderItemsByEncounter(Integer... encounterIds);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE_QTY }, requireAll = false)
-	Result<OrderItemDTO> findOrderItems(OrderItemSearchFilter filter);
-	
-	@Transactional(readOnly = true)
-	@Authorized(value = { Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE_QTY }, requireAll = false)
-	Result<OrderItemDTO> findOrderItems(OrderItemSearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
-	
-	@Transactional
-	@Authorized(value = { Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE_QTY }, requireAll = false)
-	OrderItem saveOrderItem(OrderItem orderItem);
-	
-	@Transactional(readOnly = true)
 	List<StockRuleNotificationUser> getDueStockRules(Integer lastStockRuleId, int limit);
 	
 	@Transactional(readOnly = true)
@@ -416,12 +371,6 @@ public interface StockManagementService extends OpenmrsService {
 	
 	@Transactional
 	void updateStockRuleJobNextActionDate(List<Integer> stockRuleIds, Date nextEvaluationDate);
-	
-	@Transactional(readOnly = true)
-	void setStockItemCurrentBalanceWithDescendants(List<StockRuleCurrentQuantity> stockRuleCurrentQuantities);
-	
-	@Transactional(readOnly = true)
-	void setStockItemCurrentBalanceWithoutDescendants(List<StockRuleCurrentQuantity> stockRuleCurrentQuantities);
 	
 	@Transactional(readOnly = true)
 	Map<Integer, String> getStockItemNames(List<Integer> stockItemIds);
@@ -500,33 +449,10 @@ public interface StockManagementService extends OpenmrsService {
 	
 	Result<StockBatchLineItem> getExpiringStockBatchList(StockExpiryFilter filter);
 	
-	<T extends StockItemInventory> void getStockInventory(StockItemInventorySearchFilter filter,
-	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters, Function<T, Boolean> consumer, Class<T> resultClass);
-	
-	StockInventoryResult postProcessInventoryResult(StockItemInventorySearchFilter filter, StockInventoryResult result);
-	
-	void setStockItemInformation(List<StockItemInventory> reportStockItemInventories);
-	
-	Result<DispensingLineItem> findDispensingLineItems(DispensingLineFilter filter);
-	
-	Result<PrescriptionLineItem> findPrescriptionLineItems(PrescriptionLineFilter filter);
-	
-	Result<StockItemInventory> getLeastMovingStockInventory(StockItemInventorySearchFilter filter);
-	
-	Result<StockItemInventory> getMostMovingStockInventory(StockItemInventorySearchFilter filter);
-	
-	void getStockInventoryForecastData(StockItemInventorySearchFilter filter, Function<Object[], Boolean> consumer);
-	
-	void getStockInventoryExpiryForecastData(StockItemInventorySearchFilter filter, Function<Object[], Boolean> consumer);
-	
 	List<BatchJob> getExpiredBatchJobs();
 	
 	@Transactional
 	void deleteBatchJob(BatchJob batchJob);
-	
-	@Transactional(readOnly = true)
-	Map<Integer, Boolean> checkStockBatchHasTransactionsAfterOperation(Integer stockOperationId,
-	        List<Integer> stockBatchIds);
 	
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)

@@ -555,7 +555,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			if (permissions.containsKey("canUpdateBatchInformation")) {
 				canUpdateBatchInformation = (boolean) permissions.get("canUpdateBatchInformation");
 				if (canUpdateBatchInformation) {
-					stockBatchHasTransactions = getStockManagementService().checkStockBatchHasTransactionsAfterOperation(
+					stockBatchHasTransactions = getStockInventoryService().checkStockBatchHasTransactionsAfterOperation(
 					    stockOperationDTO.getId(), items.getData().stream().filter(p -> p.getStockBatchId() != null)
 					            .map(p -> p.getStockBatchId()).distinct().collect(Collectors.toList()));
 				}

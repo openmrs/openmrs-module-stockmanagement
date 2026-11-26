@@ -10,13 +10,10 @@
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
@@ -41,19 +38,11 @@ import java.util.stream.Collectors;
 
 public class StockExpiryReport extends ReportGenerator {
 	
-	protected final Log log = LogFactory.getLog(this.getClass());
-	
-	protected StockManagementService stockManagementService = null;
-	
-	protected BatchJob batchJob = null;
-	
 	@Override
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
-		this.batchJob = batchJob;
-		stockManagementService = Context.getService(StockManagementService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
-		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
+		if (!initializeReport(batchJob)) {
 			return;
 		}
 		
@@ -61,14 +50,8 @@ public class StockExpiryReport extends ReportGenerator {
 			return;
 		}
 		
-		Properties parameters = null;
-		
-		try {
-			parameters = GlobalProperties.fromString(batchJob.getParameters());
-		}
-		catch (IOException e) {
-			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
-			log.error(e);
+		Properties parameters = loadReportParameters(batchJob, false);
+		if (parameters == null) {
 			return;
 		}
 		
@@ -180,7 +163,7 @@ public class StockExpiryReport extends ReportGenerator {
 							inventorySearchFilter.getItemGroupFilters().add(itemGroupFilter);
 						}
 						
-						Map<Integer, List<StockItemInventory>> inventoryResult = stockManagementService
+						Map<Integer, List<StockItemInventory>> inventoryResult = stockInventoryService
 						        .getStockInventory(inventorySearchFilter, null).getData().stream()
 						        .collect(Collectors.groupingBy(p -> p.getStockBatchId()));
 						for (Map.Entry<Integer, List<StockBatchLineItem>> p : stockItemGroupsPage) {
@@ -226,26 +209,8 @@ public class StockExpiryReport extends ReportGenerator {
 			log.error(e.getMessage(), e);
 		}
 		finally {
-			if (csvWriter != null) {
-				try {
-					try {
-						csvWriter.flush();
-					}
-					catch (Exception e) {}
-					csvWriter.close();
-				}
-				catch (Exception csvWriterException) {}
-			}
-			if (writer != null) {
-				try {
-					try {
-						writer.flush();
-					}
-					catch (Exception e) {}
-					writer.close();
-				}
-				catch (Exception we) {}
-			}
+			closeCsvWriter(csvWriter);
+			closeWriter(writer);
 		}
 	}
 	

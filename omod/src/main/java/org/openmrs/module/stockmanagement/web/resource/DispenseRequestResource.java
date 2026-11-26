@@ -76,7 +76,7 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
 			dispenseRequests.add(covertToDispenseRequest(propertiesToCreate));
 		}
 		
-		getStockManagementService().dispenseStockItems(dispenseRequests);
+		getStockInventoryService().dispenseStockItems(dispenseRequests);
 		
 		return new NeedsPaging<>(dispenseRequests, context);
 	}
