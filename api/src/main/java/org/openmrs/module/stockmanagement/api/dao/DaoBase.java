@@ -27,6 +27,7 @@ import org.openmrs.Location;
 import org.openmrs.Role;
 import org.openmrs.User;
 import org.openmrs.api.ConceptNameType;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.dto.ConceptNameDTO;
 import org.openmrs.module.stockmanagement.api.dto.PartyDTO;
 import org.openmrs.module.stockmanagement.api.dto.PrivilegeScope;
@@ -40,6 +41,8 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.module.stockmanagement.api.dto.PartySearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockItemDTO;
+import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUOMDTO;
+import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUOMSearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.StockItemSearchFilter;
 import org.openmrs.module.stockmanagement.api.model.LocationTree;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
@@ -53,6 +56,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @SuppressWarnings({ "unchecked" })
 public class DaoBase {
@@ -502,9 +506,97 @@ public class DaoBase {
 		return criteria.list();
 	}
 	
+	public StockItem getStockItemByUuid(String uuid) {
+		return (StockItem) getSession().createCriteria(StockItem.class).add(Restrictions.eq("uuid", uuid)).uniqueResult();
+	}
+	
 	public StockItemPackagingUOM getStockItemPackagingUOMByUuid(String uuid) {
 		return (StockItemPackagingUOM) getSession().createCriteria(StockItemPackagingUOM.class)
 		        .add(Restrictions.eq("uuid", uuid)).uniqueResult();
+	}
+	
+	public Result<StockItemPackagingUOMDTO> findStockItemPackagingUOMs(StockItemPackagingUOMSearchFilter filter) {
+		HashMap<String, Object> parameterList = new HashMap<>();
+		HashMap<String, Collection> parameterWithList = new HashMap<>();
+		StringBuilder hqlQuery = new StringBuilder("select sipu.id as id,\n" + "\tsipu.uuid as uuid,\n"
+		        + "\tsipu.voided as voided,\n" + "\tsipu.factor as factor,\n" + "\tc.conceptId as packagingUomId,\n"
+		        + "\tc.uuid as packagingUomUuid,\n" + "\tsipu.stockItem.id as stockItemId,\n"
+		        + "\tsi.uuid as stockItemUuid,\n"
+		        + (filter.includingDispensingUnit() ? "\tdu.conceptId as stockItemDispensingUnitId,\n" : "")
+		        + "CASE sipu.id WHEN si.defaultStockOperationsUoM.id THEN true ELSE false END as isDefaultStockOperationsUoM,\n"
+		        + "CASE sipu.id WHEN si.dispensingUnitPackagingUoM.id THEN true ELSE false END as isDispensingUnit\n"
+		        + "from stockmanagement.StockItemPackagingUOM sipu join\n" + "  sipu.stockItem si join \n"
+		        + "  sipu.packagingUom c \n" + (filter.includingDispensingUnit() ? " left join si.dispensingUnit du" : ""));
+		
+		StringBuilder hqlFilter = new StringBuilder();
+		
+		if (!StringUtils.isBlank(filter.getUuid())) {
+			appendFilter(hqlFilter, "sipu.uuid = :uuid");
+			parameterList.putIfAbsent("uuid", filter.getUuid());
+		}
+		
+		if (filter.getStockItemIds() != null && !filter.getStockItemIds().isEmpty()) {
+			appendFilter(hqlFilter, "sipu.stockItem.id in (:stockItemId)");
+			parameterWithList.putIfAbsent("stockItemId", filter.getStockItemIds());
+		}
+		
+		if (filter.getStockItemUuids() != null && !filter.getStockItemUuids().isEmpty()) {
+			appendFilter(hqlFilter, "si.uuid in (:stockItemUuid)");
+			parameterWithList.putIfAbsent("stockItemUuid", filter.getStockItemUuids());
+		}
+		
+		if (!filter.getIncludeVoided()) {
+			appendFilter(hqlFilter, "sipu.voided = :vdd");
+			parameterList.putIfAbsent("vdd", false);
+		}
+		
+		if (hqlFilter.length() > 0) {
+			hqlQuery.append(" where ");
+			hqlQuery.append(hqlFilter);
+		}
+		
+		Result<StockItemPackagingUOMDTO> result = new Result<>();
+		if (filter.getLimit() != null) {
+			result.setPageIndex(filter.getStartIndex());
+			result.setPageSize(filter.getLimit());
+		}
+		result.setData(executeQuery(StockItemPackagingUOMDTO.class, hqlQuery, result, " order by sipu.id", parameterList,
+		    parameterWithList));
+		
+		if (!result.getData().isEmpty()) {
+			List<Integer> conceptIdsToFetch = result.getData().stream().map(p -> p.getPackagingUomId())
+			        .collect(Collectors.toList());
+			if (filter.includingDispensingUnit()) {
+				conceptIdsToFetch.addAll(result.getData().stream().map(p -> p.getStockItemDispensingUnitId())
+				        .filter(p -> p != null).collect(Collectors.toList()));
+			}
+			List<ConceptNameDTO> conceptNameDTOs = getConceptNamesByConceptIds(conceptIdsToFetch);
+			for (StockItemPackagingUOMDTO stockItemPackagingUOMDTO : result.getData()) {
+				Optional<ConceptNameDTO> conceptNameDTO = conceptNameDTOs.stream()
+				        .filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getPackagingUomId())
+				                && p.getLocale().getDisplayName().equals(Context.getLocale().getDisplayName()))
+				        .findFirst();
+				if (conceptNameDTO.isPresent()) {
+					stockItemPackagingUOMDTO.setPackagingUomName(conceptNameDTO.get().getName());
+				} else {
+					conceptNameDTO = conceptNameDTOs.stream()
+					        .filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getPackagingUomId())).findFirst();
+					if (conceptNameDTO.isPresent()) {
+						stockItemPackagingUOMDTO.setPackagingUomName(conceptNameDTO.get().getName());
+					}
+				}
+				if (filter.includingDispensingUnit() && stockItemPackagingUOMDTO.getStockItemDispensingUnitId() != null) {
+					conceptNameDTO = conceptNameDTOs.stream()
+					        .filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getStockItemDispensingUnitId()))
+					        .findFirst();
+					if (conceptNameDTO.isPresent()) {
+						stockItemPackagingUOMDTO.setStockItemDispensingUnitName(conceptNameDTO.get().getName());
+					}
+				}
+			}
+		}
+		
+		return result;
 	}
 	
 	protected boolean isNotNullOrEmpty(String value) {

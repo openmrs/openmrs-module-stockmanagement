@@ -40,7 +40,8 @@ public interface StockInventoryService extends OpenmrsService {
 	
 	@Transactional
 	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
-	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE }, requireAll = false)
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE }, requireAll = false)
 	void deleteReservedTransations(Integer stockOperationId);
 	
 	@Transactional(readOnly = true)
@@ -57,7 +58,8 @@ public interface StockInventoryService extends OpenmrsService {
 	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
 	
 	@Transactional(readOnly = true)
-	@Authorized(value = Privileges.APP_STOCKMANAGEMENT_STOCKITEMS, requireAll = false)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKITEMS,
+	        Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS }, requireAll = false)
 	StockInventoryResult getStockItemInventory(StockItemInventorySearchFilter filter,
 	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
 	

@@ -21,6 +21,8 @@ import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.PrescriptionLineItem;
 import org.openmrs.module.stockmanagement.api.model.OrderItem;
 import org.openmrs.module.stockmanagement.api.model.StockBatch;
+import org.openmrs.module.stockmanagement.api.model.StockItem;
+import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.module.stockmanagement.api.model.Party;
@@ -39,6 +41,12 @@ public interface StockInventoryDao {
 	StockItemTransaction saveStockItemTransaction(StockItemTransaction stockItemTransaction);
 	
 	StockBatch getStockBatchByUuid(String uuid);
+	
+	StockItem getStockItemByUuid(String uuid);
+	
+	StockItemPackagingUOM getStockItemPackagingUOMByUuid(String uuid);
+	
+	Result<StockItemPackagingUOMDTO> findStockItemPackagingUOMs(StockItemPackagingUOMSearchFilter filter);
 	
 	StockOperationType getStockOperationTypeByUuid(String uuid);
 	

@@ -165,7 +165,7 @@ public class StockInventoryServiceImpl extends BaseOpenmrsService implements Sto
 				if (StringUtils.isBlank(displayUom)) {
 					StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
 					uomFilter.setStockItemIds(Arrays.asList(stockOperationItem.getStockItem().getId()));
-					Result<StockItemPackagingUOMDTO> uoms = stockManagementService().findStockItemPackagingUOMs(uomFilter);
+					Result<StockItemPackagingUOMDTO> uoms = dao.findStockItemPackagingUOMs(uomFilter);
 					if (!uoms.getData().isEmpty()) {
 						StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(netEffectBalance, uoms.getData(),
 						    false, uomPriorityIsBigToSmall,
@@ -250,14 +250,14 @@ public class StockInventoryServiceImpl extends BaseOpenmrsService implements Sto
 			if (finalAdjustmentUom == null) {
 				StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
 				uomFilter.setStockItemIds(Arrays.asList(itemGroupItems.get(0).getStockItem().getId()));
-				Result<StockItemPackagingUOMDTO> uoms = stockManagementService().findStockItemPackagingUOMs(uomFilter);
+				Result<StockItemPackagingUOMDTO> uoms = dao.findStockItemPackagingUOMs(uomFilter);
 				if (!uoms.getData().isEmpty()) {
 					StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(absAdjustment, uoms.getData(), false,
 					    uomPriorityIsBigToSmall,
 					    itemGroupItems.get(0).getStockItemPackagingUOM() != null
 					            ? itemGroupItems.get(0).getStockItemPackagingUOM().getId()
 					            : null);
-					finalAdjustmentUom = stockManagementService().getStockItemPackagingUOMByUuid(preferredUoM.getUuid());
+					finalAdjustmentUom = dao.getStockItemPackagingUOMByUuid(preferredUoM.getUuid());
 					finalAdjustmentUnitValue = adjustment.divide(preferredUoM.getFactor(), 5, BigDecimal.ROUND_HALF_EVEN);
 				}
 			}
@@ -338,7 +338,7 @@ public class StockInventoryServiceImpl extends BaseOpenmrsService implements Sto
 			if (!StringUtils.isBlank(dispenseRequest.getStockItemUuid())) {
 				stockItem = stockItemMap.getOrDefault(dispenseRequest.getStockItemUuid(), null);
 				if (stockItem == null) {
-					stockItem = stockManagementService().getStockItemByUuid(dispenseRequest.getStockItemUuid());
+					stockItem = dao.getStockItemByUuid(dispenseRequest.getStockItemUuid());
 					if (stockItem != null) {
 						stockItemMap.putIfAbsent(dispenseRequest.getStockItemUuid(), stockItem);
 					}
@@ -423,7 +423,7 @@ public class StockInventoryServiceImpl extends BaseOpenmrsService implements Sto
 				stockItemPackagingUOM = stockItemPackagingUOMMap.getOrDefault(dispenseRequest.getStockItemPackagingUOMUuid(),
 				    null);
 				if (stockItemPackagingUOM == null) {
-					stockItemPackagingUOM = stockManagementService()
+					stockItemPackagingUOM = dao
 					        .getStockItemPackagingUOMByUuid(dispenseRequest.getStockItemPackagingUOMUuid());
 					if (stockItemPackagingUOM != null) {
 						stockItemPackagingUOMMap.putIfAbsent(dispenseRequest.getStockItemPackagingUOMUuid(),
@@ -526,8 +526,7 @@ public class StockInventoryServiceImpl extends BaseOpenmrsService implements Sto
 						if (StringUtils.isBlank(displayUom)) {
 							StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
 							uomFilter.setStockItemIds(Arrays.asList(stockItem.getId()));
-							Result<StockItemPackagingUOMDTO> uoms = stockManagementService()
-							        .findStockItemPackagingUOMs(uomFilter);
+							Result<StockItemPackagingUOMDTO> uoms = dao.findStockItemPackagingUOMs(uomFilter);
 							if (!uoms.getData().isEmpty()) {
 								StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(netEffectBalance,
 								    uoms.getData(), true, uomPriorityIsBigToSmall, null);
@@ -586,8 +585,7 @@ public class StockInventoryServiceImpl extends BaseOpenmrsService implements Sto
 			StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
 			uomFilter.setStockItemIds(
 			    result.stream().map(p -> p.getStockItemId()).filter(p -> p != null).collect(Collectors.toList()));
-			Map<Integer, List<StockItemPackagingUOMDTO>> uoms = stockManagementService()
-			        .findStockItemPackagingUOMs(uomFilter).getData().stream()
+			Map<Integer, List<StockItemPackagingUOMDTO>> uoms = dao.findStockItemPackagingUOMs(uomFilter).getData().stream()
 			        .collect(Collectors.groupingBy(StockItemPackagingUOMDTO::getStockItemId));
 			if (!uoms.isEmpty()) {
 				boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
@@ -720,9 +718,8 @@ public class StockInventoryServiceImpl extends BaseOpenmrsService implements Sto
 					uomFilter.setIncludeDispensingUnit(true);
 				}
 				if (!uomFilter.getStockItemIds().isEmpty()) {
-					Map<Integer, List<StockItemPackagingUOMDTO>> uoms = stockManagementService()
-					        .findStockItemPackagingUOMs(uomFilter).getData().stream()
-					        .collect(Collectors.groupingBy(StockItemPackagingUOMDTO::getStockItemId));
+					Map<Integer, List<StockItemPackagingUOMDTO>> uoms = dao.findStockItemPackagingUOMs(uomFilter).getData()
+					        .stream().collect(Collectors.groupingBy(StockItemPackagingUOMDTO::getStockItemId));
 					if (!uoms.isEmpty()) {
 						
 						for (Map.Entry<Integer, List<StockItemPackagingUOMDTO>> entry : uoms.entrySet()) {

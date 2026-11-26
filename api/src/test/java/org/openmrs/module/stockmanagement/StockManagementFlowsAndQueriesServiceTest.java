@@ -28,9 +28,14 @@ import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.dto.DispenseRequest;
 import org.openmrs.module.stockmanagement.api.dto.PartyDTO;
+import org.openmrs.module.stockmanagement.api.dto.Result;
+import org.openmrs.module.stockmanagement.api.dto.StockBatchDTO;
+import org.openmrs.module.stockmanagement.api.dto.StockBatchSearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.PrivilegeScope;
 import org.openmrs.module.stockmanagement.api.dto.SessionInfo;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -1860,6 +1865,87 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		    newBatchItem(batch.getUuid(), BigDecimal.TEN));
 		assertEquals(0, BigDecimal.ZERO.compareTo(stockInventoryService.getStockInventory(withExpired, null).getData()
 		        .stream().map(StockItemInventory::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add)));
+	}
+	
+	@Test
+	public void approveStockOperation_shouldAllowApproverWithoutStockItemOrOperationEditAccess() {
+		Role approveOnlyRole = createRoleWithPrivileges("Stock Approve Only " + UUID.randomUUID().toString().substring(0, 8),
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE, PrivilegeConstants.GET_LOCATIONS,
+		    PrivilegeConstants.GET_CONCEPTS, PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		User approver = createTestUser("approve_only_" + UUID.randomUUID().toString().substring(0, 8), approveOnlyRole);
+		grantScope(approver, approveOnlyRole, parentLocation, true, receiptType);
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO dto = newReceiptDto(childParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(15));
+		dto.setUuid(stockManagementService.saveStockOperation(dto).getUuid());
+		Context.flushSession();
+		Context.clearSession();
+		stockManagementService.submitStockOperation(dto);
+		Context.flushSession();
+		Context.clearSession();
+		
+		Context.authenticate(approver.getUsername(), "TestPassword123!");
+		stockManagementService.approveStockOperation(dto);
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(StockOperationStatus.COMPLETED, dao().getStockOperationByUuid(dto.getUuid()).getStatus());
+	}
+	
+	@Test
+	public void dispenseStockItems_shouldAllowDispenseOnlyUserWithoutStockItemAppAccess() {
+		Role dispenseOnlyRole = createRoleWithPrivileges(
+		    "Stock Dispense Only " + UUID.randomUUID().toString().substring(0, 8),
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_DISPENSE, PrivilegeConstants.GET_LOCATIONS,
+		    PrivilegeConstants.GET_PATIENTS, PrivilegeConstants.GET_ORDERS, PrivilegeConstants.GET_ENCOUNTERS,
+		    PrivilegeConstants.GET_CONCEPTS, PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		User dispenser = createTestUser("dispense_only_" + UUID.randomUUID().toString().substring(0, 8), dispenseOnlyRole);
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(100), "DISPENSE-" + UUID.randomUUID().toString().substring(0, 8));
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		BigDecimal before = balanceAt(parentParty);
+		
+		DispenseRequest request = new DispenseRequest();
+		request.setPatientId(2);
+		request.setLocationUuid(parentLocation.getUuid());
+		request.setQuantity(BigDecimal.TEN);
+		request.setStockItemUuid(sampleStockItem.getUuid());
+		request.setOrderId(1);
+		request.setEncounterId(3);
+		request.setStockBatchUuid(batchUuid);
+		request.setStockItemPackagingUOMUuid(samplePackagingUom.getUuid());
+		
+		Context.authenticate(dispenser.getUsername(), "TestPassword123!");
+		Context.getService(StockInventoryService.class).dispenseStockItems(Collections.singletonList(request));
+		Context.flushSession();
+		Context.clearSession();
+		assertEquals(0, before.subtract(BigDecimal.TEN).compareTo(balanceAt(parentParty)));
+	}
+	
+	@Test
+	public void findStockBatches_shouldAllowOperationsOnlyUserWhenFilteredByLocation() {
+		Role operationsOnlyRole = createRoleWithPrivileges(
+		    "Stock Operations Only " + UUID.randomUUID().toString().substring(0, 8),
+		    Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS, PrivilegeConstants.GET_LOCATIONS,
+		    PrivilegeConstants.GET_CONCEPTS, PrivilegeConstants.GET_GLOBAL_PROPERTIES);
+		User operationsUser = createTestUser("ops_only_" + UUID.randomUUID().toString().substring(0, 8), operationsOnlyRole);
+		
+		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
+		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
+		    BigDecimal.valueOf(20), "OPS-BATCH-" + UUID.randomUUID().toString().substring(0, 8));
+		String batchUuid = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
+		        .iterator().next().getStockBatch().getUuid();
+		
+		StockBatchSearchFilter filter = new StockBatchSearchFilter();
+		filter.setStockItemUuid(sampleStockItem.getUuid());
+		filter.setLocationUuid(parentLocation.getUuid());
+		filter.setExcludeEmptyStock(false);
+		
+		Context.authenticate(operationsUser.getUsername(), "TestPassword123!");
+		Result<StockBatchDTO> result = stockManagementService.findStockBatches(filter);
+		assertTrue(result.getData().stream().anyMatch(p -> batchUuid.equals(p.getUuid())));
 	}
 	
 	// ---------------------------------------------------------------------------------------------
