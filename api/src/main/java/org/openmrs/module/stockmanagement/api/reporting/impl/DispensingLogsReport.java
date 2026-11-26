@@ -17,7 +17,6 @@ import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.reporting.DispensingLineFilter;
@@ -53,8 +52,7 @@ public class DispensingLogsReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
-		Integer pageSize = ModuleConstants.positiveValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE,
-		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE, 1000), 1000);
+		Integer pageSize = getReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;

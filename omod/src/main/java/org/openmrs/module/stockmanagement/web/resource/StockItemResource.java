@@ -163,7 +163,7 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		}
 		
 		ConceptService service = Context.getConceptService();
-		Integer maxIntermediateResult = ModuleConstants
+		Integer maxIntermediateResult = Context.getAdministrationService()
 		        .getGlobalPropertyValue(ModuleConstants.STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, 50);
 		List<Integer> itemsFound = getStockManagementService().searchStockItemCommonName(searchToken, filter.getIsDrug(),
 		    context.getIncludeAll(), maxIntermediateResult);

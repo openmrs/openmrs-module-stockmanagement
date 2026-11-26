@@ -10,7 +10,6 @@
 package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.time.DateUtils;
-import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
@@ -32,11 +31,7 @@ public class StockConsumptionReport extends StockItemInventoryReport<StockItemIn
 			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
 			if (!stockInventoryResult.getData().isEmpty()) {
 				stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
-				BigDecimal daysInMonth = ModuleConstants.positiveValue(
-				    ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH,
-				    ModuleConstants.getGlobalPropertyValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH,
-				        BigDecimal.valueOf(30.5)),
-				    BigDecimal.valueOf(30.5));
+				BigDecimal daysInMonth = getReportingCalculationsNoDaysInMonth();
 				stockInventoryResult.getData().forEach(p -> {
 					StockItemInventoryConsumption consumption = ((StockItemInventoryConsumption) p);
 					if (consumption.getQuantityFactor() != null) {

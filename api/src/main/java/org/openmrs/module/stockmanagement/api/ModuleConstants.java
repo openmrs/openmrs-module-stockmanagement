@@ -9,14 +9,6 @@
  */
 package org.openmrs.module.stockmanagement.api;
 
-import org.apache.commons.lang.StringUtils;
-import org.openmrs.api.context.Context;
-import org.openmrs.util.PrivilegeConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.math.BigDecimal;
-
 public class ModuleConstants {
 	
 	/**
@@ -66,91 +58,4 @@ public class ModuleConstants {
 	
 	public static final String PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL = MODULE_ID
 	        + ".packagingUnitPackSizePriorityIsBigToSmall";
-	
-	private static final Logger log = LoggerFactory.getLogger(ModuleConstants.class);
-	
-	/**
-	 * Reads a setting for the current user. Core needs Get Global Properties for the read, which the
-	 * stock roles don't have, so the privilege is proxied for the call.
-	 */
-	public static <T> T getGlobalPropertyValue(String key, T defaultValue) {
-		Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-		try {
-			return Context.getAdministrationService().getGlobalPropertyValue(key, defaultValue);
-		}
-		finally {
-			Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-		}
-	}
-	
-	public static String getGlobalProperty(String key) {
-		return getGlobalProperty(key, null);
-	}
-	
-	/** Same as {@link #getGlobalPropertyValue(String, Object)} for the raw string value. */
-	public static String getGlobalProperty(String key, String defaultValue) {
-		Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-		try {
-			return Context.getAdministrationService().getGlobalProperty(key, defaultValue);
-		}
-		finally {
-			Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-		}
-	}
-	
-	/** Job switches historically also accept yes and 1, without trimming. */
-	public static boolean parseJobEnabled(String key, String value) {
-		if ("true".equalsIgnoreCase(value) || "yes".equalsIgnoreCase(value) || "1".equals(value)) {
-			return true;
-		}
-		if (!StringUtils.isEmpty(value) && !"false".equalsIgnoreCase(value) && !"no".equalsIgnoreCase(value)
-		        && !"0".equals(value)) {
-			log.warn("Invalid value '{}' for global property '{}'; using false", value, key);
-		}
-		return false;
-	}
-	
-	/**
-	 * Reads a true/false setting the way Boolean.parseBoolean does, so anything other than true is
-	 * false, and logs values that are neither true nor false. Blank values give blankValue.
-	 */
-	public static boolean parseBoolean(String key, String value, boolean blankValue) {
-		if (StringUtils.isBlank(value)) {
-			return blankValue;
-		}
-		if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
-			log.warn("Invalid value '{}' for global property '{}'; using false", value, key);
-		}
-		return Boolean.parseBoolean(value);
-	}
-	
-	/** Blank values mean true, but all other values retain Boolean.parseBoolean semantics. */
-	public static boolean parseUomPriority(String value) {
-		return parseBoolean(PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, value, true);
-	}
-	
-	/** Keeps the setting's lower bound, and logs when a configured value is raised to it. */
-	public static int atLeast(String key, int value, int minimum) {
-		if (value < minimum) {
-			log.warn("Invalid value '{}' for global property '{}'; using {}", value, key, minimum);
-			return minimum;
-		}
-		return value;
-	}
-	
-	public static Integer positiveValue(String key, Integer value, Integer defaultValue) {
-		if (value <= 0) {
-			log.warn("Invalid value '{}' for global property '{}'; using {}", value, key, defaultValue);
-			return defaultValue;
-		}
-		return value;
-	}
-	
-	public static BigDecimal positiveValue(String key, BigDecimal value, BigDecimal defaultValue) {
-		if (value.compareTo(BigDecimal.ZERO) <= 0) {
-			log.warn("Invalid value '{}' for global property '{}'; using {}", value, key, defaultValue);
-			return defaultValue;
-		}
-		return value;
-	}
 }

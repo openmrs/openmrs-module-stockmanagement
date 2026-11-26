@@ -68,15 +68,16 @@ public class StockItemImportController {
 			return importResult;
 		}
 		
-		if (file.getSize() > (ModuleConstants.getGlobalPropertyValue(ModuleConstants.STOCK_ITEMS_MAX_UPLOAD_FILE_SIZE, 2L)
-		        * 1024 * 1024)) {
+		long maxUploadFileSizeMb = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.STOCK_ITEMS_MAX_UPLOAD_FILE_SIZE, 2L);
+		if (file.getSize() > (maxUploadFileSizeMb * 1024 * 1024)) {
 			ImportResult importResult = new ImportResult();
 			importResult.setSuccess(false);
 			importResult.setErrors(new ArrayList<>());
 			importResult.getErrors()
 			        .add(String.format(
 			            Context.getMessageSourceService().getMessage("stockmanagement.importoperation.maxfilesizeexceeded"),
-			            ModuleConstants.getGlobalPropertyValue(ModuleConstants.STOCK_ITEMS_MAX_UPLOAD_FILE_SIZE, 2L)));
+			            maxUploadFileSizeMb));
 			return importResult;
 		}
 		

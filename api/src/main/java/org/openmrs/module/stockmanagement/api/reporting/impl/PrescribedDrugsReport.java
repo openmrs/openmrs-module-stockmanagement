@@ -57,8 +57,7 @@ public class PrescribedDrugsReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
-		Integer pageSize = ModuleConstants.positiveValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE,
-		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE, 1000), 1000);
+		Integer pageSize = getReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;
@@ -140,8 +139,8 @@ public class PrescribedDrugsReport extends ReportGenerator {
 			}
 			
 			Integer observationDispensingLocationId = null, observationDrugId = null;
-			String configuredConcept = ModuleConstants
-			        .getGlobalProperty(ModuleConstants.OBSERVATION_DISPENSING_LOCATION_CONCEPT, null);
+			String configuredConcept = Context.getAdministrationService()
+			        .getGlobalProperty(ModuleConstants.OBSERVATION_DISPENSING_LOCATION_CONCEPT);
 			if (!StringUtils.isBlank(configuredConcept)) {
 				Concept concept = Context.getConceptService().getConceptByUuid(configuredConcept);
 				if (concept == null) {
@@ -152,7 +151,8 @@ public class PrescribedDrugsReport extends ReportGenerator {
 				observationDispensingLocationId = concept.getConceptId();
 			}
 			
-			configuredConcept = ModuleConstants.getGlobalProperty(ModuleConstants.OBSERVATION_DRUG_CONCEPT, null);
+			configuredConcept = Context.getAdministrationService()
+			        .getGlobalProperty(ModuleConstants.OBSERVATION_DRUG_CONCEPT);
 			if (!StringUtils.isBlank(configuredConcept)) {
 				Concept concept = Context.getConceptService().getConceptByUuid(configuredConcept);
 				if (concept == null) {

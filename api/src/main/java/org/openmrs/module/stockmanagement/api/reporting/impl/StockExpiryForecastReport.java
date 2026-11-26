@@ -18,7 +18,6 @@ import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -92,8 +91,7 @@ public class StockExpiryForecastReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
-		Integer pageSize = ModuleConstants.positiveValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE,
-		    ModuleConstants.getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE, 1000), 1000);
+		Integer pageSize = getReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;
@@ -114,9 +112,7 @@ public class StockExpiryForecastReport extends ReportGenerator {
 			return;
 		}
 		todaysDate = DateUtil.today();
-		daysInMonth = ModuleConstants.positiveValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, ModuleConstants
-		        .getGlobalPropertyValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, BigDecimal.valueOf(30.5)),
-		    BigDecimal.valueOf(30.5));
+		daysInMonth = getReportingCalculationsNoDaysInMonth();
 		startDate = getStartDate(parameters);
 		endDate = getEndDate(parameters);
 		String locationUuid = getLocation(parameters);

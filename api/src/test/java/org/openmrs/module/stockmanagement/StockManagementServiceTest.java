@@ -24,7 +24,6 @@ import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
-import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
@@ -36,7 +35,6 @@ import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.test.BaseModuleContextSensitiveTest;
-import org.openmrs.util.PrivilegeConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.lang.reflect.Array;
@@ -702,76 +700,6 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertEquals(entity.size(), 2);
 		assertTrue(entity.stream().anyMatch(p -> dispenseRequests.stream().anyMatch(x -> p.getQuantity()
 		        .multiply(BigDecimal.valueOf(-1)).setScale(2, BigDecimal.ROUND_HALF_EVEN).compareTo(x.getQuantity()) == 0)));
-	}
-	
-	@Test
-	public void getStockBatchLocationInventory_shouldReadSettingsForAUserWithoutGetGlobalProperties() {
-		// the factories void entities at random, a voided unit would skip the setting read
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		stockItem.setVoided(false);
-		dao().saveStockItem(stockItem);
-		StockItemPackagingUOM packagingUom = entityUtil.newStockItemPackagingUOM(dao(), false, stockItem);
-		packagingUom.setVoided(false);
-		dao().saveStockItemPackagingUOM(packagingUom);
-		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
-		stockBatch.setVoided(false);
-		dao().saveStockBatch(stockBatch);
-		StockItemTransaction stockItemTransaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
-		stockItemTransaction.setQuantity(BigDecimal.valueOf(200));
-		stockItemTransaction.setPatient(null);
-		dao().saveStockItemTransaction(stockItemTransaction);
-		Context.getAdministrationService().saveGlobalProperty(
-		    new GlobalProperty(ModuleConstants.PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, "false"));
-		stockManagementService.setDao(dao());
-		
-		// stock roles don't carry Get Global Properties, so run the read as a user with no roles
-		Set<Role> originalRoles = new HashSet<>(Context.getAuthenticatedUser().getRoles());
-		try {
-			Context.getAuthenticatedUser().setRoles(new HashSet<>());
-			assertFalse(Context.hasPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES));
-			
-			List<StockItemInventory> inventory = stockManagementService
-			        .getStockBatchLocationInventory(Collections.singletonList(stockBatch.getId()));
-			
-			assertEquals(1, inventory.size());
-			assertEquals(packagingUom.getUuid(), inventory.get(0).getQuantityUoMUuid());
-			assertFalse(Context.hasPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES));
-		}
-		finally {
-			Context.getAuthenticatedUser().setRoles(originalRoles);
-		}
-	}
-	
-	@Test
-	public void moduleConstants_shouldReadSettingsForAUserWithoutGetGlobalProperties() {
-		Context.getAdministrationService()
-		        .saveGlobalProperty(new GlobalProperty(ModuleConstants.ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION, "true"));
-		Context.getAdministrationService()
-		        .saveGlobalProperty(new GlobalProperty(ModuleConstants.STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, "25"));
-		
-		Set<Role> originalRoles = new HashSet<>(Context.getAuthenticatedUser().getRoles());
-		try {
-			Context.getAuthenticatedUser().setRoles(new HashSet<>());
-			
-			assertEquals("true", ModuleConstants.getGlobalProperty(ModuleConstants.ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION));
-			assertEquals("fallback", ModuleConstants.getGlobalProperty("stockmanagement.notSet", "fallback"));
-			assertEquals(Integer.valueOf(25),
-			    ModuleConstants.getGlobalPropertyValue(ModuleConstants.STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, 50));
-			assertFalse(Context.hasPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES));
-			
-			// a privilege the caller proxied itself is kept
-			Context.addProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-			try {
-				ModuleConstants.getGlobalProperty(ModuleConstants.ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION);
-				assertTrue(Context.hasPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES));
-			}
-			finally {
-				Context.removeProxyPrivilege(PrivilegeConstants.GET_GLOBAL_PROPERTIES);
-			}
-		}
-		finally {
-			Context.getAuthenticatedUser().setRoles(originalRoles);
-		}
 	}
 	
 	@Test
