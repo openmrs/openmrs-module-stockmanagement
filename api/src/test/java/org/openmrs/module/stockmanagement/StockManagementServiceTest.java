@@ -734,6 +734,54 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
+	public void getStockInventory_shouldIncludeStockItemUuidForUnfilteredRows() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		StockItemTransaction transaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
+		transaction.setQuantity(BigDecimal.TEN);
+		dao().saveStockItemTransaction(transaction);
+		
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setRequireItemGroupFilters(false);
+		StockInventoryResult result = stockManagementService.getStockInventory(filter, null);
+		
+		assertTrue(result.getData().stream().anyMatch(
+		    p -> stockItem.getId().equals(p.getStockItemId()) && stockItem.getUuid().equals(p.getStockItemUuid())));
+	}
+	
+	@Test
+	public void getStockInventory_shouldPageConsumptionInventory() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		dao().saveStockItemPackagingUOM(packagingUom);
+		StockBatch stockBatch = eu().newStockBatch(dao(), stockItem);
+		dao().saveStockBatch(stockBatch);
+		StockItemTransaction transaction = eu().newStockItemTransaction(dao(), stockItem, stockBatch, packagingUom);
+		transaction.setQuantity(BigDecimal.TEN);
+		transaction.setDateCreated(DateUtils.addDays(new Date(), -1));
+		dao().saveStockItemTransaction(transaction);
+		
+		StockItemInventorySearchFilter filter = new StockItemInventorySearchFilter();
+		filter.setRequireItemGroupFilters(false);
+		filter.setInventoryMode(StockItemInventorySearchFilter.InventoryMode.Consumption);
+		filter.setStartDate(DateUtils.addDays(transaction.getDateCreated(), -1));
+		filter.setEndDate(DateUtils.addDays(transaction.getDateCreated(), 1));
+		filter.setStartIndex(0);
+		filter.setLimit(1);
+		StockInventoryResult result = stockManagementService.getStockInventory(filter, null);
+		
+		assertEquals(1, result.getData().size());
+		assertThat(result.getTotalRecordCount(), greaterThanOrEqualTo(1L));
+	}
+	
+	@Test
 	public void findStockItemTransactions_shouldFilterOnAllCriteria() {
 		stockManagementService.setDao(dao());
 		StockItemTransaction so = eu().newStockItemTransaction(dao());

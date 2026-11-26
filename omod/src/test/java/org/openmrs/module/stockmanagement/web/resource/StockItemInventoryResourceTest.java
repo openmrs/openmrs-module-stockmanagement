@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -74,6 +75,22 @@ public class StockItemInventoryResourceTest extends BaseModuleWebContextSensitiv
 		assertTrue(filter.getItemGroupFilters().isEmpty());
 		assertEquals(context.getStartIndex(), filter.getStartIndex());
 		assertEquals(context.getLimit(), filter.getLimit());
+	}
+	
+	@Test
+	public void doSearch_shouldReturnEmptyResultForNonNumericDrugId() {
+		PageableResult result = resource.doSearch(contextWith(Collections.singletonMap("drugId", "abc")));
+		
+		assertFalse(result instanceof StockInventoryPageableResult);
+		verify(service, never()).getStockInventory(any(StockItemInventorySearchFilter.class));
+	}
+	
+	@Test
+	public void doSearch_shouldReturnEmptyResultForNonNumericConceptId() {
+		PageableResult result = resource.doSearch(contextWith(Collections.singletonMap("conceptId", "abc")));
+		
+		assertFalse(result instanceof StockInventoryPageableResult);
+		verify(service, never()).getStockInventory(any(StockItemInventorySearchFilter.class));
 	}
 	
 	@Test

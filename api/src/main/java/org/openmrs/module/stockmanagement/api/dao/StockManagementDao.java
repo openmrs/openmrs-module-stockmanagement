@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @SuppressWarnings({ "unchecked" })
@@ -2668,6 +2669,10 @@ public class StockManagementDao extends DaoBase {
 		}
 	}
 	
+	private boolean hasNamedParameter(String query, String parameterName) {
+		return Pattern.compile(":" + Pattern.quote(parameterName) + "\\b").matcher(query).find();
+	}
+	
 	public StockInventoryResult getStockItemInventory(StockItemInventorySearchFilter filter,
 	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
 		HashMap<String, Object> parameterList = new HashMap<>();
@@ -2737,14 +2742,21 @@ public class StockManagementDao extends DaoBase {
 			if (groupByIdx >= 0) {
 				countHql.setLength(groupByIdx);
 			}
-			Query countQuery = getSession().createQuery(countHql.toString());
+			String countQueryString = countHql.toString();
+			Query countQuery = getSession().createQuery(countQueryString);
 			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					countQuery.setParameter(entry.getKey(), entry.getValue());
+				for (Map.Entry<String, Object> entry : parameterList.entrySet()) {
+					if (hasNamedParameter(countQueryString, entry.getKey())) {
+						countQuery.setParameter(entry.getKey(), entry.getValue());
+					}
+				}
 			}
 			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					countQuery.setParameterList(entry.getKey(), entry.getValue());
+				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet()) {
+					if (hasNamedParameter(countQueryString, entry.getKey())) {
+						countQuery.setParameterList(entry.getKey(), entry.getValue());
+					}
+				}
 			}
 			Long count = (Long) countQuery.uniqueResult();
 			result.setTotalRecordCount(count == null ? 0 : count);
@@ -2761,13 +2773,15 @@ public class StockManagementDao extends DaoBase {
 			orderColumns.add("sit.stockBatch.id");
 		}
 		String orderBy = orderColumns.isEmpty() ? null : " order by " + String.join(", ", orderColumns);
+		Class<?> resultClass = filter.getInventoryMode() == StockItemInventorySearchFilter.InventoryMode.Consumption
+		        ? StockItemInventoryConsumption.class
+		        : StockItemInventory.class;
 		if (filter.getLimit() != null) {
-			Query query = createPagingQuery(result, StockItemInventory.class, hqlQuery, orderBy, parameterList,
-			    parameterWithList);
+			Query query = createPagingQuery(result, resultClass, hqlQuery, orderBy, parameterList, parameterWithList);
 			query.setFirstResult(firstResult);
 			result.setData(query.list());
 		} else {
-			result.setData(executeQuery(StockItemInventory.class, hqlQuery, result, null, parameterList, parameterWithList));
+			result.setData(executeQuery(resultClass, hqlQuery, result, null, parameterList, parameterWithList));
 		}
 		
 		if ((!groupByStockBatch || filter.getAllowEmptyBatchInfo()) && filter.dispensing()) {
@@ -2842,21 +2856,24 @@ public class StockManagementDao extends DaoBase {
 				}
 			}
 			
-			if (filter.isIncludeStockItemName()) {
+			if (!result.getData().isEmpty()) {
 				StockItemSearchFilter itemFilter = new StockItemSearchFilter();
 				itemFilter.setStockItemIds(
 				    result.getData().stream().map(p -> p.getStockItemId()).collect(Collectors.toList()));
 				Result<StockItemDTO> stockItemDTOResult = findStockItems(itemFilter);
 				if (!stockItemDTOResult.getData().isEmpty()) {
+					Map<Integer, StockItemDTO> stockItemsById = stockItemDTOResult.getData().stream()
+					        .collect(Collectors.toMap(StockItemDTO::getId, Function.identity(), (first, second) -> first));
 					for (StockItemInventory stockItemInventory : result.getData()) {
-						Optional<StockItemDTO> stockItemDTO = stockItemDTOResult.getData().stream()
-						        .filter(p -> p.getId().equals(stockItemInventory.getStockItemId())).findFirst();
-						if (stockItemDTO.isPresent()) {
-							stockItemInventory.setDrugName(stockItemDTO.get().getDrugName());
-							stockItemInventory.setConceptName(stockItemDTO.get().getConceptName());
-							stockItemInventory.setCommonName(stockItemDTO.get().getCommonName());
-							stockItemInventory.setAcronym(stockItemDTO.get().getAcronym());
-							stockItemInventory.setStockItemUuid(stockItemDTO.get().getUuid());
+						StockItemDTO stockItemDTO = stockItemsById.get(stockItemInventory.getStockItemId());
+						if (stockItemDTO != null) {
+							stockItemInventory.setStockItemUuid(stockItemDTO.getUuid());
+							if (filter.isIncludeStockItemName()) {
+								stockItemInventory.setDrugName(stockItemDTO.getDrugName());
+								stockItemInventory.setConceptName(stockItemDTO.getConceptName());
+								stockItemInventory.setCommonName(stockItemDTO.getCommonName());
+								stockItemInventory.setAcronym(stockItemDTO.getAcronym());
+							}
 						}
 					}
 				}

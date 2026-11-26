@@ -94,12 +94,10 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			if (!StringUtils.isBlank(param)) {
 				drugId = NumberUtils.toInt(param, 0);
 				if (drugId == 0)
-					drugId = null;
-				if (drugId != null) {
-					Drug drug = Context.getConceptService().getDrug(drugId);
-					if (drug == null) {
-						return emptyResult(context);
-					}
+					return emptyResult(context);
+				Drug drug = Context.getConceptService().getDrug(drugId);
+				if (drug == null) {
+					return emptyResult(context);
 				}
 			}
 			
@@ -107,12 +105,10 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			if (!StringUtils.isBlank(param)) {
 				conceptId = NumberUtils.toInt(param, 0);
 				if (conceptId == 0)
-					conceptId = null;
-				if (conceptId != null) {
-					Concept concept = Context.getConceptService().getConcept(conceptId);
-					if (concept == null) {
-						return emptyResult(context);
-					}
+					return emptyResult(context);
+				Concept concept = Context.getConceptService().getConcept(conceptId);
+				if (concept == null) {
+					return emptyResult(context);
 				}
 			}
 			
