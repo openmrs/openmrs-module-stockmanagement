@@ -17,6 +17,7 @@ import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
@@ -45,12 +46,15 @@ public class StockExpiryReport extends ReportGenerator {
 	
 	protected StockManagementService stockManagementService = null;
 	
+	protected StockInventoryService stockInventoryService = null;
+	
 	protected BatchJob batchJob = null;
 	
 	@Override
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
@@ -180,7 +184,7 @@ public class StockExpiryReport extends ReportGenerator {
 							inventorySearchFilter.getItemGroupFilters().add(itemGroupFilter);
 						}
 						
-						Map<Integer, List<StockItemInventory>> inventoryResult = stockManagementService
+						Map<Integer, List<StockItemInventory>> inventoryResult = stockInventoryService
 						        .getStockInventory(inventorySearchFilter, null).getData().stream()
 						        .collect(Collectors.groupingBy(p -> p.getStockBatchId()));
 						for (Map.Entry<Integer, List<StockBatchLineItem>> p : stockItemGroupsPage) {

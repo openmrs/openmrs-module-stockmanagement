@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
@@ -45,7 +46,7 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 	public StockItemTransactionDTO getByUniqueId(String uniqueId) {
 		StockItemTransactionSearchFilter filter = new StockItemTransactionSearchFilter();
 		filter.setUuid(uniqueId);
-		List<StockItemTransactionDTO> result = getStockManagementService().findStockItemTransactions(filter).getData();
+		List<StockItemTransactionDTO> result = getStockInventoryService().findStockItemTransactions(filter).getData();
 		return result.isEmpty() ? null : result.get(0);
 	}
 	
@@ -113,8 +114,8 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 			}
 		}
 		
-		StockManagementService stockManagementService = getStockManagementService();
-		Result<StockItemTransactionDTO> result = stockManagementService.findStockItemTransactions(filter);
+		StockInventoryService stockInventoryService = getStockInventoryService();
+		Result<StockItemTransactionDTO> result = stockInventoryService.findStockItemTransactions(filter);
 		return toAlreadyPaged(result, context);
 	}
 	

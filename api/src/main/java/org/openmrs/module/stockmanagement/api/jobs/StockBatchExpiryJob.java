@@ -24,6 +24,7 @@ import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.Roles;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.utils.*;
 import org.openmrs.module.stockmanagement.api.utils.StringUtils;
@@ -77,6 +78,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 		
 		log.debug("Fetching the batch numbers due for notification");
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
+		StockInventoryService stockInventoryService = Context.getService(StockInventoryService.class);
 		
 		Integer defaultExpNotificationPeriod = GlobalProperties.getStockBatchDefaultExpiryNotificationNoticePeriod();
 		Map<Integer, StockBatchDTO> stockBatchNumbers = stockManagementService
@@ -89,7 +91,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 		
 		// Remove stock batch numbers that do not have any stock
 		Map<Integer, List<StockItemInventory>> stockBatchBalance = new HashMap<>();
-		removeItemsWithoutStock(stockBatchNumbers, stockBatchBalance, stockManagementService);
+		removeItemsWithoutStock(stockBatchNumbers, stockBatchBalance, stockManagementService, stockInventoryService);
 		if (stockBatchNumbers.isEmpty()) {
 			log.debug("No stock batch numbers with balance");
 			return;
@@ -474,7 +476,8 @@ public class StockBatchExpiryJob extends AbstractTask {
 	}
 	
 	private void removeItemsWithoutStock(Map<Integer, StockBatchDTO> stockBatchDTOs,
-	        Map<Integer, List<StockItemInventory>> stockBatchBalance, StockManagementService stockManagementService) {
+	        Map<Integer, List<StockItemInventory>> stockBatchBalance, StockManagementService stockManagementService,
+	        StockInventoryService stockInventoryService) {
 		List<PartyDTO> allStockHoldingAreas = stockManagementService.getAllStockHoldingPartyList();
 		if (allStockHoldingAreas.isEmpty()) {
 			log.error("Found no locations tagged with tags for stock holding areas");
@@ -491,7 +494,7 @@ public class StockBatchExpiryJob extends AbstractTask {
 			        .collect(Collectors.toList());
 			if (batch.isEmpty())
 				break;
-			List<StockItemInventory> inventory = stockManagementService
+			List<StockItemInventory> inventory = stockInventoryService
 			        .getStockBatchLocationInventory(batch.stream().map(p -> p.getId()).collect(Collectors.toList()));
 			Map<Integer, List<StockItemInventory>> batchInventories = inventory.stream()
 			        .collect(Collectors.groupingBy(StockItemInventory::getStockBatchId));

@@ -29,9 +29,9 @@ public class StockConsumptionReport extends StockItemInventoryReport<StockItemIn
 	protected void preWriteBuffer(StockItemInventorySearchFilter inventorySearchFilter,
 	        StockInventoryResult stockInventoryResult) {
 		if (!stockInventoryResult.getData().isEmpty()) {
-			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
+			stockInventoryService.setStockItemInformation(stockInventoryResult.getData());
 			if (!stockInventoryResult.getData().isEmpty()) {
-				stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+				stockInventoryService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
 				stockInventoryResult.getData().forEach(p -> {
 					StockItemInventoryConsumption consumption = ((StockItemInventoryConsumption) p);
 					if (consumption.getQuantityFactor() != null) {

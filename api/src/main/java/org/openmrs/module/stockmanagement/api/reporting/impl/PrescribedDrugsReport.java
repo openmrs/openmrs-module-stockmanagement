@@ -16,6 +16,7 @@ import org.openmrs.*;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -41,6 +42,8 @@ public class PrescribedDrugsReport extends ReportGenerator {
 	
 	protected StockManagementService stockManagementService = null;
 	
+	protected StockInventoryService stockInventoryService = null;
+	
 	protected BatchJob batchJob = null;
 	
 	private BigDecimal negativeOne = BigDecimal.valueOf(-1);
@@ -56,6 +59,7 @@ public class PrescribedDrugsReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
@@ -172,7 +176,7 @@ public class PrescribedDrugsReport extends ReportGenerator {
 				}
 				filter.setStartIndex(pageIndex);
 				filter.setPrescriptionTransactionMin(lastRecordProcessed);
-				Result<PrescriptionLineItem> data = stockManagementService.findPrescriptionLineItems(filter);
+				Result<PrescriptionLineItem> data = stockInventoryService.findPrescriptionLineItems(filter);
 				if (shouldStopExecution.apply(batchJob)) {
 					return;
 				}

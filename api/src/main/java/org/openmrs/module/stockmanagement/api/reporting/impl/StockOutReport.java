@@ -22,7 +22,7 @@ public class StockOutReport extends StockStatusReport {
 	protected void preWriteBuffer(StockItemInventorySearchFilter inventorySearchFilter,
 	        StockInventoryResult stockInventoryResult) {
 		if (!stockInventoryResult.getData().isEmpty()) {
-			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
+			stockInventoryService.setStockItemInformation(stockInventoryResult.getData());
 			if (maxReorderLevelRatio == null) {
 				maxReorderLevelRatio = BigDecimal.ZERO;
 			}
@@ -33,7 +33,7 @@ public class StockOutReport extends StockStatusReport {
 				                        : p.getReorderLevel().multiply(p.getReorderLevelFactor()))) > 0;
 			});
 			if (!stockInventoryResult.getData().isEmpty()) {
-				stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+				stockInventoryService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
 			}
 		}
 	}

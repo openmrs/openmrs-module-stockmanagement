@@ -18,6 +18,7 @@ import org.openmrs.User;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleNotificationUser;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
@@ -73,6 +74,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 		
 		log.debug("Fetching the rules");
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
+		StockInventoryService stockInventoryService = Context.getService(StockInventoryService.class);
 		Integer lastStockRuleId = 0;
 		int batchSize = GlobalProperties.getStockRuleJobBatchSize().intValue();
 		List<StockRuleNotificationUser> rules = new ArrayList<>();
@@ -118,14 +120,14 @@ public class StockRuleEvaluationJob extends AbstractTask {
 			        .filter(p -> p.getEnableDescendants() != null && p.getEnableDescendants())
 			        .map(p -> new StockRuleCurrentQuantity(p.getStockItemId(), p.getLocationId(), BigDecimal.ZERO, true))
 			        .distinct().collect(Collectors.toList());
-			stockManagementService.setStockItemCurrentBalanceWithDescendants(itemBalances);
+			stockInventoryService.setStockItemCurrentBalanceWithDescendants(itemBalances);
 			
 			log.debug("Calculating item balances 2" + rules.size());
 			List<StockRuleCurrentQuantity> itemBalances2 = rules.stream()
 			        .filter(p -> p.getEnableDescendants() == null || !p.getEnableDescendants())
 			        .map(p -> new StockRuleCurrentQuantity(p.getStockItemId(), p.getLocationId(), BigDecimal.ZERO, false))
 			        .distinct().collect(Collectors.toList());
-			stockManagementService.setStockItemCurrentBalanceWithoutDescendants(itemBalances2);
+			stockInventoryService.setStockItemCurrentBalanceWithoutDescendants(itemBalances2);
 			itemBalances.addAll(itemBalances2);
 			stockItemLocationEnableDescendantsBalanceMap = itemBalances.stream()
 			        .collect(Collectors.groupingBy(StockRuleCurrentQuantity::getStockItemLocationEnableDescendantsHashCode));

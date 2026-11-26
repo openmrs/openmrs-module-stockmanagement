@@ -17,6 +17,7 @@ import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -48,6 +49,8 @@ public class MostLeastMovingItemsReport extends ReportGenerator {
 	
 	protected StockManagementService stockManagementService = null;
 	
+	protected StockInventoryService stockInventoryService = null;
+	
 	protected BatchJob batchJob = null;
 	
 	CSVWriter csvWriter = null;
@@ -62,6 +65,7 @@ public class MostLeastMovingItemsReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;
@@ -147,8 +151,8 @@ public class MostLeastMovingItemsReport extends ReportGenerator {
 			}
 			inventorySearchFilter.setLimit(limit);
 			Result<StockItemInventory> result = mostLeastMoving.equals(MostLeastMoving.MostMoving)
-			        ? stockManagementService.getMostMovingStockInventory(inventorySearchFilter)
-			        : stockManagementService.getLeastMovingStockInventory(inventorySearchFilter);
+			        ? stockInventoryService.getMostMovingStockInventory(inventorySearchFilter)
+			        : stockInventoryService.getLeastMovingStockInventory(inventorySearchFilter);
 			
 			inventorySearchFilter.setDoSetBatchFields(true);
 			inventorySearchFilter.setDoSetPartyNameField(true);
@@ -218,8 +222,8 @@ public class MostLeastMovingItemsReport extends ReportGenerator {
 	protected void preWriteBuffer(StockItemInventorySearchFilter inventorySearchFilter,
 	        StockInventoryResult stockInventoryResult) {
 		if (!stockInventoryResult.getData().isEmpty()) {
-			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
-			stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+			stockInventoryService.setStockItemInformation(stockInventoryResult.getData());
+			stockInventoryService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
 		}
 	}
 	

@@ -45,7 +45,7 @@ public class OrderItemResource extends ResourceBase<OrderItemDTO> {
 		filter.setUuid(uniqueId);
 		filter.setLimit(1);
 		filter.setStartIndex(0);
-		Result<OrderItemDTO> result = getStockManagementService().findOrderItems(filter);
+		Result<OrderItemDTO> result = getStockInventoryService().findOrderItems(filter);
 		return result.getData().isEmpty() ? null : result.getData().get(0);
 	}
 	
@@ -143,7 +143,7 @@ public class OrderItemResource extends ResourceBase<OrderItemDTO> {
 			filter.setOrderDateMax(date);
 		}
 		
-		Result<OrderItemDTO> result = getStockManagementService().findOrderItems(filter);
+		Result<OrderItemDTO> result = getStockInventoryService().findOrderItems(filter);
 		return toAlreadyPaged(result, context);
 	}
 	

@@ -17,6 +17,7 @@ import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -46,6 +47,8 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 	protected final Log log = LogFactory.getLog(this.getClass());
 	
 	protected StockManagementService stockManagementService = null;
+	
+	protected StockInventoryService stockInventoryService = null;
 	
 	protected BatchJob batchJob = null;
 	
@@ -100,6 +103,7 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
@@ -317,8 +321,8 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 	protected void preWriteBuffer(StockItemInventorySearchFilter inventorySearchFilter,
 	        StockInventoryResult stockInventoryResult) {
 		if (!stockInventoryResult.getData().isEmpty()) {
-			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
-			stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+			stockInventoryService.setStockItemInformation(stockInventoryResult.getData());
+			stockInventoryService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
 		}
 	}
 	
@@ -434,7 +438,7 @@ public class StockItemInventoryReport<T extends StockItemInventory> extends Repo
 			    StandardOpenOption.TRUNCATE_EXISTING);
 			final BufferedWriter finalBufferedWriter = bufferedWriter;
 			setFilters(filter, parameters);
-			stockManagementService.getStockInventory(filter, null, inventory -> {
+			stockInventoryService.getStockInventory(filter, null, inventory -> {
 				if (shouldStopExecution.apply(batchJob)) {
 					setAbortReadingInventory(1);
 					return false;

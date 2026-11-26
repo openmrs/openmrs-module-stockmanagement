@@ -14,6 +14,7 @@ import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import org.openmrs.module.stockmanagement.api.utils.Action2;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -107,7 +108,7 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 	}
 	
 	protected void clearReservedTransactions(StockOperation operation) {
-		Context.getService(StockManagementService.class).deleteReservedTransations(operation.getId());
+		Context.getService(StockInventoryService.class).deleteReservedTransations(operation.getId());
 		operation.getReservedTransactions().clear();
 		
 	}

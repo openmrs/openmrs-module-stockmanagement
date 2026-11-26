@@ -18,6 +18,7 @@ import org.openmrs.Patient;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.reporting.DispensingLineFilter;
 import org.openmrs.module.stockmanagement.api.dto.reporting.DispensingLineItem;
@@ -44,6 +45,8 @@ public class DispensingLogsReport extends ReportGenerator {
 	
 	protected StockManagementService stockManagementService = null;
 	
+	protected StockInventoryService stockInventoryService = null;
+	
 	protected BatchJob batchJob = null;
 	
 	private BigDecimal negativeOne = BigDecimal.valueOf(-1);
@@ -52,6 +55,7 @@ public class DispensingLogsReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
@@ -137,7 +141,7 @@ public class DispensingLogsReport extends ReportGenerator {
 				}
 				filter.setStartIndex(pageIndex);
 				filter.setStockItemTransactionMin(lastRecordProcessed);
-				Result<DispensingLineItem> data = stockManagementService.findDispensingLineItems(filter);
+				Result<DispensingLineItem> data = stockInventoryService.findDispensingLineItems(filter);
 				if (shouldStopExecution.apply(batchJob)) {
 					return;
 				}

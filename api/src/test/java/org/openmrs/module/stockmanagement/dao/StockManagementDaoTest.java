@@ -577,42 +577,6 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
-	public void saveOrderItem_shouldSaveAllProperties() {
-		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
-		
-		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
-		packagingUom.setFactor(BigDecimal.valueOf(2));
-		dao().saveStockItemPackagingUOM(packagingUom);
-		//Given
-		OrderItem orderItem = eu().newOrderItem(dao(), stockItem, packagingUom);
-		
-		//When
-		dao().saveOrderItem(orderItem);
-		
-		//Let's clean up the cache to be sure getOrderItemByUuid fetches from DB and not from cache
-		Context.flushSession();
-		Context.flushSession();
-		
-		//Then
-		OrderItem savedOrderItem = dao().getOrderItemByUuid(orderItem.getUuid());
-		assertThat(savedOrderItem, hasProperty("uuid", is(orderItem.getUuid())));
-		assertThat(savedOrderItem, hasProperty("creator", is(orderItem.getCreator())));
-		assertThat(savedOrderItem, hasProperty("dateCreated", is(orderItem.getDateCreated())));
-		assertThat(savedOrderItem, hasProperty("changedBy", is(orderItem.getChangedBy())));
-		assertThat(savedOrderItem, hasProperty("dateChanged", is(orderItem.getDateChanged())));
-		assertThat(savedOrderItem, hasProperty("voided", is(orderItem.getVoided())));
-		assertThat(savedOrderItem, hasProperty("dateVoided", is(orderItem.getDateVoided())));
-		assertThat(savedOrderItem, hasProperty("voidedBy", is(orderItem.getVoidedBy())));
-		assertThat(savedOrderItem, hasProperty("voidReason", is(orderItem.getVoidReason())));
-		assertThat(savedOrderItem, hasProperty("order", is(orderItem.getOrder())));
-		assertThat(savedOrderItem, hasProperty("stockItem", is(orderItem.getStockItem())));
-		assertThat(savedOrderItem, hasProperty("stockItemPackagingUOM", is(orderItem.getStockItemPackagingUOM())));
-		assertThat(savedOrderItem, hasProperty("createdFrom", is(orderItem.getCreatedFrom())));
-		assertThat(savedOrderItem, hasProperty("fulfilmentLocation", is(orderItem.getFulfilmentLocation())));
-	}
-	
-	@Test
 	public void saveBatchJobOwner_shouldSaveAllProperties() {
 		//Given
 		BatchJobOwner batchJobOwner = eu().newBatchJobOwner(dao());

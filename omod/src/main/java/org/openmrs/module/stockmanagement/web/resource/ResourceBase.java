@@ -13,6 +13,7 @@ import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.context.UserContext;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.webservices.rest.web.RequestContext;
 import org.openmrs.module.webservices.rest.web.resource.impl.AlreadyPaged;
@@ -30,6 +31,8 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	
 	private StockManagementService stockManagementService;
 	
+	private StockInventoryService stockInventoryService;
+	
 	protected StockManagementService getStockManagementService() {
 		if (stockManagementService == null) {
 			stockManagementService = Context.getService(StockManagementService.class);
@@ -42,6 +45,17 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	 */
 	protected void setStockManagementService(StockManagementService stockManagementService) {
 		this.stockManagementService = stockManagementService;
+	}
+	
+	protected StockInventoryService getStockInventoryService() {
+		if (stockInventoryService == null) {
+			stockInventoryService = Context.getService(StockInventoryService.class);
+		}
+		return stockInventoryService;
+	}
+	
+	protected void setStockInventoryService(StockInventoryService stockInventoryService) {
+		this.stockInventoryService = stockInventoryService;
 	}
 	
 	protected void forbidden() {

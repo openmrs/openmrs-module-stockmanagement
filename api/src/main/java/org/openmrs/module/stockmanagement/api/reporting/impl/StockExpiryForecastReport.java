@@ -19,6 +19,7 @@ import org.openmrs.Patient;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
@@ -54,6 +55,8 @@ public class StockExpiryForecastReport extends ReportGenerator {
 	protected final Log log = LogFactory.getLog(this.getClass());
 	
 	protected StockManagementService stockManagementService = null;
+	
+	protected StockInventoryService stockInventoryService = null;
 	
 	protected BatchJob batchJob = null;
 	
@@ -91,6 +94,7 @@ public class StockExpiryForecastReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
@@ -450,8 +454,8 @@ public class StockExpiryForecastReport extends ReportGenerator {
 	protected void preWriteBuffer(StockItemInventorySearchFilter inventorySearchFilter,
 	        StockInventoryResult stockInventoryResult) {
 		if (!stockInventoryResult.getData().isEmpty()) {
-			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
-			stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+			stockInventoryService.setStockItemInformation(stockInventoryResult.getData());
+			stockInventoryService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
 			for (StockItemInventory stockItemInventory : stockInventoryResult.getData()) {
 				StockItemInventoryExpiryForecast forecast = (StockItemInventoryExpiryForecast) stockItemInventory;
 				forecast.setConsumptionRate(
@@ -615,7 +619,7 @@ public class StockExpiryForecastReport extends ReportGenerator {
 			    StandardOpenOption.TRUNCATE_EXISTING);
 			final BufferedWriter finalBufferedWriter = bufferedWriter;
 			setFilters(filter, parameters);
-			stockManagementService.getStockInventoryExpiryForecastData(filter, inventory -> {
+			stockInventoryService.getStockInventoryExpiryForecastData(filter, inventory -> {
 				if (shouldStopExecution.apply(batchJob)) {
 					setAbortReadingInventory(1);
 					return false;
