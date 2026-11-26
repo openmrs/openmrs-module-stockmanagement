@@ -722,6 +722,15 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		List<?> rows = (List<?>) new StockItemInventoryResource().search(context).get("results");
 		assertEquals(1, rows.size());
 		assertEquals(childParty.getUuid(), ((SimpleObject) rows.get(0)).get("partyUuid"));
+		
+		MockHttpServletRequest totalRequest = new MockHttpServletRequest();
+		totalRequest.setParameter("stockItemUuid", sampleStockItem.getUuid());
+		totalRequest.setParameter("groupBy", "StockItemOnly");
+		RequestContext totalContext = new RequestContext();
+		totalContext.setRequest(totalRequest);
+		List<?> totals = (List<?>) new StockItemInventoryResource().search(totalContext).get("results");
+		assertEquals(1, totals.size());
+		assertEquals(0, BigDecimal.valueOf(14).compareTo((BigDecimal) ((SimpleObject) totals.get(0)).get("quantity")));
 	}
 	
 	// ---------------------------------------------------------------------------------------------

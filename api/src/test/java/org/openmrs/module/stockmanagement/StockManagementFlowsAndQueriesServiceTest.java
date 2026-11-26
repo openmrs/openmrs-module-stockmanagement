@@ -16,14 +16,17 @@ import org.openmrs.Concept;
 import org.openmrs.Drug;
 import org.openmrs.GlobalProperty;
 import org.openmrs.Location;
+import org.openmrs.LocationTag;
 import org.openmrs.Person;
 import org.openmrs.PersonName;
 import org.openmrs.Privilege;
 import org.openmrs.Role;
 import org.openmrs.User;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -579,6 +582,34 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
 	}
 	
+	@Test
+	public void saveUserRoleScope_shouldRefuseAUserWhoCanOnlyViewScopes() {
+		Role viewerRole = createRoleWithPrivileges("Stock Scope Viewer", Privileges.APP_STOCKMANAGEMENT_USERROLESCOPES,
+		    PrivilegeConstants.GET_LOCATIONS, PrivilegeConstants.GET_USERS);
+		User viewer = createTestUser("scope_viewer_" + UUID.randomUUID().toString().substring(0, 8), viewerRole);
+		User target = createTestUser("scope_target_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
+		UserRoleScope existing = grantScope(target, managerRole, childLocation, false, stockIssueType);
+		Context.authenticate(viewer.getUsername(), "TestPassword123!");
+		int refused = 0;
+		for (Runnable change : Arrays.<Runnable> asList(
+		    () -> grantScope(target, managerRole, parentLocation, true, stockIssueType),
+		    () -> stockManagementService.voidUserRoleScopes(Collections.singletonList(existing.getUuid()), "test"))) {
+			try {
+				change.run();
+			}
+			catch (APIAuthenticationException e) {
+				refused++;
+			}
+		}
+		assertEquals(2, refused);
+		Context.flushSession();
+		Context.clearSession();
+		assertFalse(stockManagementService.userHasStockManagementPrivilege(target, parentLocation, stockIssueType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+		assertTrue(stockManagementService.userHasStockManagementPrivilege(target, childLocation, stockIssueType,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
+	}
+	
 	private void rescope(UserRoleScope scope, Location location, boolean enableDescendants,
 	        StockOperationType operationType) {
 		UserRoleScopeDTO dto = new UserRoleScopeDTO();
@@ -705,6 +736,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 	public void findStockOperations_shouldShowAnIssueToTheLocationItLeaves() {
 		User sourceOnly = createTestUser("src_only_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
 		grantScope(sourceOnly, managerRole, parentLocation, false, stockIssueType);
+		grantScope(sourceOnly, managerRole, childLocation, false, receiptType);
 		Context.authenticate(clerkUser.getUsername(), "TestPassword123!");
 		StockOperationDTO receipt = createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom,
 		    BigDecimal.TEN, "BATCH-OUTGOING");
@@ -713,6 +745,8 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		        .getStockOperationItems().iterator().next().getStockBatch().getUuid()).getUuid());
 		Context.authenticate(sourceOnly.getUsername(), "TestPassword123!");
 		assertEquals(1, stockManagementService.findStockOperations(filter).getData().size());
+		filter.setStockOperationUuid(receipt.getUuid());
+		assertEquals(0, stockManagementService.findStockOperations(filter).getData().size());
 	}
 	
 	@Test
@@ -721,6 +755,25 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		        .map(PartyDTO::getId).collect(Collectors.toList());
 		assertEquals(3, partyIds.size());
 		assertTrue(partyIds.containsAll(Arrays.asList(parentParty.getId(), childParty.getId(), grandchildParty.getId())));
+	}
+	
+	@Test
+	public void getCompleteStockDispensingLocationPartyList_shouldListTheDispensingLocationsBelowIt() {
+		LocationService locationService = Context.getLocationService();
+		LocationTag dispensary = locationService.getLocationTagByName(StockLocationTags.DISPENSARY_LOCATION_TAG);
+		if (dispensary == null) {
+			dispensary = locationService
+			        .saveLocationTag(new LocationTag(StockLocationTags.DISPENSARY_LOCATION_TAG, "Dispensary"));
+		}
+		for (Integer locationId : Arrays.asList(childLocation.getId(), grandchildLocation.getId())) {
+			Location location = locationService.getLocation(locationId);
+			location.addTag(dispensary);
+			locationService.saveLocation(location);
+		}
+		List<Integer> partyIds = stockManagementService.getCompleteStockDispensingLocationPartyList(parentLocation.getId())
+		        .stream().map(PartyDTO::getId).collect(Collectors.toList());
+		assertEquals(2, partyIds.size());
+		assertTrue(partyIds.containsAll(Arrays.asList(childParty.getId(), grandchildParty.getId())));
 	}
 	
 	// ---------------------------------------------------------------------------------------------
@@ -1148,6 +1201,10 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		assertEquals(StockOperationStatus.NEW, stockManagementService.getStockOperationByUuid(issue.getUuid()).getStatus());
 		assertEquals(0, BigDecimal.valueOf(50).compareTo(balanceAt(parentParty)));
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(childParty)));
+		
+		StockOperationItemDTO packs = newBatchItem(batchUuid, BigDecimal.valueOf(6));
+		packs.setStockItemPackagingUOMUuid(createPackagingUOM(sampleStockItem, BigDecimal.TEN).getUuid());
+		assertSubmitRefusedAtSource(stockIssueType, parentParty, childParty, parentLocation, null, packs);
 	}
 	
 	private void assertRefused(String messageKey, Runnable action) {
@@ -1883,6 +1940,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		stockManagementService.cancelStockOperation(dto, "Not needed");
 		Context.flushSession();
 		Context.clearSession();
+		assertRefused("approvalactionnotallowed", () -> stockManagementService.approveStockOperation(dto));
 		assertEquals(StockOperationStatus.CANCELLED,
 		    stockManagementService.getStockOperationByUuid(dto.getUuid()).getStatus());
 		assertEquals(0, before.compareTo(balanceAt(source)));
