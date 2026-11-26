@@ -537,6 +537,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 				Thread.sleep(1000);
 			}
 			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 				throw new RuntimeException(e);
 			}
 			hasMoreRecords = batch.size() >= updateBatchSize;
@@ -561,6 +562,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 				Thread.sleep(1000);
 			}
 			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 				throw new RuntimeException(e);
 			}
 			hasMoreRecords = batch.size() >= updateBatchSize;

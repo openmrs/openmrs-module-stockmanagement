@@ -1192,12 +1192,12 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		        + "sb.batchNo as stockBatchNo,\n" + "sb.expiration as expiration,\n" + "so.uuid as stockOperationUuid,\n"
 		        + "so.status as stockOperationStatus,\n" + "so.operationNumber as stockOperationNumber,\n"
 		        + "sot.name as stockOperationTypeName,\n" + "sit.quantity as quantity,"
-		        + "sit.patient.id as patientId, sit.order.orderId as orderId, sit.encounter.encounterId as encounterId,\n"
+		        + "sit.patient.id as patientId, txPatient.uuid as patientUuid, sit.order.orderId as orderId, sit.encounter.encounterId as encounterId,\n"
 		        + "so.source.id as operationSourcePartyId, so.destination.id as operationDestinationPartyId\n"
 		        + "from stockmanagement.StockItemTransaction sit join\n"
 		        + "\t sit.stockItem si left join sit.party p left join\n" + " sit.stockBatch sb left join\n"
 		        + " sit.stockItemPackagingUOM sipu left join\n"
-		        + " sit.stockOperation so left join so.stockOperationType sot");
+		        + " sit.stockOperation so left join so.stockOperationType sot left join sit.patient txPatient");
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
@@ -1281,7 +1281,6 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			        .map(p -> Arrays.asList(p.getPartyId(), p.getOperationSourcePartyId(),
 			            p.getOperationDestinationPartyId()))
 			        .flatMap(Collection::stream).filter(p -> p != null).distinct().collect(Collectors.toList());
-			namePartyIds.addAll(namePartyIds);
 			partySearchFilter.setPartyIds(namePartyIds);
 			Map<Integer, List<PartyDTO>> partyNameMap = findParty(partySearchFilter).getData().stream()
 			        .collect(Collectors.groupingBy(PartyDTO::getId));
@@ -1323,15 +1322,6 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 					if (party != null) {
 						stockItemTransactionDTO.setOperationDestinationPartyName(party.get(0).getName());
 					}
-				}
-				// stockItemTransactionDTO.setPatientId(1000);
-				Integer patientId = stockItemTransactionDTO.getPatientId();
-				System.out.println("Got patient id as: " + patientId);
-				if (patientId != null) {
-					Patient patient = Context.getPatientService().getPatient(patientId);
-					String patientUuid = patient.getUuid();
-					System.out.println("Got patient uuid as: " + patientUuid);
-					stockItemTransactionDTO.setPatientUuid(patientUuid);
 				}
 			}
 			
@@ -1624,7 +1614,6 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			List<Integer> nameLocationIds = result.getData().stream()
 			        .map(p -> Arrays.asList(p.getCreatedFrom(), p.getFulfilmentLocationId())).flatMap(Collection::stream)
 			        .filter(p -> p != null).distinct().collect(Collectors.toList());
-			nameLocationIds.addAll(nameLocationIds);
 			partySearchFilter.setLocationIds(nameLocationIds);
 			Map<Integer, List<PartyDTO>> partyNameMap = nameLocationIds.isEmpty() ? null
 			        : findParty(partySearchFilter).getData().stream()

@@ -12,6 +12,7 @@ package org.openmrs.module.stockmanagement.api.dao;
 import org.hibernate.Criteria;
 import org.hibernate.Query;
 import org.hibernate.criterion.Order;
+import org.hibernate.internal.CriteriaImpl;
 import org.hibernate.criterion.Projection;
 import org.hibernate.criterion.Projections;
 import org.hibernate.transform.AliasToBeanResultTransformer;
@@ -142,9 +143,8 @@ public class DaoBase {
 				Projection projection = null;
 				ResultTransformer transformer = null;
 				
-				CriteriaImplWrapper impl = new CriteriaImplWrapper(criteria);
-				//CriteriaImpl impl = Utility.as(CriteriaImpl.class, criteria);
-				if (impl != null) {
+				if (criteria instanceof CriteriaImpl) {
+					CriteriaImpl impl = (CriteriaImpl) criteria;
 					projection = impl.getProjection();
 					transformer = impl.getResultTransformer();
 				}

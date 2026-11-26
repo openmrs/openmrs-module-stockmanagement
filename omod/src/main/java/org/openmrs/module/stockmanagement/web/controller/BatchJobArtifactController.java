@@ -28,7 +28,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.IOException;
 
-@Controller("${rootrootArtifactId}.BatchJobArtifactController")
+@Controller("stockmanagement.BatchJobArtifactController")
 @RequestMapping("/rest/" + RestConstants.VERSION_1 + "/" + ModuleConstants.MODULE_ID + "/batchjobartifact")
 public class BatchJobArtifactController {
 	

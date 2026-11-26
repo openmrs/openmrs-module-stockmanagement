@@ -80,6 +80,13 @@
             <list>
                 <value>org.openmrs.module.stockmanagement.api.StockManagementService</value>
                 <ref bean="stockmanagement.StockManagementService" />
+            </list>
+        </property>
+    </bean>
+
+    <bean parent="serviceContext">
+        <property name="moduleService">
+            <list>
                 <value>org.openmrs.module.stockmanagement.api.StockInventoryService</value>
                 <ref bean="stockmanagement.StockInventoryService" />
             </list>

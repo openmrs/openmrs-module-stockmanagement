@@ -39,7 +39,8 @@ public interface StockInventoryService extends OpenmrsService {
 	void dispenseStockItems(List<DispenseRequest> dispenseRequests);
 	
 	@Transactional
-	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)
+	@Authorized(value = { Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
+	        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE }, requireAll = false)
 	void deleteReservedTransations(Integer stockOperationId);
 	
 	@Transactional(readOnly = true)

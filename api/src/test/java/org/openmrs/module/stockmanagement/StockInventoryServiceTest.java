@@ -168,6 +168,38 @@ public class StockInventoryServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
+	public void findStockItemTransactions_shouldReturnPatientUuidWithoutGetPatientsPrivilege() {
+		StockItemTransaction patientTransaction = eu().newStockItemTransaction(dao());
+		patientTransaction.setPatient(eu().getPatient());
+		dao().saveStockItemTransaction(patientTransaction);
+		
+		StockItemTransaction nonPatientTransaction = eu().newStockItemTransaction(dao(), patientTransaction.getStockItem(),
+		    patientTransaction.getStockBatch(), patientTransaction.getStockItemPackagingUOM());
+		nonPatientTransaction.setPatient(null);
+		dao().saveStockItemTransaction(nonPatientTransaction);
+		Context.flushSession();
+		String expectedPatientUuid = eu().getPatient().getUuid();
+		
+		StockItemTransactionSearchFilter filter = new StockItemTransactionSearchFilter();
+		filter.setStockItemId(patientTransaction.getStockItem().getId());
+		
+		Context.logout();
+		Result<StockItemTransactionDTO> result;
+		try {
+			result = inventoryDao().findStockItemTransactions(filter, null);
+		}
+		finally {
+			authenticate();
+		}
+		
+		assertEquals(2, result.getData().size());
+		assertEquals(expectedPatientUuid, result.getData().stream()
+		        .filter(p -> p.getUuid().equals(patientTransaction.getUuid())).findFirst().get().getPatientUuid());
+		assertNull(result.getData().stream().filter(p -> p.getUuid().equals(nonPatientTransaction.getUuid())).findFirst()
+		        .get().getPatientUuid());
+	}
+	
+	@Test
 	public void dispenseStockItems() {
 		StockItem stockItem = eu().newStockItem(dao(), false);
 		dao().saveStockItem(stockItem);
