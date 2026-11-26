@@ -11,15 +11,11 @@ package org.openmrs.module.stockmanagement.api.reporting.impl;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.openmrs.Concept;
 import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
-import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.dto.StockInventoryResult;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
@@ -51,14 +47,6 @@ import java.util.stream.Collectors;
 public class StockExpiryForecastReport extends ReportGenerator {
 	
 	Date startDate = null, endDate = null;
-	
-	protected final Log log = LogFactory.getLog(this.getClass());
-	
-	protected StockManagementService stockManagementService = null;
-	
-	protected StockInventoryService stockInventoryService = null;
-	
-	protected BatchJob batchJob = null;
 	
 	private File step1File = null;
 	
@@ -92,12 +80,9 @@ public class StockExpiryForecastReport extends ReportGenerator {
 	
 	@Override
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
-		this.batchJob = batchJob;
-		stockManagementService = Context.getService(StockManagementService.class);
-		stockInventoryService = Context.getService(StockInventoryService.class);
 		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
 		
-		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
+		if (!initializeReport(batchJob)) {
 			return;
 		}
 		
@@ -105,14 +90,8 @@ public class StockExpiryForecastReport extends ReportGenerator {
 			return;
 		}
 		
-		Properties parameters = null;
-		
-		try {
-			parameters = GlobalProperties.fromString(batchJob.getParameters());
-		}
-		catch (IOException e) {
-			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
-			log.error(e);
+		Properties parameters = loadReportParameters(batchJob, false);
+		if (parameters == null) {
 			return;
 		}
 		todaysDate = DateUtil.today();
@@ -296,32 +275,9 @@ public class StockExpiryForecastReport extends ReportGenerator {
 			log.error(e.getMessage(), e);
 		}
 		finally {
-			if (bufferedStagingReader != null) {
-				try {
-					bufferedStagingReader.close();
-				}
-				catch (Exception e) {}
-			}
-			if (csvWriter != null) {
-				try {
-					try {
-						csvWriter.flush();
-					}
-					catch (Exception e) {}
-					csvWriter.close();
-				}
-				catch (Exception csvWriterException) {}
-			}
-			if (writer != null) {
-				try {
-					try {
-						writer.flush();
-					}
-					catch (Exception e) {}
-					writer.close();
-				}
-				catch (Exception we) {}
-			}
+			closeReader(bufferedStagingReader);
+			closeCsvWriter(csvWriter);
+			closeWriter(writer);
 		}
 	}
 	
@@ -656,16 +612,7 @@ public class StockExpiryForecastReport extends ReportGenerator {
 			}
 		}
 		finally {
-			if (bufferedWriter != null) {
-				try {
-					try {
-						bufferedWriter.flush();
-					}
-					catch (Exception e) {}
-					bufferedWriter.close();
-				}
-				catch (Exception exception) {}
-			}
+			closeWriter(bufferedWriter);
 		}
 		return true;
 	}

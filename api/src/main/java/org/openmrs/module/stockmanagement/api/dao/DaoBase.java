@@ -444,48 +444,22 @@ public class DaoBase {
 	}
 	
 	public Map<String, Integer> getPartyIds(Collection<String> uuids) {
-		if (uuids == null || uuids.isEmpty())
-			return new HashMap<>();
-		Criteria criteria = getSession().createCriteria(Party.class).add(Restrictions.in("uuid", uuids));
-		Projection projection1 = Projections.property("id");
-		Projection projection2 = Projections.property("uuid");
-		ProjectionList pList = Projections.projectionList();
-		pList.add(projection2);
-		pList.add(projection1);
-		criteria.setProjection(pList);
-		List result = criteria.list();
-		HashMap<String, Integer> ids = new HashMap<>();
-		for (Object object : result) {
-			Object[] row = (Object[]) object;
-			ids.put((String) row[0], ((Number) row[1]).intValue());
-		}
-		return ids;
+		return getIdsByUuids(Party.class, "id", uuids);
 	}
 	
 	public Map<String, Integer> getStockItemIds(Collection<String> uuids) {
-		if (uuids == null || uuids.isEmpty())
-			return new HashMap<>();
-		Criteria criteria = getSession().createCriteria(StockItem.class).add(Restrictions.in("uuid", uuids));
-		Projection projection1 = Projections.property("id");
-		Projection projection2 = Projections.property("uuid");
-		ProjectionList pList = Projections.projectionList();
-		pList.add(projection2);
-		pList.add(projection1);
-		criteria.setProjection(pList);
-		List result = criteria.list();
-		HashMap<String, Integer> ids = new HashMap<>();
-		for (Object object : result) {
-			Object[] row = (Object[]) object;
-			ids.put((String) row[0], ((Number) row[1]).intValue());
-		}
-		return ids;
+		return getIdsByUuids(StockItem.class, "id", uuids);
 	}
 	
 	public Map<String, Integer> getLocationIds(Collection<String> uuids) {
+		return getIdsByUuids(Location.class, "locationId", uuids);
+	}
+	
+	private Map<String, Integer> getIdsByUuids(Class<?> entityClass, String idProperty, Collection<String> uuids) {
 		if (uuids == null || uuids.isEmpty())
 			return new HashMap<>();
-		Criteria criteria = getSession().createCriteria(Location.class).add(Restrictions.in("uuid", uuids));
-		Projection projection1 = Projections.property("locationId");
+		Criteria criteria = getSession().createCriteria(entityClass).add(Restrictions.in("uuid", uuids));
+		Projection projection1 = Projections.property(idProperty);
 		Projection projection2 = Projections.property("uuid");
 		ProjectionList pList = Projections.projectionList();
 		pList.add(projection2);

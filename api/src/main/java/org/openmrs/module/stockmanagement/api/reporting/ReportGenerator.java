@@ -11,6 +11,9 @@ package org.openmrs.module.stockmanagement.api.reporting;
 
 import org.apache.commons.lang.*;
 import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.StockInventoryService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.reporting.Fullfillment;
@@ -20,6 +23,7 @@ import org.openmrs.module.stockmanagement.api.model.BatchJobStatus;
 import org.openmrs.module.stockmanagement.api.utils.*;
 import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
@@ -32,6 +36,14 @@ import java.util.Properties;
 import java.util.function.Function;
 
 public abstract class ReportGenerator {
+	
+	protected final Log log = LogFactory.getLog(this.getClass());
+	
+	protected StockManagementService stockManagementService = null;
+	
+	protected StockInventoryService stockInventoryService = null;
+	
+	protected BatchJob batchJob = null;
 	
 	private volatile boolean stopExecution = false;
 	
@@ -296,6 +308,28 @@ public abstract class ReportGenerator {
 		properties.setProperty(String.format("param.%s.value.desc", parameterName), valueDescription);
 	}
 	
+	protected boolean initializeReport(BatchJob batchJob) {
+		this.batchJob = batchJob;
+		stockManagementService = Context.getService(StockManagementService.class);
+		stockInventoryService = Context.getService(StockInventoryService.class);
+		return restoreExecutionState(batchJob, stockManagementService, log);
+	}
+	
+	protected Properties loadReportParameters(BatchJob batchJob, boolean logExceptionMessage) {
+		try {
+			return GlobalProperties.fromString(batchJob.getParameters());
+		}
+		catch (IOException e) {
+			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
+			if (logExceptionMessage) {
+				log.error(e.getMessage(), e);
+			} else {
+				log.error(e);
+			}
+			return null;
+		}
+	}
+	
 	protected boolean restoreExecutionState(BatchJob batchJob, StockManagementService stockManagementService, Log log) {
 		boolean resetExecutionState = false;
 		if (batchJob.getExecutionState() != null) {
@@ -388,6 +422,41 @@ public abstract class ReportGenerator {
 	
 	protected CSVWriter createCsvWriter(Writer writer) {
 		return new CSVWriter(writer);
+	}
+	
+	protected void closeCsvWriter(CSVWriter csvWriter) {
+		if (csvWriter != null) {
+			try {
+				try {
+					csvWriter.flush();
+				}
+				catch (Exception e) {}
+				csvWriter.close();
+			}
+			catch (Exception csvWriterException) {}
+		}
+	}
+	
+	protected void closeWriter(Writer writer) {
+		if (writer != null) {
+			try {
+				try {
+					writer.flush();
+				}
+				catch (Exception e) {}
+				writer.close();
+			}
+			catch (Exception we) {}
+		}
+	}
+	
+	protected void closeReader(BufferedReader bufferedReader) {
+		if (bufferedReader != null) {
+			try {
+				bufferedReader.close();
+			}
+			catch (Exception e) {}
+		}
 	}
 	
 	protected void writeLineToCsv(CSVWriter csvWriter, String... columns) {

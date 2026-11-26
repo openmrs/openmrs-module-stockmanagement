@@ -104,9 +104,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			
 			DbSession session = getSession();
 			Query query = session.createQuery(hqlQuery.toString());
-			for (Map.Entry<String, Object> entry : parameterList.entrySet()) {
-				query.setParameter(entry.getKey(), entry.getValue());
-			}
+			setQueryParameters(query, parameterList, null);
 			query = query.setResultTransformer(new AliasToBeanResultTransformer(StockItemInventory.class));
 			List<StockItemInventory> result = query.list();
 			for (StockRuleCurrentQuantity stockRuleCurrentQuantity : batch) {
@@ -167,9 +165,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			
 			DbSession session = getSession();
 			Query query = session.createQuery(hqlQuery.toString());
-			for (Map.Entry<String, Object> entry : parameterList.entrySet()) {
-				query.setParameter(entry.getKey(), entry.getValue());
-			}
+			setQueryParameters(query, parameterList, null);
 			query = query.setResultTransformer(new AliasToBeanResultTransformer(StockItemInventory.class));
 			List<StockItemInventory> result = query.list();
 			for (StockRuleCurrentQuantity stockRuleCurrentQuantity : batch) {
@@ -206,34 +202,10 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		        && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
 			return new Result(new ArrayList<>(), 0);
 		
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		
-		boolean groupByParty = true;
-		boolean groupByStockBatch = true;
-		boolean groupByStockItem = true;
-		
-		if (filter.getInventoryGroupBy() != null) {
-			groupByParty = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-			
-			groupByStockItem = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo)
-			        || filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
-			
-			groupByStockBatch = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
-			groupByParty = true;
-			groupByStockBatch = true;
-			groupByStockItem = true;
-		}
+		boolean[] groupByFlags = getInventoryGroupByFlags(filter);
+		boolean groupByParty = groupByFlags[0];
+		boolean groupByStockBatch = groupByFlags[1];
+		boolean groupByStockItem = groupByFlags[2];
 		
 		StringBuilder hqlQuery = getStockItemInventoryQuery(filter, null, parameterList, parameterWithList,
 		    zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
@@ -246,14 +218,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		try {
 			session = getStatelessHibernateSession();
 			Query query = session.createQuery(hqlQuery.toString());
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
+			setQueryParameters(query, parameterList, parameterWithList);
 			query.setResultTransformer(new AliasToBeanResultTransformer(StockItemInventory.class));
 			query.setReadOnly(true);
 			Integer limit = filter.getLimit() == null ? 20 : filter.getLimit();
@@ -265,12 +230,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			return result;
 		}
 		finally {
-			if (session != null) {
-				try {
-					session.close();
-				}
-				catch (Exception e) {}
-			}
+			closeQuietly(null, session);
 		}
 	}
 	
@@ -315,84 +275,9 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
-		List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
-		        : filter.getItemGroupFilters().stream()
-		                .filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty()).map(p -> p.getPartyUuids())
-		                .flatMap(Collection::stream).distinct().collect(Collectors.toList());
-		
-		List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
-		        : filter.getItemGroupFilters().stream().filter(p -> p.getStockItemUuid() != null)
-		                .map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList());
-		
-		Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
-		Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>()
-		        : getStockItemIds(stockItemIdsToFetch);
 		StringBuilder itemGroupFilters = new StringBuilder();
-		int paramIndex = 0;
-		int appliedItemGroupFilters = 0;
-		if (filter.getItemGroupFilters() != null) {
-			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
-				StringBuilder itemGroupClause = new StringBuilder();
-				HashMap<String, Object> itemGroupParameterList = new HashMap<>();
-				HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
-				StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
-				
-				List<Integer> partyIdFilter = new ArrayList<>();
-				if (itemGroupFilter.getPartyIds() != null) {
-					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
-				}
-				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream()
-					        .map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
-					if (foundPartyIds.isEmpty()) {
-						continue;
-					}
-					partyIdFilter.addAll(foundPartyIds);
-				}
-				String paramIndexString = Integer.toString(paramIndex);
-				if (!partyIdFilter.isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
-					zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
-					
-				}
-				
-				if (itemGroupFilter.getStockItemId() != null) {
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
-					zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
-				} else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
-					if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
-						continue;
-					}
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString,
-					    stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-					zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-				}
-				
-				if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
-				}
-				
-				paramIndex++;
-				if (itemGroupClause.length() > 0) {
-					appliedItemGroupFilters++;
-					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
-					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
-						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-					for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
-						parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-				} else {
-					continue;
-				}
-			}
-		}
-		if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
+		if (!appendItemGroupFilters(filter, null, parameterList, parameterWithList, zeroStockQtyToReturn,
+		    itemGroupFilters)) {
 			return;
 		}
 		
@@ -435,11 +320,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			session = getStatelessHibernateSession();
 			Query query = session.createQuery(hqlQuery.toString());
 			
-			for (Map.Entry<String, Object> entry : parameterList.entrySet())
-				query.setParameter(entry.getKey(), entry.getValue());
-			
-			for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-				query.setParameterList(entry.getKey(), entry.getValue());
+			setQueryParameters(query, parameterList, parameterWithList);
 			
 			query.setReadOnly(true);
 			query.setFetchSize(Integer.MIN_VALUE);
@@ -453,18 +334,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			}
 		}
 		finally {
-			if (results != null) {
-				try {
-					results.close();
-				}
-				catch (Exception e) {}
-			}
-			if (session != null) {
-				try {
-					session.close();
-				}
-				catch (Exception e) {}
-			}
+			closeQuietly(results, session);
 		}
 	}
 	
@@ -479,34 +349,10 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		        && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
 			return;
 		
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		
-		boolean groupByParty = true;
-		boolean groupByStockBatch = true;
-		boolean groupByStockItem = true;
-		
-		if (filter.getInventoryGroupBy() != null) {
-			groupByParty = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-			
-			groupByStockItem = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo)
-			        || filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
-			
-			groupByStockBatch = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
-			groupByParty = true;
-			groupByStockBatch = true;
-			groupByStockItem = true;
-		}
+		boolean[] groupByFlags = getInventoryGroupByFlags(filter);
+		boolean groupByParty = groupByFlags[0];
+		boolean groupByStockBatch = groupByFlags[1];
+		boolean groupByStockItem = groupByFlags[2];
 		
 		StringBuilder hqlQuery = new StringBuilder("SELECT "
 		        + (groupByParty ? "sit.party.id as partyId,\n" : "cast(:nullValue as java.lang.Integer) as partyId,")
@@ -538,84 +384,9 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
-		List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
-		        : filter.getItemGroupFilters().stream()
-		                .filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty()).map(p -> p.getPartyUuids())
-		                .flatMap(Collection::stream).distinct().collect(Collectors.toList());
-		
-		List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
-		        : filter.getItemGroupFilters().stream().filter(p -> p.getStockItemUuid() != null)
-		                .map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList());
-		
-		Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
-		Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>()
-		        : getStockItemIds(stockItemIdsToFetch);
 		StringBuilder itemGroupFilters = new StringBuilder();
-		int paramIndex = 0;
-		int appliedItemGroupFilters = 0;
-		if (filter.getItemGroupFilters() != null) {
-			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
-				StringBuilder itemGroupClause = new StringBuilder();
-				HashMap<String, Object> itemGroupParameterList = new HashMap<>();
-				HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
-				StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
-				
-				List<Integer> partyIdFilter = new ArrayList<>();
-				if (itemGroupFilter.getPartyIds() != null) {
-					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
-				}
-				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream()
-					        .map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
-					if (foundPartyIds.isEmpty()) {
-						continue;
-					}
-					partyIdFilter.addAll(foundPartyIds);
-				}
-				String paramIndexString = Integer.toString(paramIndex);
-				if (!partyIdFilter.isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
-					zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
-					
-				}
-				
-				if (itemGroupFilter.getStockItemId() != null) {
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
-					zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
-				} else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
-					if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
-						continue;
-					}
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString,
-					    stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-					zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-				}
-				
-				if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
-				}
-				
-				paramIndex++;
-				if (itemGroupClause.length() > 0) {
-					appliedItemGroupFilters++;
-					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
-					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
-						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-					for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
-						parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-				} else {
-					continue;
-				}
-			}
-		}
-		if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
+		if (!appendItemGroupFilters(filter, null, parameterList, parameterWithList, zeroStockQtyToReturn,
+		    itemGroupFilters)) {
 			return;
 		}
 		
@@ -649,18 +420,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			hqlQuery.append(hqlFilter);
 		}
 		
-		hqlQuery.append(" group by ");
-		List<String> groupColumns = new ArrayList<>();
-		if (groupByParty) {
-			groupColumns.add("sit.party.id");
-		}
-		if (groupByStockItem) {
-			groupColumns.add("sit.stockItem.id");
-		}
-		if (groupByStockBatch) {
-			groupColumns.add("sit.stockBatch.id");
-		}
-		hqlQuery.append(String.join(", ", groupColumns));
+		appendGroupBy(hqlQuery, groupByParty, groupByStockItem, groupByStockBatch);
 		
 		if (hqlQuery == null) {
 			return;
@@ -677,11 +437,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 				query.setParameter("nullValue", null, IntegerType.INSTANCE);
 			}
 			
-			for (Map.Entry<String, Object> entry : parameterList.entrySet())
-				query.setParameter(entry.getKey(), entry.getValue());
-			
-			for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-				query.setParameterList(entry.getKey(), entry.getValue());
+			setQueryParameters(query, parameterList, parameterWithList);
 			
 			query.setReadOnly(true);
 			query.setFetchSize(Integer.MIN_VALUE);
@@ -695,18 +451,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			}
 		}
 		finally {
-			if (results != null) {
-				try {
-					results.close();
-				}
-				catch (Exception e) {}
-			}
-			if (session != null) {
-				try {
-					session.close();
-				}
-				catch (Exception e) {}
-			}
+			closeQuietly(results, session);
 		}
 	}
 	
@@ -722,34 +467,10 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		        && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
 			return;
 		
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		
-		boolean groupByParty = true;
-		boolean groupByStockBatch = true;
-		boolean groupByStockItem = true;
-		
-		if (filter.getInventoryGroupBy() != null) {
-			groupByParty = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-			
-			groupByStockItem = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo)
-			        || filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
-			
-			groupByStockBatch = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
-			groupByParty = true;
-			groupByStockBatch = true;
-			groupByStockItem = true;
-		}
+		boolean[] groupByFlags = getInventoryGroupByFlags(filter);
+		boolean groupByParty = groupByFlags[0];
+		boolean groupByStockBatch = groupByFlags[1];
+		boolean groupByStockItem = groupByFlags[2];
 		
 		StringBuilder hqlQuery = getStockItemInventoryQuery(filter, recordPrivilegeFilters, parameterList, parameterWithList,
 		    zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
@@ -764,14 +485,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		try {
 			session = getStatelessHibernateSession();
 			Query query = session.createQuery(hqlQuery.toString());
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
+			setQueryParameters(query, parameterList, parameterWithList);
 			query.setResultTransformer(new AliasToBeanResultTransformer(resultClass));
 			query.setReadOnly(true);
 			query.setFetchSize(Integer.MIN_VALUE);
@@ -785,18 +499,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			}
 		}
 		finally {
-			if (results != null) {
-				try {
-					results.close();
-				}
-				catch (Exception e) {}
-			}
-			if (session != null) {
-				try {
-					session.close();
-				}
-				catch (Exception e) {}
-			}
+			closeQuietly(results, session);
 		}
 	}
 	
@@ -810,34 +513,10 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		        && (filter.getItemGroupFilters() == null || filter.getItemGroupFilters().isEmpty()))
 			return new StockInventoryResult(new ArrayList<>(), 0);
 		
-		if (filter.getInventoryGroupBy() == null) {
-			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		
-		boolean groupByParty = true;
-		boolean groupByStockBatch = true;
-		boolean groupByStockItem = true;
-		
-		if (filter.getInventoryGroupBy() != null) {
-			groupByParty = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-			
-			groupByStockItem = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
-			        || filter.getInventoryGroupBy()
-			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo)
-			        || filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
-			
-			groupByStockBatch = filter.getInventoryGroupBy()
-			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
-		}
-		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
-			groupByParty = true;
-			groupByStockBatch = true;
-			groupByStockItem = true;
-		}
+		boolean[] groupByFlags = getInventoryGroupByFlags(filter);
+		boolean groupByParty = groupByFlags[0];
+		boolean groupByStockBatch = groupByFlags[1];
+		boolean groupByStockItem = groupByFlags[2];
 		
 		StringBuilder hqlQuery = getStockItemInventoryQuery(filter, recordPrivilegeFilters, parameterList, parameterWithList,
 		    zeroStockQtyToReturn, groupByParty, groupByStockBatch, groupByStockItem);
@@ -979,11 +658,6 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
-		List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
-		        : filter.getItemGroupFilters().stream()
-		                .filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty()).map(p -> p.getPartyUuids())
-		                .flatMap(Collection::stream).distinct().collect(Collectors.toList());
-		
 		List<Integer> toRestrictedPartyIds = null;
 		if (recordPrivilegeFilters != null) {
 			PartySearchFilter partySearchFilter = new PartySearchFilter();
@@ -995,94 +669,9 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		}
 		final List<Integer> restrictedPartyIds = toRestrictedPartyIds;
 		
-		List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
-		        : filter.getItemGroupFilters().stream().filter(p -> p.getStockItemUuid() != null)
-		                .map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList());
-		
-		Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
-		Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>()
-		        : getStockItemIds(stockItemIdsToFetch);
 		StringBuilder itemGroupFilters = new StringBuilder();
-		int paramIndex = 0;
-		int appliedItemGroupFilters = 0;
-		if (filter.getItemGroupFilters() != null) {
-			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
-				StringBuilder itemGroupClause = new StringBuilder();
-				HashMap<String, Object> itemGroupParameterList = new HashMap<>();
-				HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
-				StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
-				
-				List<Integer> partyIdFilter = new ArrayList<>();
-				if (itemGroupFilter.getPartyIds() != null) {
-					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
-				}
-				if (itemGroupFilter.getPartyUuids() != null) {
-					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream()
-					        .map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
-					if (foundPartyIds.isEmpty()) {
-						// return new StockInventoryResult(new ArrayList<>(), 0);
-						continue;
-					}
-					partyIdFilter.addAll(foundPartyIds);
-				}
-				String paramIndexString = Integer.toString(paramIndex);
-				if (!partyIdFilter.isEmpty()) {
-					if (restrictedPartyIds != null) {
-						partyIdFilter = partyIdFilter.stream().filter(p -> restrictedPartyIds.contains(p))
-						        .collect(Collectors.toList());
-						if (partyIdFilter.isEmpty()) {
-							//partyIdFilter = restrictedPartyIds;
-							continue;
-						}
-					}
-					
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
-					zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
-					
-				} else if (restrictedPartyIds != null) {
-					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, restrictedPartyIds);
-					zeroQtyItemGroupFilter.setPartyIds(restrictedPartyIds);
-				}
-				
-				if (itemGroupFilter.getStockItemId() != null) {
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
-					zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
-				} else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
-					if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
-						// return new StockInventoryResult(new ArrayList<>(), 0);
-						continue;
-					}
-					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
-					itemGroupParameterList.putIfAbsent("sid" + paramIndexString,
-					    stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-					zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
-				}
-				
-				if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
-					appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
-					itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
-				}
-				
-				paramIndex++;
-				if (itemGroupClause.length() > 0) {
-					appliedItemGroupFilters++;
-					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
-					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
-						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-					for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
-						parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
-					}
-				} else {
-					continue;
-				}
-			}
-		}
-		if (filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0) {
+		if (!appendItemGroupFilters(filter, restrictedPartyIds, parameterList, parameterWithList, zeroStockQtyToReturn,
+		    itemGroupFilters)) {
 			return null;
 		}
 		
@@ -1141,18 +730,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			hqlQuery.append(hqlFilter);
 		}
 		
-		hqlQuery.append(" group by ");
-		List<String> groupColumns = new ArrayList<>();
-		if (groupByParty) {
-			groupColumns.add("sit.party.id");
-		}
-		if (groupByStockItem) {
-			groupColumns.add("sit.stockItem.id");
-		}
-		if (groupByStockBatch) {
-			groupColumns.add("sit.stockBatch.id");
-		}
-		hqlQuery.append(String.join(", ", groupColumns));
+		appendGroupBy(hqlQuery, groupByParty, groupByStockItem, groupByStockBatch);
 		return hqlQuery;
 	}
 	
@@ -1606,8 +1184,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			        .map(p -> Arrays.asList(p.getConceptId(), p.getStockItemPackagingUOMConceptId()))
 			        .flatMap(Collection::stream).filter(p -> p != null).distinct().collect(Collectors.toList());
 			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = conceptNamesToFetch.isEmpty() ? null
-			        : getConceptNamesByConceptIds(conceptNamesToFetch).stream()
-			                .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
+			        : getConceptNameMap(conceptNamesToFetch, this::getConceptNamesByConceptIds);
 			
 			PartySearchFilter partySearchFilter = new PartySearchFilter();
 			partySearchFilter.setIncludeVoided(true);
@@ -1730,20 +1307,10 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null)
 			        .map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
 			
-			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
-			if (conceptIds.isEmpty()) {
-				conceptNameDTOs = new HashMap<>();
-			} else {
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList()))
-				        .stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = getConceptNameMap(conceptIds,
+			    this::getConceptNamesByConceptIds);
 			
-			Map<Integer, List<ConceptNameDTO>> drugNames = null;
-			if (drugIds.isEmpty()) {
-				drugNames = new HashMap<>();
-			} else {
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> drugNames = getDrugNameMap(drugIds, this::getDrugNamesByDrugIds);
 			
 			Map<Integer, List<StockBatchLineItem>> dataGroup = result.getData().stream()
 			        .collect(Collectors.groupingBy(p -> p.getStockItemId()));
@@ -1888,14 +1455,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			hqlQuery.append(" order by sit.id asc");
 			Query query = dbSession.createQuery(hqlQuery.toString());
 			query.setReadOnly(true);
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
+			setQueryParameters(query, parameterList, parameterWithList);
 			
 			query = query.setResultTransformer(new AliasToBeanResultTransformer(DispensingLineItem.class));
 			if (filter.getStockItemTransactionMin() != null) {
@@ -1908,12 +1468,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			result.setData(query.list());
 		}
 		finally {
-			if (dbSession != null) {
-				try {
-					dbSession.close();
-				}
-				catch (Exception e) {}
-			}
+			closeQuietly(null, dbSession);
 		}
 		
 		if (!result.getData().isEmpty()) {
@@ -1933,27 +1488,14 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			List<Integer> patientIds = result.getData().stream().map(p -> p.getPatientId()).filter(p -> p != null)
 			        .collect(Collectors.toList());
 			
-			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
-			if (conceptIds.isEmpty()) {
-				conceptNameDTOs = new HashMap<>();
-			} else {
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList()))
-				        .stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = getConceptNameMap(conceptIds,
+			    this::getConceptNamesByConceptIds);
 			
-			Map<Integer, List<ConceptNameDTO>> drugNames = null;
-			if (drugIds.isEmpty()) {
-				drugNames = new HashMap<>();
-			} else {
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> drugNames = getDrugNameMap(drugIds, this::getDrugNamesByDrugIds);
 			
-			List<Integer> distinctUserIds = userIds.stream().distinct().collect(Collectors.toList());
-			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(distinctUserIds).stream()
-			        .collect(Collectors.groupingBy(p -> p.getUserId()));
-			List<Integer> distinctPatientIds = patientIds.stream().distinct().collect(Collectors.toList());
-			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(distinctPatientIds, true)
-			        .stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
+			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameMap(userIds, this::getPersonNameByUserIds);
+			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameMap(patientIds,
+			    ids -> getPatientNameByPatientIds(ids, true));
 			
 			for (DispensingLineItem dispensingLineItem : result.getData()) {
 				
@@ -2173,14 +1715,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			hqlQuery.append(" order by o.order_id asc");
 			Query query = dbSession.createSQLQuery(hqlQuery.toString());
 			query.setReadOnly(true);
-			if (parameterList != null) {
-				for (Map.Entry<String, Object> entry : parameterList.entrySet())
-					query.setParameter(entry.getKey(), entry.getValue());
-			}
-			if (parameterWithList != null) {
-				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
-					query.setParameterList(entry.getKey(), entry.getValue());
-			}
+			setQueryParameters(query, parameterList, parameterWithList);
 			
 			query = query.setResultTransformer(new AliasToBeanResultTransformer(PrescriptionLineItem.class));
 			if (filter.getPrescriptionTransactionMin() != null) {
@@ -2193,12 +1728,7 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			result.setData(query.list());
 		}
 		finally {
-			if (dbSession != null) {
-				try {
-					dbSession.close();
-				}
-				catch (Exception e) {}
-			}
+			closeQuietly(null, dbSession);
 		}
 		
 		if (!result.getData().isEmpty()) {
@@ -2243,27 +1773,14 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 			        .filter(p -> p != null).distinct().collect(Collectors.toList());
 			
 			//getPatientNameByPatientIds
-			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
-			if (conceptIds.isEmpty()) {
-				conceptNameDTOs = new HashMap<>();
-			} else {
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList()))
-				        .stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = getConceptNameMap(conceptIds,
+			    this::getConceptNamesByConceptIds);
 			
-			Map<Integer, List<ConceptNameDTO>> drugNames = null;
-			if (drugIds.isEmpty()) {
-				drugNames = new HashMap<>();
-			} else {
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> drugNames = getDrugNameMap(drugIds, this::getDrugNamesByDrugIds);
 			
-			List<Integer> distinctUserIds = userIds.stream().distinct().collect(Collectors.toList());
-			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(distinctUserIds).stream()
-			        .collect(Collectors.groupingBy(p -> p.getUserId()));
-			List<Integer> distinctPatientIds = patientIds.stream().distinct().collect(Collectors.toList());
-			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameByPatientIds(distinctPatientIds, true)
-			        .stream().collect(Collectors.groupingBy(p -> p.getPatientId()));
+			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameMap(userIds, this::getPersonNameByUserIds);
+			Map<Integer, List<UserPersonNameDTO>> patientNames = getPatientNameMap(patientIds,
+			    ids -> getPatientNameByPatientIds(ids, true));
 			Map<String, String> locationNames = getLocationNamesByUuid(fullfillmentLocationUuids);
 			
 			for (PrescriptionLineItem prescriptionLineItem : result.getData()) {
@@ -2412,6 +1929,213 @@ public class HibernateStockInventoryDao extends DaoBase implements StockInventor
 		}
 		
 		return mapResult;
+	}
+	
+	private boolean[] getInventoryGroupByFlags(StockItemInventorySearchFilter filter) {
+		if (filter.getInventoryGroupBy() == null) {
+			filter.setInventoryGroupBy(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+		}
+		
+		boolean groupByParty = true;
+		boolean groupByStockBatch = true;
+		boolean groupByStockItem = true;
+		
+		if (filter.getInventoryGroupBy() != null) {
+			groupByParty = filter.getInventoryGroupBy()
+			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
+			        || filter.getInventoryGroupBy()
+			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+			
+			groupByStockItem = filter.getInventoryGroupBy()
+			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItem)
+			        || filter.getInventoryGroupBy()
+			                .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo)
+			        || filter.getInventoryGroupBy().equals(StockItemInventorySearchFilter.InventoryGroupBy.StockItemOnly);
+			
+			groupByStockBatch = filter.getInventoryGroupBy()
+			        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo);
+		}
+		if (groupByParty == false && groupByStockBatch == false && groupByStockItem == false) {
+			groupByParty = true;
+			groupByStockBatch = true;
+			groupByStockItem = true;
+		}
+		return new boolean[] { groupByParty, groupByStockBatch, groupByStockItem };
+	}
+	
+	private void setQueryParameters(Query query, Map<String, Object> parameterList,
+	        Map<String, Collection> parameterWithList) {
+		if (parameterList != null) {
+			for (Map.Entry<String, Object> entry : parameterList.entrySet())
+				query.setParameter(entry.getKey(), entry.getValue());
+		}
+		if (parameterWithList != null) {
+			for (Map.Entry<String, Collection> entry : parameterWithList.entrySet())
+				query.setParameterList(entry.getKey(), entry.getValue());
+		}
+	}
+	
+	private void closeQuietly(ScrollableResults results, org.hibernate.StatelessSession session) {
+		if (results != null) {
+			try {
+				results.close();
+			}
+			catch (Exception e) {}
+		}
+		if (session != null) {
+			try {
+				session.close();
+			}
+			catch (Exception e) {}
+		}
+	}
+	
+	private boolean appendItemGroupFilters(StockItemInventorySearchFilter filter, List<Integer> restrictedPartyIds,
+	        HashMap<String, Object> parameterList, HashMap<String, Collection> parameterWithList,
+	        List<StockItemInventorySearchFilter.ItemGroupFilter> zeroStockQtyToReturn, StringBuilder itemGroupFilters) {
+		List<String> partyIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
+		        : filter.getItemGroupFilters().stream()
+		                .filter(p -> p.getPartyUuids() != null && !p.getPartyUuids().isEmpty()).map(p -> p.getPartyUuids())
+		                .flatMap(Collection::stream).distinct().collect(Collectors.toList());
+		
+		List<String> stockItemIdsToFetch = filter.getItemGroupFilters() == null ? new ArrayList<>()
+		        : filter.getItemGroupFilters().stream().filter(p -> p.getStockItemUuid() != null)
+		                .map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList());
+		
+		Map<String, Integer> partyIds = partyIdsToFetch.isEmpty() ? new HashMap<>() : getPartyIds(partyIdsToFetch);
+		Map<String, Integer> stockItemIds = stockItemIdsToFetch.isEmpty() ? new HashMap<>()
+		        : getStockItemIds(stockItemIdsToFetch);
+		int paramIndex = 0;
+		int appliedItemGroupFilters = 0;
+		if (filter.getItemGroupFilters() != null) {
+			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : filter.getItemGroupFilters()) {
+				StringBuilder itemGroupClause = new StringBuilder();
+				HashMap<String, Object> itemGroupParameterList = new HashMap<>();
+				HashMap<String, Collection> itemGroupParameterWithList = new HashMap<>();
+				StockItemInventorySearchFilter.ItemGroupFilter zeroQtyItemGroupFilter = new StockItemInventorySearchFilter.ItemGroupFilter();
+				
+				List<Integer> partyIdFilter = new ArrayList<>();
+				if (itemGroupFilter.getPartyIds() != null) {
+					partyIdFilter.addAll(itemGroupFilter.getPartyIds());
+				}
+				if (itemGroupFilter.getPartyUuids() != null) {
+					List<Integer> foundPartyIds = itemGroupFilter.getPartyUuids().stream()
+					        .map(p -> partyIds.getOrDefault(p, 0)).filter(p -> !p.equals(0)).collect(Collectors.toList());
+					if (foundPartyIds.isEmpty()) {
+						// return new StockInventoryResult(new ArrayList<>(), 0);
+						continue;
+					}
+					partyIdFilter.addAll(foundPartyIds);
+				}
+				String paramIndexString = Integer.toString(paramIndex);
+				if (!partyIdFilter.isEmpty()) {
+					if (restrictedPartyIds != null) {
+						partyIdFilter = partyIdFilter.stream().filter(p -> restrictedPartyIds.contains(p))
+						        .collect(Collectors.toList());
+						if (partyIdFilter.isEmpty()) {
+							//partyIdFilter = restrictedPartyIds;
+							continue;
+						}
+					}
+					
+					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
+					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, partyIdFilter);
+					zeroQtyItemGroupFilter.setPartyIds(partyIdFilter);
+					
+				} else if (restrictedPartyIds != null) {
+					appendFilter(itemGroupClause, String.format("sit.party.id in (:pids%1s)", paramIndexString));
+					itemGroupParameterWithList.putIfAbsent("pids" + paramIndexString, restrictedPartyIds);
+					zeroQtyItemGroupFilter.setPartyIds(restrictedPartyIds);
+				}
+				
+				if (itemGroupFilter.getStockItemId() != null) {
+					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+					itemGroupParameterList.putIfAbsent("sid" + paramIndexString, itemGroupFilter.getStockItemId());
+					zeroQtyItemGroupFilter.setStockItemId(itemGroupFilter.getStockItemId());
+				} else if (!StringUtils.isBlank(itemGroupFilter.getStockItemUuid())) {
+					if (!stockItemIds.containsKey(itemGroupFilter.getStockItemUuid())) {
+						// return new StockInventoryResult(new ArrayList<>(), 0);
+						continue;
+					}
+					appendFilter(itemGroupClause, String.format("sit.stockItem.id = :sid%1s", paramIndexString));
+					itemGroupParameterList.putIfAbsent("sid" + paramIndexString,
+					    stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+					zeroQtyItemGroupFilter.setStockItemId(stockItemIds.get(itemGroupFilter.getStockItemUuid()));
+				}
+				
+				if (itemGroupFilter.getStockBatchIds() != null && !itemGroupFilter.getStockBatchIds().isEmpty()) {
+					appendFilter(itemGroupClause, String.format("sit.stockBatch.id in (:sbid%1s)", paramIndexString));
+					itemGroupParameterWithList.putIfAbsent("sbid" + paramIndexString, itemGroupFilter.getStockBatchIds());
+				}
+				
+				paramIndex++;
+				if (itemGroupClause.length() > 0) {
+					appliedItemGroupFilters++;
+					appendORFilter(itemGroupFilters, itemGroupClause.toString());
+					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
+						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
+					}
+					for (Map.Entry<String, Collection> entry : itemGroupParameterWithList.entrySet()) {
+						parameterWithList.putIfAbsent(entry.getKey(), entry.getValue());
+					}
+				} else {
+					continue;
+				}
+			}
+		}
+		return !(filter.isRequireItemGroupFilters() && appliedItemGroupFilters == 0);
+	}
+	
+	private void appendGroupBy(StringBuilder hqlQuery, boolean groupByParty, boolean groupByStockItem,
+	        boolean groupByStockBatch) {
+		hqlQuery.append(" group by ");
+		List<String> groupColumns = new ArrayList<>();
+		if (groupByParty) {
+			groupColumns.add("sit.party.id");
+		}
+		if (groupByStockItem) {
+			groupColumns.add("sit.stockItem.id");
+		}
+		if (groupByStockBatch) {
+			groupColumns.add("sit.stockBatch.id");
+		}
+		hqlQuery.append(String.join(", ", groupColumns));
+	}
+	
+	static Map<Integer, List<ConceptNameDTO>> getConceptNameMap(List<Integer> conceptIds,
+	        Function<List<Integer>, List<ConceptNameDTO>> fetcher) {
+		if (conceptIds.isEmpty()) {
+			return new HashMap<>();
+		}
+		return fetcher.apply(conceptIds.stream().distinct().collect(Collectors.toList())).stream()
+		        .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
+	}
+	
+	static Map<Integer, List<ConceptNameDTO>> getDrugNameMap(List<Integer> drugIds,
+	        Function<List<Integer>, List<ConceptNameDTO>> fetcher) {
+		if (drugIds.isEmpty()) {
+			return new HashMap<>();
+		}
+		return fetcher.apply(drugIds).stream().collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
+	}
+	
+	static Map<Integer, List<UserPersonNameDTO>> getPersonNameMap(List<Integer> userIds,
+	        Function<List<Integer>, List<UserPersonNameDTO>> fetcher) {
+		if (userIds.isEmpty()) {
+			return new HashMap<>();
+		}
+		return fetcher.apply(userIds.stream().distinct().collect(Collectors.toList())).stream()
+		        .collect(Collectors.groupingBy(UserPersonNameDTO::getUserId));
+	}
+	
+	static Map<Integer, List<UserPersonNameDTO>> getPatientNameMap(List<Integer> patientIds,
+	        Function<List<Integer>, List<UserPersonNameDTO>> fetcher) {
+		if (patientIds.isEmpty()) {
+			return new HashMap<>();
+		}
+		return fetcher.apply(patientIds.stream().distinct().collect(Collectors.toList())).stream()
+		        .collect(Collectors.groupingBy(UserPersonNameDTO::getPatientId));
 	}
 	
 }

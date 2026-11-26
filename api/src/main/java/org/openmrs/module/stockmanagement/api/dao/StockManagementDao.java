@@ -19,7 +19,6 @@ import org.hibernate.type.IntegerType;
 import org.openmrs.*;
 import org.openmrs.api.APIException;
 import org.openmrs.api.ConceptNameType;
-import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
@@ -389,183 +388,6 @@ public class StockManagementDao extends DaoBase {
 		}).fetchHits(maxItems);
 	}
 	
-	public Result<StockItemDTO> findStockItems(StockItemSearchFilter filter) {
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select si.uuid as uuid, si.id as id,\n" + "si.drug.drugId as drugId,\n"
-		        + "d.uuid as drugUuid,\n" + "d.name as drugName,\n" + "c.conceptId as conceptId,\n"
-		        + "c.uuid as conceptUuid,\n" + "si.hasExpiration as hasExpiration,\n"
-		        + "si.preferredVendor.id as preferredVendorId,\n" + "pv.uuid as preferredVendorUuid,\n"
-		        + "pv.name as preferredVendorName,\n" + "si.purchasePrice as purchasePrice,\n"
-		        + "si.purchasePriceUoM.id as purchasePriceUoMId,\n" + "ppu.uuid as purchasePriceUoMUuid,\n"
-		        + "ppu.factor as purchasePriceUoMFactor,\n" + "ppu.packagingUom.conceptId as purchasePriceConceptId,\n"
-		        + "si.dispensingUnit.conceptId as dispensingUnitId,\n" + "du.uuid as dispensingUnitUuid,\n"
-		        + "si.dispensingUnitPackagingUoM.id as dispensingUnitPackagingUoMId,\n"
-		        + "dupu.uuid as dispensingUnitPackagingUoMUuid,\n" + "dupu.factor as dispensingUnitPackagingUoMFactor,\n"
-		        + "dupu.packagingUom.conceptId as dispensingUnitPackagingConceptId,\n"
-		        + "si.defaultStockOperationsUoM.id as defaultStockOperationsUoMId,\n"
-		        + "dsou.uuid as defaultStockOperationsUoMUuid,\n" + "dsou.factor as defaultStockOperationsUoMFactor,\n"
-		        + "dsou.packagingUom.conceptId as defaultStockOperationsConceptId,\n" + "si.commonName as commonName,\n"
-		        + "si.acronym as acronym,\n" + "si.reorderLevel as reorderLevel,\n"
-		        + "si.reorderLevelUOM.id as reorderLevelUoMId,\n" + "rol.uuid as reorderLevelUoMUuid,\n"
-		        + "rol.factor as reorderLevelUoMFactor,\n" + "si.category.conceptId as categoryId,\n"
-		        + "cg.uuid as categoryUuid,\n" + "rol.packagingUom.conceptId as reorderLevelConceptId,\n"
-		        + "si.creator.userId as creator,\n" + "si.dateCreated as dateCreated,\n"
-		        + "si.expiryNotice as expiryNotice,\n" + "si.voided as voided\n"
-		        + "from stockmanagement.StockItem si left join\n" + " si.drug d left join\n"
-		        + "\t si.concept c left join si.preferredVendor pv left join si.purchasePriceUoM ppu left join \n"
-		        + "\t si.dispensingUnit du left join si.dispensingUnitPackagingUoM dupu left join \n"
-		        + "\t si.defaultStockOperationsUoM dsou left join si.reorderLevelUOM rol left join si.category cg");
-		
-		StringBuilder hqlFilter = new StringBuilder();
-		
-		if (isNotNullOrEmpty(filter.getUuid())) {
-			appendFilter(hqlFilter, "si.uuid = :uuid");
-			parameterList.put("uuid", filter.getUuid());
-		}
-		
-		if (filter.getDrugId() != null) {
-			appendFilter(hqlFilter, "si.drug.drugId = :drugId");
-			parameterList.put("drugId", filter.getDrugId());
-		}
-		
-		if (filter.getConceptId() != null) {
-			appendFilter(hqlFilter, "si.concept.conceptId = :conceptId");
-			parameterList.put("conceptId", filter.getConceptId());
-		}
-		
-		if (filter.getIsDrug() != null) {
-			if (filter.getIsDrug()) {
-				appendFilter(hqlFilter, "si.drug.drugId is not null");
-			} else {
-				appendFilter(hqlFilter, "si.drug.drugId is null");
-			}
-		}
-		
-		StringBuilder itemFilter = new StringBuilder();
-		if (filter.getStockItemIds() != null && !filter.getStockItemIds().isEmpty()) {
-			appendORFilter(itemFilter, "si.id in (:ids)");
-			parameterWithList.putIfAbsent("ids", filter.getStockItemIds());
-		}
-		
-		boolean appledDrugConceptsSearch = false;
-		if (filter.getSearchEitherDrugsOrConcepts()) {
-			if (filter.getDrugs() != null && !filter.getDrugs().isEmpty() && filter.getConcepts() != null
-			        && !filter.getConcepts().isEmpty()) {
-				appledDrugConceptsSearch = true;
-				appendORFilter(itemFilter, "si.drug.drugId in (:drugIds) or si.concept.conceptId in (:conceptIds)");
-				parameterWithList.putIfAbsent("drugIds",
-				    filter.getDrugs().stream().map(p -> p.getId()).collect(Collectors.toList()));
-				parameterWithList.putIfAbsent("conceptIds",
-				    filter.getConcepts().stream().map(p -> p.getConceptId()).collect(Collectors.toList()));
-			}
-		}
-		if (!appledDrugConceptsSearch) {
-			if (filter.getDrugs() != null && !filter.getDrugs().isEmpty()) {
-				appendORFilter(itemFilter, "si.drug.drugId in (:drugIds)");
-				parameterWithList.putIfAbsent("drugIds",
-				    filter.getDrugs().stream().map(p -> p.getId()).collect(Collectors.toList()));
-			}
-			if (filter.getConcepts() != null && !filter.getConcepts().isEmpty()) {
-				appendORFilter(itemFilter, "si.concept.conceptId in (:conceptIds)");
-				parameterWithList.putIfAbsent("conceptIds",
-				    filter.getConcepts().stream().map(p -> p.getConceptId()).collect(Collectors.toList()));
-			}
-		}
-		
-		if (itemFilter.length() > 0) {
-			appendFilter(hqlFilter, itemFilter.toString());
-		}
-		
-		List<Integer> categoryIds = new ArrayList<>();
-		if (filter.getCategoryId() != null) {
-			categoryIds.add(filter.getCategoryId());
-		}
-		if (filter.getCategories() != null) {
-			categoryIds.addAll(filter.getCategories().stream().map(p -> p.getConceptId()).collect(Collectors.toList()));
-		}
-		
-		if (!categoryIds.isEmpty()) {
-			if (categoryIds.size() == 1) {
-				appendFilter(hqlFilter, "si.category.conceptId = :categoryId");
-				parameterList.put("categoryId", categoryIds.get(0));
-			} else {
-				appendFilter(hqlFilter, "si.category.conceptId in (:categoryIds)");
-				parameterWithList.put("categoryIds", categoryIds.stream().distinct().collect(Collectors.toList()));
-			}
-		}
-		
-		if (!filter.getIncludeVoided()) {
-			appendFilter(hqlFilter, "si.voided = :vdd");
-			parameterList.putIfAbsent("vdd", false);
-		}
-		
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
-		
-		Result<StockItemDTO> result = new Result<>();
-		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
-			result.setPageSize(filter.getLimit());
-		}
-		result.setData(
-		    executeQuery(StockItemDTO.class, hqlQuery, result, " order by si.id asc", parameterList, parameterWithList));
-		
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptNamesToFetch = result.getData().stream()
-			        .map(p -> Arrays.asList(p.getConceptId(), p.getDispensingUnitId(), p.getPurchasePriceConceptId(),
-			            p.getDispensingUnitPackagingConceptId(), p.getDefaultStockOperationsConceptId(),
-			            p.getReorderLevelConceptId(), p.getCategoryId()))
-			        .flatMap(Collection::stream).filter(p -> p != null).distinct().collect(Collectors.toList());
-			if (!conceptNamesToFetch.isEmpty()) {
-				Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = getConceptNamesByConceptIds(conceptNamesToFetch)
-				        .stream().collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
-				for (StockItemDTO stockItemDTO : result.getData()) {
-					if (stockItemDTO.getConceptId() != null && conceptNameDTOs.containsKey(stockItemDTO.getConceptId())) {
-						stockItemDTO.setConceptName(conceptNameDTOs.get(stockItemDTO.getConceptId()).get(0).getName());
-					}
-					
-					if (stockItemDTO.getDispensingUnitId() != null
-					        && conceptNameDTOs.containsKey(stockItemDTO.getDispensingUnitId())) {
-						stockItemDTO.setDispensingUnitName(
-						    conceptNameDTOs.get(stockItemDTO.getDispensingUnitId()).get(0).getName());
-					}
-					
-					if (stockItemDTO.getPurchasePriceConceptId() != null
-					        && conceptNameDTOs.containsKey(stockItemDTO.getPurchasePriceConceptId())) {
-						stockItemDTO.setPurchasePriceUoMName(
-						    conceptNameDTOs.get(stockItemDTO.getPurchasePriceConceptId()).get(0).getName());
-					}
-					
-					if (stockItemDTO.getDispensingUnitPackagingConceptId() != null
-					        && conceptNameDTOs.containsKey(stockItemDTO.getDispensingUnitPackagingConceptId())) {
-						stockItemDTO.setDispensingUnitPackagingUoMName(
-						    conceptNameDTOs.get(stockItemDTO.getDispensingUnitPackagingConceptId()).get(0).getName());
-					}
-					
-					if (stockItemDTO.getDefaultStockOperationsConceptId() != null
-					        && conceptNameDTOs.containsKey(stockItemDTO.getDefaultStockOperationsConceptId())) {
-						stockItemDTO.setDefaultStockOperationsUoMName(
-						    conceptNameDTOs.get(stockItemDTO.getDefaultStockOperationsConceptId()).get(0).getName());
-					}
-					
-					if (stockItemDTO.getReorderLevelConceptId() != null
-					        && conceptNameDTOs.containsKey(stockItemDTO.getReorderLevelConceptId())) {
-						stockItemDTO.setReorderLevelUoMName(
-						    conceptNameDTOs.get(stockItemDTO.getReorderLevelConceptId()).get(0).getName());
-					}
-					if (stockItemDTO.getCategoryId() != null && conceptNameDTOs.containsKey(stockItemDTO.getCategoryId())) {
-						stockItemDTO.setCategoryName(conceptNameDTOs.get(stockItemDTO.getCategoryId()).get(0).getName());
-					}
-				}
-			}
-		}
-		
-		return result;
-	}
-	
 	public Result<StockItem> findStockItemEntities(StockItemSearchFilter filter) {
 		DbSession dbSession = getSession();
 		Criteria criteria = dbSession.createCriteria(StockItem.class, "si");
@@ -845,80 +667,6 @@ public class StockManagementDao extends DaoBase {
 		return result;
 	}
 	
-	public Result<PartyDTO> findParty(PartySearchFilter filter) {
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder(
-		        "select p.id as id, p.uuid as uuid,\n" + "coalesce(l.name, s.name) as name,\n" + "s.acronym as acronym,\n"
-		                + "l.uuid as locationUuid, l.locationId as locationId,\n"
-		                + "s.uuid as stockSourceUuid, s.id as stockSourceId,\n" + "p.voided as voided\n"
-		                + "from stockmanagement.Party p left join\n" + "\t p.location l left join p.stockSource s");
-		
-		StringBuilder hqlFilter = new StringBuilder();
-		
-		if (filter.getPartyIds() != null && !filter.getPartyIds().isEmpty()) {
-			appendFilter(hqlFilter, "p.id in (:pids)");
-			parameterWithList.putIfAbsent("pids", filter.getPartyIds());
-		}
-		
-		if (filter.getPartyUuids() != null && !filter.getPartyUuids().isEmpty()) {
-			appendFilter(hqlFilter, "p.uuid in (:puuids)");
-			parameterWithList.putIfAbsent("puuids", filter.getPartyUuids());
-		}
-		
-		if (filter.getLocationIds() != null && !filter.getLocationIds().isEmpty()) {
-			appendFilter(hqlFilter, "l.id in (:lids)");
-			parameterWithList.putIfAbsent("lids", filter.getLocationIds());
-		}
-		
-		if (filter.getLocationUuids() != null && !filter.getLocationUuids().isEmpty()) {
-			appendFilter(hqlFilter, "l.uuid in (:luuids)");
-			parameterWithList.putIfAbsent("luuids", filter.getLocationUuids());
-		}
-		
-		if (StringUtils.isNotBlank(filter.getSearchText())) {
-			String q = filter.getSearchText().replaceAll("%", "");
-			if (q.length() == 0)
-				return new Result<>(new ArrayList<>(), 0);
-			q = "%" + q + "%";
-			appendFilter(hqlFilter, "lower(l.name) like lower(:name) or lower(s.name) like lower(:name)");
-			parameterList.putIfAbsent("name", q);
-		}
-		
-		if (filter.getIncludeVoided() == null || !filter.getIncludeVoided()) {
-			appendFilter(hqlFilter, "p.voided = :vdd");
-			parameterList.putIfAbsent("vdd", false);
-		}
-		
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
-		
-		Result<PartyDTO> result = new Result<>();
-		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
-			result.setPageSize(filter.getLimit());
-		}
-		result.setData(
-		    executeQuery(PartyDTO.class, hqlQuery, result, " order by name asc", parameterList, parameterWithList));
-		return result;
-	}
-	
-	public Map<String, String> getLocationNamesByUuid(List<String> locationUuids) {
-		if (locationUuids == null || locationUuids.isEmpty())
-			return new HashMap<>();
-		Query query = getSession()
-		        .createQuery("select l.uuid as uuid, l.name as name from Location l where l.uuid in (:uuids)")
-		        .setParameterList("uuids", locationUuids);
-		List result = query.list();
-		Map<String, String> resultMap = new HashMap<>();
-		for (Object object : result) {
-			resultMap.putIfAbsent((String) (((Object[]) object)[0]), (String) (((Object[]) object)[1]));
-		}
-		return resultMap;
-	}
-	
 	public Map<Integer, String> getLocationNames(List<Integer> locationIds) {
 		if (locationIds == null || locationIds.isEmpty())
 			return new HashMap<>();
@@ -1144,90 +892,6 @@ public class StockManagementDao extends DaoBase {
 		Query query = getSession().createQuery(hqlQuery.toString());
 		query = query.setResultTransformer(new AliasToBeanResultTransformer(PartyDTO.class));
 		return query.list();
-	}
-	
-	public Result<StockItemPackagingUOMDTO> findStockItemPackagingUOMs(StockItemPackagingUOMSearchFilter filter) {
-		HashMap<String, Object> parameterList = new HashMap<>();
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select sipu.id as id,\n" + "\tsipu.uuid as uuid,\n"
-		        + "\tsipu.voided as voided,\n" + "\tsipu.factor as factor,\n" + "\tc.conceptId as packagingUomId,\n"
-		        + "\tc.uuid as packagingUomUuid,\n" + "\tsipu.stockItem.id as stockItemId,\n"
-		        + "\tsi.uuid as stockItemUuid,\n"
-		        + (filter.includingDispensingUnit() ? "\tdu.conceptId as stockItemDispensingUnitId,\n" : "")
-		        + "CASE sipu.id WHEN si.defaultStockOperationsUoM.id THEN true ELSE false END as isDefaultStockOperationsUoM,\n"
-		        + "CASE sipu.id WHEN si.dispensingUnitPackagingUoM.id THEN true ELSE false END as isDispensingUnit\n"
-		        + "from stockmanagement.StockItemPackagingUOM sipu join\n" + "  sipu.stockItem si join \n"
-		        + "  sipu.packagingUom c \n" + (filter.includingDispensingUnit() ? " left join si.dispensingUnit du" : ""));
-		
-		StringBuilder hqlFilter = new StringBuilder();
-		
-		if (!StringUtils.isBlank(filter.getUuid())) {
-			appendFilter(hqlFilter, "sipu.uuid = :uuid");
-			parameterList.putIfAbsent("uuid", filter.getUuid());
-		}
-		
-		if (filter.getStockItemIds() != null && !filter.getStockItemIds().isEmpty()) {
-			appendFilter(hqlFilter, "sipu.stockItem.id in (:stockItemId)");
-			parameterWithList.putIfAbsent("stockItemId", filter.getStockItemIds());
-		}
-		
-		if (filter.getStockItemUuids() != null && !filter.getStockItemUuids().isEmpty()) {
-			appendFilter(hqlFilter, "si.uuid in (:stockItemUuid)");
-			parameterWithList.putIfAbsent("stockItemUuid", filter.getStockItemUuids());
-		}
-		
-		if (!filter.getIncludeVoided()) {
-			appendFilter(hqlFilter, "sipu.voided = :vdd");
-			parameterList.putIfAbsent("vdd", false);
-		}
-		
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
-		
-		Result<StockItemPackagingUOMDTO> result = new Result<>();
-		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
-			result.setPageSize(filter.getLimit());
-		}
-		result.setData(executeQuery(StockItemPackagingUOMDTO.class, hqlQuery, result, " order by sipu.id", parameterList,
-		    parameterWithList));
-		
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptIdsToFetch = result.getData().stream().map(p -> p.getPackagingUomId())
-			        .collect(Collectors.toList());
-			if (filter.includingDispensingUnit()) {
-				conceptIdsToFetch.addAll(result.getData().stream().map(p -> p.getStockItemDispensingUnitId())
-				        .filter(p -> p != null).collect(Collectors.toList()));
-			}
-			List<ConceptNameDTO> conceptNameDTOs = getConceptNamesByConceptIds(conceptIdsToFetch);
-			for (StockItemPackagingUOMDTO stockItemPackagingUOMDTO : result.getData()) {
-				Optional<ConceptNameDTO> conceptNameDTO = conceptNameDTOs.stream()
-				        .filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getPackagingUomId())
-				                && p.getLocale().getDisplayName().equals(Context.getLocale().getDisplayName()))
-				        .findFirst();
-				if (conceptNameDTO.isPresent()) {
-					stockItemPackagingUOMDTO.setPackagingUomName(conceptNameDTO.get().getName());
-				} else {
-					conceptNameDTO = conceptNameDTOs.stream()
-					        .filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getPackagingUomId())).findFirst();
-					if (conceptNameDTO.isPresent()) {
-						stockItemPackagingUOMDTO.setPackagingUomName(conceptNameDTO.get().getName());
-					}
-				}
-				if (filter.includingDispensingUnit() && stockItemPackagingUOMDTO.getStockItemDispensingUnitId() != null) {
-					conceptNameDTO = conceptNameDTOs.stream()
-					        .filter(p -> p.getConceptId().equals(stockItemPackagingUOMDTO.getStockItemDispensingUnitId()))
-					        .findFirst();
-					if (conceptNameDTO.isPresent()) {
-						stockItemPackagingUOMDTO.setStockItemDispensingUnitName(conceptNameDTO.get().getName());
-					}
-				}
-			}
-		}
-		
-		return result;
 	}
 	
 	public Result<StockOperationItemDTO> findStockOperationItems(StockOperationItemSearchFilter filter) {
@@ -1565,20 +1229,11 @@ public class StockManagementDao extends DaoBase {
 			drugIds.addAll(result.getData().stream().filter(p -> p.getStockItemDrugId() != null)
 			        .map(p -> p.getStockItemDrugId()).collect(Collectors.toList()));
 			
-			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
-			if (conceptIds.isEmpty()) {
-				conceptNameDTOs = new HashMap<>();
-			} else {
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList()))
-				        .stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = HibernateStockInventoryDao.getConceptNameMap(conceptIds,
+			    this::getConceptNamesByConceptIds);
 			
-			Map<Integer, List<ConceptNameDTO>> drugNames = null;
-			if (drugIds.isEmpty()) {
-				drugNames = new HashMap<>();
-			} else {
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> drugNames = HibernateStockInventoryDao.getDrugNameMap(drugIds,
+			    this::getDrugNamesByDrugIds);
 			
 			for (StockBatchLineItem stockBatchLineItem : result.getData()) {
 				
@@ -1719,31 +1374,6 @@ public class StockManagementDao extends DaoBase {
 		
 		criteria.setProjection(Projections.rowCount());
 		return ((Number) criteria.uniqueResult()).longValue();
-	}
-	
-	public Result<StockItemDTO> getStockItemConceptRefs(List<Integer> stockItemIds) {
-		if (stockItemIds == null || stockItemIds.isEmpty())
-			return new Result<>(new ArrayList<>(), 0);
-		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder(
-		        "select si.id as id,\n" + "si.drug.drugId as drugId,\n" + "d.uuid as drugUuid,\n"
-		                + "c.conceptId as conceptId,\n" + "c.uuid as conceptUuid,\n" + "d.strength as drugStrength\n"
-		                + "from stockmanagement.StockItem si left join\n" + " si.drug d left join\n" + "\t si.concept c\n");
-		
-		StringBuilder hqlFilter = new StringBuilder();
-		appendFilter(hqlFilter, "si.id in (:ids)");
-		parameterWithList.putIfAbsent("ids", stockItemIds);
-		
-		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
-		}
-		
-		Result<StockItemDTO> result = new Result<>();
-		result.setData(
-		    executeQuery(StockItemDTO.class, hqlQuery, result, " order by si.id asc", new HashMap<>(), parameterWithList));
-		
-		return result;
 	}
 	
 	public Result<StockOperationLinkDTO> findStockOperationLinks(String stockOperationUuid) {
@@ -1992,8 +1622,7 @@ public class StockManagementDao extends DaoBase {
 			List<Integer> conceptNamesToFetch = result.getData().stream().map(p -> p.getPackagingUoMId())
 			        .filter(p -> p != null).distinct().collect(Collectors.toList());
 			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = conceptNamesToFetch.isEmpty() ? null
-			        : getConceptNamesByConceptIds(conceptNamesToFetch).stream()
-			                .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
+			        : HibernateStockInventoryDao.getConceptNameMap(conceptNamesToFetch, this::getConceptNamesByConceptIds);
 			
 			for (StockRuleDTO stockRuleDTO : result.getData()) {
 				if (conceptNameDTOs != null) {
@@ -2166,12 +1795,8 @@ public class StockManagementDao extends DaoBase {
 				conceptNamesToFetch.add(value);
 			}
 		}
-		Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
-		if (!conceptNamesToFetch.isEmpty()) {
-			List<Integer> distinctConceptIds = conceptNamesToFetch.stream().distinct().collect(Collectors.toList());
-			conceptNameDTOs = getConceptNamesByConceptIds(distinctConceptIds).stream()
-			        .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
-		}
+		Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = conceptNamesToFetch.isEmpty() ? null
+		        : HibernateStockInventoryDao.getConceptNameMap(conceptNamesToFetch, this::getConceptNamesByConceptIds);
 		Map<Integer, String> stockItemNames = new HashMap<>();
 		for (Object object : partialResult) {
 			if (((Object[]) object)[2] != null) {
@@ -2647,24 +2272,14 @@ public class StockManagementDao extends DaoBase {
 			userIds.addAll(result.getData().stream().map(p -> p.getResponsiblePerson()).filter(p -> p != null)
 			        .collect(Collectors.toList()));
 			
-			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = null;
-			if (conceptIds.isEmpty()) {
-				conceptNameDTOs = new HashMap<>();
-			} else {
-				conceptNameDTOs = getConceptNamesByConceptIds(conceptIds.stream().distinct().collect(Collectors.toList()))
-				        .stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = HibernateStockInventoryDao.getConceptNameMap(conceptIds,
+			    this::getConceptNamesByConceptIds);
 			
-			Map<Integer, List<ConceptNameDTO>> drugNames = null;
-			if (drugIds.isEmpty()) {
-				drugNames = new HashMap<>();
-			} else {
-				drugNames = getDrugNamesByDrugIds(drugIds).stream().collect(Collectors.groupingBy(p -> p.getConceptId()));
-			}
+			Map<Integer, List<ConceptNameDTO>> drugNames = HibernateStockInventoryDao.getDrugNameMap(drugIds,
+			    this::getDrugNamesByDrugIds);
 			
-			List<Integer> distinctUserIds = userIds.stream().distinct().collect(Collectors.toList());
-			Map<Integer, List<UserPersonNameDTO>> personNames = getPersonNameByUserIds(distinctUserIds).stream()
-			        .collect(Collectors.groupingBy(p -> p.getUserId()));
+			Map<Integer, List<UserPersonNameDTO>> personNames = HibernateStockInventoryDao.getPersonNameMap(userIds,
+			    this::getPersonNameByUserIds);
 			
 			for (StockOperationLineItem stockOperationItemDTO : result.getData()) {
 				
