@@ -9,8 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import java.util.function.BiConsumer;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
-import org.openmrs.module.stockmanagement.api.utils.Action2;
 import org.openmrs.module.stockmanagement.api.model.*;
 
 import java.math.BigDecimal;
@@ -99,10 +99,10 @@ public class ReceiptOperationTypeProcessor extends StockOperationTypeProcessorBa
 	
 	@Override
 	public void onCompleted(final StockOperation operation) {
-		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+		executeCopyReservedAndClear(operation, new BiConsumer<ReservedTransaction, StockItemTransaction>() {
 			
 			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
+			public void accept(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getDestination());
 			}
 		});

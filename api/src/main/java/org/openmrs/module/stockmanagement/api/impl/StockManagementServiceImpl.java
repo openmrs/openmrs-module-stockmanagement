@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
@@ -18,6 +19,7 @@ import org.openmrs.api.LocationService;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.StockLocationTags;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
@@ -44,13 +46,19 @@ import org.springframework.util.Assert;
 
 import javax.mail.Session;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class StockManagementServiceImpl extends BaseOpenmrsService implements StockManagementService {
+	
+	// Possessive quantifiers match the same addresses without backtracking, so a long address can't overflow the stack.
+	private static final Pattern EMAIL_PATTERN = Pattern
+	        .compile("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*+@(?:[a-zA-Z0-9-]+\\.)++[a-zA-Z]{2,7}$");
 	
 	StockManagementDao dao;
 	
@@ -1437,9 +1445,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	}
 	
 	public void submitStockOperation(StockOperationDTO stockOperationDTO) {
-		processStockOperationAction(stockOperationDTO, StockOperationAction.Action.SUBMIT, null,
-		    parameter1 -> new Pair<>(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE,
-		            StockOperationPrivelegeTarget.AtLocation));
+		processStockOperationAction(stockOperationDTO, StockOperationAction.Action.SUBMIT, null, parameter1 -> Pair
+		        .of(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE, StockOperationPrivelegeTarget.AtLocation));
 	}
 	
 	public void dispatchStockOperation(StockOperationDTO stockOperationDTO) {
@@ -1450,7 +1457,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			} else {
 				privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE;
 			}
-			return new Pair<>(privelege, StockOperationPrivelegeTarget.AtLocation);
+			return Pair.of(privelege, StockOperationPrivelegeTarget.AtLocation);
 		});
 	}
 	
@@ -1527,21 +1534,19 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				privelege = UUID.randomUUID().toString();
 				target = StockOperationPrivelegeTarget.AtLocation;
 			}
-			return new Pair<String, StockOperationPrivelegeTarget>(privelege, target);
+			return Pair.of(privelege, target);
 		});
 		
 	}
 	
 	public void approveStockOperation(StockOperationDTO stockOperationDTO) {
-		processStockOperationAction(stockOperationDTO, StockOperationAction.Action.APPROVE, null,
-		    parameter1 -> new Pair<>(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
-		            StockOperationPrivelegeTarget.AtLocation));
+		processStockOperationAction(stockOperationDTO, StockOperationAction.Action.APPROVE, null, parameter1 -> Pair
+		        .of(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE, StockOperationPrivelegeTarget.AtLocation));
 	}
 	
 	public void rejectStockOperation(StockOperationDTO stockOperationDTO, String reason) {
-		processStockOperationAction(stockOperationDTO, StockOperationAction.Action.REJECT, reason,
-		    parameter1 -> new Pair<>(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE,
-		            StockOperationPrivelegeTarget.AtLocation));
+		processStockOperationAction(stockOperationDTO, StockOperationAction.Action.REJECT, reason, parameter1 -> Pair
+		        .of(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE, StockOperationPrivelegeTarget.AtLocation));
 	}
 	
 	public void returnStockOperation(StockOperationDTO stockOperationDTO, String reason) {
@@ -1555,7 +1560,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				privelege = Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE;
 				target = StockOperationPrivelegeTarget.AtLocation;
 			}
-			return new Pair<String, StockOperationPrivelegeTarget>(privelege, target);
+			return Pair.of(privelege, target);
 		});
 	}
 	
@@ -1574,7 +1579,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				privelege = UUID.randomUUID().toString();
 				target = StockOperationPrivelegeTarget.AtLocation;
 			}
-			return new Pair<String, StockOperationPrivelegeTarget>(privelege, target);
+			return Pair.of(privelege, target);
 		});
 	}
 	
@@ -1671,7 +1676,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				errors.add(String.format(
 				    messageSourceService.getMessage("stockmanagement.stockoperation.itembatchbalancenegativeafteroperation"),
 				    stockItemName, stockOperationItem.getStockBatch().getBatchNo(),
-				    NumberFormatUtil.qtyDisplayFormat(displayUnitValue), displayUom));
+				    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(displayUnitValue), displayUom));
 			}
 		}
 		if (!errors.isEmpty()) {
@@ -1863,17 +1868,17 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				throw new StockManagementException(
 				        messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
 			} else {
-				if (requiredPrivilege.getValue2().equals(StockOperationPrivelegeTarget.AtLocation)) {
+				if (requiredPrivilege.getRight().equals(StockOperationPrivelegeTarget.AtLocation)) {
 					location = stockOperation.getAtLocation();
-				} else if (requiredPrivilege.getValue2().equals(StockOperationPrivelegeTarget.Destination)) {
+				} else if (requiredPrivilege.getRight().equals(StockOperationPrivelegeTarget.Destination)) {
 					location = stockOperation.getDestination().getLocation();
-				} else if (requiredPrivilege.getValue2().equals(StockOperationPrivelegeTarget.Source)) {
+				} else if (requiredPrivilege.getRight().equals(StockOperationPrivelegeTarget.Source)) {
 					location = stockOperation.getSource().getLocation();
 				}
 			}
 			
 			if (location == null
-			        || !processor.userCanProcess(Context.getAuthenticatedUser(), location, requiredPrivilege.getValue1())) {
+			        || !processor.userCanProcess(Context.getAuthenticatedUser(), location, requiredPrivilege.getLeft())) {
 				throw new StockManagementException(
 				        messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
 			}
@@ -2267,10 +2272,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 						}
 						
 						errors.add(String.format(
-						    messageSourceService.getMessage(
-						        "stockmanagement.stockoperation.itembatchbalancenegativeafteroperation"),
-						    stockItemName, stockBatch.getBatchNo(), NumberFormatUtil.qtyDisplayFormat(displayUnitValue),
-						    displayUom));
+						    messageSourceService
+						            .getMessage("stockmanagement.stockoperation.itembatchbalancenegativeafteroperation"),
+						    stockItemName, stockBatch.getBatchNo(),
+						    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(displayUnitValue), displayUom));
 					}
 				}
 				if (!errors.isEmpty()) {
@@ -2400,18 +2405,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			if (filter.getTotalBy() != null) {
 				switch (filter.getTotalBy()) {
 					case LocationStockItem:
-						result.setTotals(result.getData().stream()
-						        .collect(Collectors.groupingBy(p -> new Pair<>(p.getPartyId(), p.getStockItemId())))
-						        .entrySet().stream().map(p -> {
-							        StockItemInventory stockItemInventory = new StockItemInventory();
-							        StockItemInventory inventory = p.getValue().get(0);
-							        stockItemInventory.setPartyId(inventory.getPartyId());
-							        stockItemInventory.setLocationUuid(inventory.getLocationUuid());
-							        stockItemInventory.setStockItemId(inventory.getStockItemId());
-							        stockItemInventory.setQuantity(p.getValue().stream().map(x -> x.getQuantity())
-							                .reduce(BigDecimal.ZERO, BigDecimal::add));
-							        return stockItemInventory;
-						        }).collect(Collectors.toList()));
+						result.setTotals(totalByLocationStockItem(result.getData()));
 						break;
 					case LocationStockItemBatchNo:
 						result.setTotals(result.getData());
@@ -2754,10 +2748,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				        long count = locations.stream().filter(
 				            x -> x.getParentLocation() != null && x.getParentLocation().getUuid().equals(p.getUuid()))
 				                .count();
-				        return new Pair<String, Long>(p.getName(), count);
-			        }).sorted((p1, p2) -> p2.getValue2().compareTo(p1.getValue2())).findFirst();
+				        return Pair.of(p.getName(), count);
+			        }).sorted((p1, p2) -> p2.getRight().compareTo(p1.getRight())).findFirst();
 			if (topLocation.isPresent()) {
-				healthCenterName = topLocation.get().getValue1();
+				healthCenterName = topLocation.get().getLeft();
 			} else {
 				healthCenterName = "NOT SET";
 			}
@@ -2836,7 +2830,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			return;
 		
 		String emailToNotity = GlobalProperties.getStockOperationNotificationEmail();
-		if (!org.openmrs.module.stockmanagement.api.utils.StringUtils.isValidEmail(emailToNotity)) {
+		if (!isValidEmail(emailToNotity)) {
 			emailToNotity = null;
 		}
 		String roleToNotify = GlobalProperties.getStockOperationNotificationRole();
@@ -3161,13 +3155,36 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		dao.saveBatchJob(batchJob);
 	}
 	
+	/**
+	 * Sums the rows per location and stock item, in the order each pair first appears in the rows, so
+	 * the order doesn't depend on how the grouping key hashes.
+	 */
+	private static List<StockItemInventory> totalByLocationStockItem(List<StockItemInventory> rows) {
+		return rows.stream().collect(
+		    Collectors.groupingBy(p -> Pair.of(p.getPartyId(), p.getStockItemId()), LinkedHashMap::new, Collectors.toList()))
+		        .values().stream().map(group -> {
+			        StockItemInventory stockItemInventory = new StockItemInventory();
+			        StockItemInventory inventory = group.get(0);
+			        stockItemInventory.setPartyId(inventory.getPartyId());
+			        stockItemInventory.setLocationUuid(inventory.getLocationUuid());
+			        stockItemInventory.setStockItemId(inventory.getStockItemId());
+			        stockItemInventory
+			                .setQuantity(group.stream().map(x -> x.getQuantity()).reduce(BigDecimal.ZERO, BigDecimal::add));
+			        return stockItemInventory;
+		        }).collect(Collectors.toList());
+	}
+	
+	private static boolean isValidEmail(String email) {
+		return email != null && EMAIL_PATTERN.matcher(email).matches();
+	}
+	
 	public String getUserEmailAddress(User user) {
 		String emailAddress = dao.getUserEmail(user.getId());
-		if (!org.openmrs.module.stockmanagement.api.utils.StringUtils.isValidEmail(emailAddress)) {
+		if (!isValidEmail(emailAddress)) {
 			emailAddress = user.getUserProperty(OpenmrsConstants.USER_PROPERTY_NOTIFICATION_ADDRESS);
-			if (!org.openmrs.module.stockmanagement.api.utils.StringUtils.isValidEmail(emailAddress)) {
+			if (!isValidEmail(emailAddress)) {
 				emailAddress = user.getUsername();
-				if (!org.openmrs.module.stockmanagement.api.utils.StringUtils.isValidEmail(emailAddress)) {
+				if (!isValidEmail(emailAddress)) {
 					return null;
 				}
 			}

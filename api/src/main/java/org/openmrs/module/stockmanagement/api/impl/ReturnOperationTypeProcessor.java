@@ -9,8 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import java.util.function.BiConsumer;
 import org.openmrs.module.stockmanagement.api.model.LocationType;
-import org.openmrs.module.stockmanagement.api.utils.Action2;
 import org.openmrs.module.stockmanagement.api.model.ReservedTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
@@ -77,10 +77,10 @@ public class ReturnOperationTypeProcessor extends StockOperationTypeProcessorBas
 	@Override
 	public void onPending(final StockOperation operation) {
 		// Remove the item stock from the source party
-		executeCopyReserved(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+		executeCopyReserved(operation, new BiConsumer<ReservedTransaction, StockItemTransaction>() {
 			
 			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
+			public void accept(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getSource());
 				
 				// Negate the quantity because the item stock needs to
@@ -94,10 +94,10 @@ public class ReturnOperationTypeProcessor extends StockOperationTypeProcessorBas
 	public void onCancelled(final StockOperation operation) {
 		// Re-add the previously removed item stock back into the source
 		// party
-		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+		executeCopyReservedAndClear(operation, new BiConsumer<ReservedTransaction, StockItemTransaction>() {
 			
 			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
+			public void accept(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setParty(operation.getSource());
 			}
 		});
@@ -106,10 +106,10 @@ public class ReturnOperationTypeProcessor extends StockOperationTypeProcessorBas
 	@Override
 	public void onCompleted(final StockOperation operation) {
 		// Add the item stock to the destination party
-		executeCopyReservedAndClear(operation, new Action2<ReservedTransaction, StockItemTransaction>() {
+		executeCopyReservedAndClear(operation, new BiConsumer<ReservedTransaction, StockItemTransaction>() {
 			
 			@Override
-			public void apply(ReservedTransaction reserved, StockItemTransaction tx) {
+			public void accept(ReservedTransaction reserved, StockItemTransaction tx) {
 				tx.setQuantity(reserved.getStockOperationItem().getQuantityReceived());
 				tx.setStockItemPackagingUOM(reserved.getStockOperationItem().getQuantityReceivedPackagingUOM());
 				tx.setParty(operation.getDestination());

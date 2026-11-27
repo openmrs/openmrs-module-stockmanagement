@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.jobs;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.logging.Log;
@@ -17,12 +18,11 @@ import org.openmrs.Role;
 import org.openmrs.User;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleNotificationUser;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
-import org.openmrs.module.stockmanagement.api.utils.NumberFormatUtil;
-import org.openmrs.module.stockmanagement.api.utils.Pair;
 import org.openmrs.module.stockmanagement.api.utils.SmtpUtil;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
@@ -30,6 +30,7 @@ import org.openmrs.scheduler.tasks.AbstractTask;
 
 import javax.mail.Session;
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -146,9 +147,8 @@ public class StockRuleEvaluationJob extends AbstractTask {
 		
 		log.debug("Preparing mapping of users to notify and rules");
 		Map<Integer, List<Pair<Integer, Integer>>> userIdLocationRoleRuleMappings = usersToNotify.entrySet().stream()
-		        .filter(p -> p.getValue() != null)
-		        .map(p -> p.getValue().stream().map(x -> new Pair<Integer, Integer>(p.getKey(), x)))
-		        .flatMap(Function.identity()).distinct().collect(Collectors.groupingBy(p -> p.getValue2()));
+		        .filter(p -> p.getValue() != null).map(p -> p.getValue().stream().map(x -> Pair.of(p.getKey(), x)))
+		        .flatMap(Function.identity()).distinct().collect(Collectors.groupingBy(p -> p.getRight()));
 		
 		log.debug("Processing alerts");
 		processAlerts(rules, usersToNotify, stockItemNames, locationNames, userIdLocationRoleRuleMappings, conceptNames,
@@ -220,7 +220,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 			
 			List<StockRuleNotificationUser> rulesToAlertTheUserAbout = rules.stream()
 			        .filter(p -> userIdLocationRoleRuleMapping.getValue().stream()
-			                .anyMatch(x -> x.getValue1().equals(p.getMailRoleLocationHashCode())))
+			                .anyMatch(x -> x.getLeft().equals(p.getMailRoleLocationHashCode())))
 			        .sorted(Comparator.comparing(StockRuleNotificationUser::getLocationId)
 			                .thenComparing(StockRuleNotificationUser::getStockItemId))
 			        .collect(Collectors.toList());
@@ -260,13 +260,13 @@ public class StockRuleEvaluationJob extends AbstractTask {
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;</td>");
 					stringBuilder.append(String.format(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-bottom:solid 1px grey;border-right:solid 1px grey;'>%1s %2s</td>",
-					    NumberFormatUtil.qtyDisplayFormat(quantityRule),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(quantityRule),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;border-bottom:solid 1px grey;'>&nbsp;</td>");
 					stringBuilder.append(String.format(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-bottom:solid 1px grey;'>%1s %2s</td>",
-					    NumberFormatUtil.qtyDisplayFormat(currentQuantity),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(currentQuantity),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append("</tr>");
 				} else {
@@ -281,12 +281,12 @@ public class StockRuleEvaluationJob extends AbstractTask {
 					stringBuilder.append("<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;'>&nbsp;</td>");
 					stringBuilder.append(String.format(
 					    "<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;border-right:solid 1px grey;'>%1s %2s</td>",
-					    NumberFormatUtil.qtyDisplayFormat(quantityRule),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(quantityRule),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append("<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%;'>&nbsp;</td>");
 					stringBuilder.append(
 					    String.format("<td style='padding: 0.2rem 0.5rem 0.2rem 0.5rem; font-size: 95%%;'>%1s %2s</td>",
-					        NumberFormatUtil.qtyDisplayFormat(currentQuantity),
+					        new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(currentQuantity),
 					        conceptNames.getOrDefault(rule.getPackagingConceptId(), "")));
 					stringBuilder.append("</tr>");
 				}
@@ -349,7 +349,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 		        .entrySet()) {
 			List<StockRuleNotificationUser> rulesToAlertTheUserAbout = rules.stream()
 			        .filter(p -> userIdLocationRoleRuleMapping.getValue().stream()
-			                .anyMatch(x -> x.getValue1().equals(p.getAlertRoleLocationHashCode())))
+			                .anyMatch(x -> x.getLeft().equals(p.getAlertRoleLocationHashCode())))
 			        .collect(Collectors.toList());
 			if (rulesToAlertTheUserAbout.isEmpty())
 				continue;
@@ -386,9 +386,9 @@ public class StockRuleEvaluationJob extends AbstractTask {
 					    "Stock alert: %1$s at %2$s currently %3$s %4$s at or below threshold %5$s %4$s",
 					    stockItemNames.getOrDefault(rule.getStockItemId(), ""),
 					    locationNames.getOrDefault(rule.getLocationId(), ""),
-					    NumberFormatUtil.qtyDisplayFormat(currentQuantity),
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(currentQuantity),
 					    conceptNames.getOrDefault(rule.getPackagingConceptId(), ""),
-					    NumberFormatUtil.qtyDisplayFormat(quantityRule));
+					    new DecimalFormat(ModuleConstants.QUANTITY_FORMAT).format(quantityRule));
 					
 					Alert alert = new Alert(alertLine, user);
 					alert.setDateToExpire(DateUtils.addDays(new Date(), 7));
@@ -458,15 +458,15 @@ public class StockRuleEvaluationJob extends AbstractTask {
 			if (stockRuleNotificationUser.getAlertRole() != null
 			        && !roleLocationUsersToNotify.containsKey(stockRuleNotificationUser.getAlertRoleLocationHashCode())) {
 				roleLocationUsersToNotify.putIfAbsent(stockRuleNotificationUser.getAlertRoleLocationHashCode(),
-				    new Pair<>(stockRuleNotificationUser.getLocationId(),
-				            new ArrayList<>(Arrays.asList(stockRuleNotificationUser.getAlertRole()))));
+				    Pair.of(stockRuleNotificationUser.getLocationId(),
+				        new ArrayList<>(Arrays.asList(stockRuleNotificationUser.getAlertRole()))));
 			}
 			
 			if (stockRuleNotificationUser.getMailRole() != null
 			        && !roleLocationUsersToNotify.containsKey(stockRuleNotificationUser.getMailRoleLocationHashCode())) {
 				roleLocationUsersToNotify.putIfAbsent(stockRuleNotificationUser.getMailRoleLocationHashCode(),
-				    new Pair<>(stockRuleNotificationUser.getLocationId(),
-				            new ArrayList<>(Arrays.asList(stockRuleNotificationUser.getMailRole()))));
+				    Pair.of(stockRuleNotificationUser.getLocationId(),
+				        new ArrayList<>(Arrays.asList(stockRuleNotificationUser.getMailRole()))));
 			}
 		}
 		
@@ -477,11 +477,11 @@ public class StockRuleEvaluationJob extends AbstractTask {
 		UserService userService = Context.getUserService();
 		Map<Integer, List<Integer>> result = new HashMap<>();
 		for (Map.Entry<Integer, Pair<Integer, List<String>>> entry : roleLocationUsersToNotify.entrySet()) {
-			String roleName = entry.getValue().getValue2().get(0);
+			String roleName = entry.getValue().getRight().get(0);
 			if (roleChain.containsKey(roleName)) {
 				List<String> chain = roleChain.get(roleName);
 				if (chain != null) {
-					entry.getValue().getValue2().addAll(chain);
+					entry.getValue().getRight().addAll(chain);
 				} else {
 					result.put(entry.getKey(), null);
 				}
@@ -494,7 +494,7 @@ public class StockRuleEvaluationJob extends AbstractTask {
 					List<String> chain = role.getAllChildRoles().stream().filter(p -> !p.getRetired()).map(p -> p.getRole())
 					        .collect(Collectors.toList());
 					roleChain.putIfAbsent(roleName, chain);
-					entry.getValue().getValue2().addAll(chain);
+					entry.getValue().getRight().addAll(chain);
 				}
 			}
 		}
@@ -506,11 +506,11 @@ public class StockRuleEvaluationJob extends AbstractTask {
 			return result;
 		
 		for (Map.Entry<Integer, Pair<Integer, List<String>>> recordToFetch : recordsToFetch) {
-			if (recordToFetch.getValue().getValue2().isEmpty()) {
+			if (recordToFetch.getValue().getRight().isEmpty()) {
 				result.putIfAbsent(recordToFetch.getKey(), null);
 			} else {
 				List<Integer> usersAssigned = stockManagementService.getActiveUsersAssignedForScope(
-				    recordToFetch.getValue().getValue1(), recordToFetch.getValue().getValue2());
+				    recordToFetch.getValue().getLeft(), recordToFetch.getValue().getRight());
 				result.putIfAbsent(recordToFetch.getKey(), usersAssigned.isEmpty() ? null : usersAssigned);
 			}
 		}
