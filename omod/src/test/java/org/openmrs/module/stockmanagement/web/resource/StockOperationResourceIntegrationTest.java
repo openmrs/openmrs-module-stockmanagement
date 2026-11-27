@@ -55,9 +55,6 @@ import org.openmrs.api.ValidationException;
  */
 public class StockOperationResourceIntegrationTest extends BaseModuleWebContextSensitiveTest {
 	
-	// mirrors the production Receipt type: hasSource=true with source_type Other, destination_type Location
-	private static final String TEST_RECEIPT_TYPE_UUID = "aaaaaaaa-bbbb-cccc-dddd-eeeeffff0000";
-	
 	@Autowired
 	DbSessionFactory sessionFactory;
 	
@@ -84,23 +81,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 	
 	@BeforeEach
 	public void setup() throws Exception {
-		initializeInMemoryDatabase();
-		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
-		createReceiptOperationType();
-	}
-	
-	private void createReceiptOperationType() {
-		StockOperationType receipt = new StockOperationType();
-		receipt.setName("Test Receipt");
-		receipt.setOperationType(StockOperationType.RECEIPT);
-		receipt.setUuid(TEST_RECEIPT_TYPE_UUID);
-		receipt.setHasSource(true);
-		receipt.setSourceType(LocationType.Other);
-		receipt.setHasDestination(true);
-		receipt.setDestinationType(LocationType.Location);
-		receipt.setAvailableWhenReserved(false);
-		receipt.setAcronym("RCPT");
-		dao().saveStockOperationType(receipt);
+		executeDataSet(EntityUtil.STOCK_MANAGEMENT_DATA_SET);
 	}
 	
 	/**
@@ -171,7 +152,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 	 */
 	private StockOperationDTO newReceiptDtoWithoutAtLocationUuid() {
 		StockOperationDTO dto = new StockOperationDTO();
-		dto.setOperationTypeUuid(TEST_RECEIPT_TYPE_UUID);
+		dto.setOperationType(StockOperationType.RECEIPT.getOperationType());
 		dto.setOperationDate(DateUtils.addDays(new Date(), -1));
 		// receipts originate from a stock source (source_type Other), not a location
 		org.openmrs.module.stockmanagement.api.model.StockSource stockSource = eu().newStockSource(dao());
@@ -202,7 +183,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 	
 	@Test
 	public void save_shouldDeriveAtLocation_whenClientDoesNotSendAtLocationUuid() {
-		StockOperationType receiptType = dao().getStockOperationTypeByUuid(TEST_RECEIPT_TYPE_UUID);
+		StockOperationType receiptType = StockOperationType.RECEIPT;
 		grantAuthenticatedUserScope(eu().getLocation(), receiptType);
 		
 		StockOperationDTO saved = new StockOperationResource().save(newReceiptDtoWithoutAtLocationUuid());
@@ -216,7 +197,7 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 	
 	@Test
 	public void save_shouldValidateAnUpdate() {
-		StockOperationType receiptType = dao().getStockOperationTypeByUuid(TEST_RECEIPT_TYPE_UUID);
+		StockOperationType receiptType = StockOperationType.RECEIPT;
 		grantAuthenticatedUserScope(eu().getLocation(), receiptType);
 		StockOperationResource resource = new StockOperationResource();
 		StockOperationDTO saved = resource.save(newReceiptDtoWithoutAtLocationUuid());

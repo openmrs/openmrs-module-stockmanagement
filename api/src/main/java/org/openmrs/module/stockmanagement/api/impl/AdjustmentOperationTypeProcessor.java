@@ -28,6 +28,11 @@ public class AdjustmentOperationTypeProcessor extends StockOperationTypeProcesso
 	}
 	
 	@Override
+	public String getAcronym() {
+		return "ADJ";
+	}
+	
+	@Override
 	public boolean requiresReason() {
 		return true;
 	}

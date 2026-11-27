@@ -132,9 +132,8 @@ public class StockOperation extends BaseChangeableOpenmrsData implements Seriali
 	@OneToMany(mappedBy = "stockOperation", cascade = CascadeType.ALL)
 	private Set<ReservedTransaction> reservedTransactions;
 	
-	//bi-directional many-to-one association to StockOperationType
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "operation_type_id")
+	@Enumerated(EnumType.STRING)
+	@Column(name = "operation_type", nullable = false, length = 50)
 	private StockOperationType stockOperationType;
 	
 	//bi-directional many-to-one association to StockOperationItem
@@ -406,8 +405,7 @@ public class StockOperation extends BaseChangeableOpenmrsData implements Seriali
 	public ReservedTransaction addReservedTransaction(ReservedTransaction reservedTransaction) {
 		getReservedTransactions().add(reservedTransaction);
 		reservedTransaction.setStockOperation(this);
-		reservedTransaction.setIsAvailable(getStockOperationType().getAvailableWhenReserved() != null
-		        && getStockOperationType().getAvailableWhenReserved());
+		reservedTransaction.setIsAvailable(getStockOperationType().getProcessor().getAvailableWhenReserved());
 		return reservedTransaction;
 	}
 	

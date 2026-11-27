@@ -10,6 +10,8 @@
 package org.openmrs.module.stockmanagement.api.impl;
 
 import java.util.function.BiConsumer;
+import org.openmrs.module.stockmanagement.api.model.LocationType;
+import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
 import org.openmrs.module.stockmanagement.api.model.ReservedTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
@@ -25,6 +27,22 @@ public class TransferOutOperationTypeProcessor extends StockOperationTypeProcess
 	
 	public TransferOutOperationTypeProcessor(StockOperationType stockOperationType) {
 		super(stockOperationType);
+	}
+	
+	@Override
+	public String getAcronym() {
+		return "TFO";
+	}
+	
+	@Override
+	public LocationType getDestinationType() {
+		return LocationType.Other;
+	}
+	
+	@Override
+	public boolean notifiesOn(StockOperationAction.Action action) {
+		return action == StockOperationAction.Action.SUBMIT || action == StockOperationAction.Action.APPROVE
+		        || action == StockOperationAction.Action.COMPLETE;
 	}
 	
 	@Override

@@ -23,10 +23,25 @@ import java.math.BigDecimal;
  * inherits the behavior of the receipt operation type however it may need to add it's own
  * implementation if we extend the behavior of receipt operations.
  */
-public class InitialOperationTypeProcessorProcessor extends StockOperationTypeProcessorBase {
+public class InitialOperationTypeProcessor extends StockOperationTypeProcessorBase {
 	
-	public InitialOperationTypeProcessorProcessor(StockOperationType stockOperationType) {
+	public InitialOperationTypeProcessor(StockOperationType stockOperationType) {
 		super(stockOperationType);
+	}
+	
+	@Override
+	public String getAcronym() {
+		return "IST";
+	}
+	
+	@Override
+	public boolean getAvailableWhenReserved() {
+		return false;
+	}
+	
+	@Override
+	public boolean getAllowBatchInfoUpdate() {
+		return true;
 	}
 	
 	public boolean isNegativeItemQuantityAllowed() {

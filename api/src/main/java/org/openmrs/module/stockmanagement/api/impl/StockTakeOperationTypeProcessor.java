@@ -28,6 +28,11 @@ public class StockTakeOperationTypeProcessor extends StockOperationTypeProcessor
 	}
 	
 	@Override
+	public String getAcronym() {
+		return "STK";
+	}
+	
+	@Override
 	public boolean requiresReason() {
 		return true;
 	}

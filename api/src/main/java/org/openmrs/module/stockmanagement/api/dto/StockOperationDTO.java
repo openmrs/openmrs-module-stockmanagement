@@ -75,8 +75,6 @@ public class StockOperationDTO {
 	
 	private String rejectionReason;
 	
-	private String operationTypeUuid;
-	
 	private String operationType;
 	
 	private String operationTypeName;
@@ -267,12 +265,13 @@ public class StockOperationDTO {
 		this.uuid = uuid;
 	}
 	
-	public String getOperationTypeUuid() {
-		return operationTypeUuid;
+	public StockOperationType getStockOperationType() {
+		return StockOperationType.fromOperationType(operationType);
 	}
 	
-	public void setOperationTypeUuid(String operationTypeUuid) {
-		this.operationTypeUuid = operationTypeUuid;
+	public void setStockOperationType(StockOperationType stockOperationType) {
+		this.operationType = stockOperationType.getOperationType();
+		this.operationTypeName = stockOperationType.getName();
 	}
 	
 	public String getOperationTypeName() {
@@ -612,14 +611,14 @@ public class StockOperationDTO {
 	}
 	
 	public boolean isRequisitionAndCanIssueStock() {
-		return !isUpdateable() && StockOperationType.REQUISITION.equals(getOperationType())
+		return !isUpdateable() && StockOperationType.REQUISITION.getOperationType().equals(getOperationType())
 		        && StockOperationStatus.isCompleted(getStatus());
 	}
 	
 	public boolean canUpdateBatchInformation(StockOperationType stockOperationType) {
 		return (!getVoided()) && StockOperationStatus.canUpdateBatchInformation(getStatus())
 		        && stockOperationType.getOperationType().equals(getOperationType())
-		        && stockOperationType.getAllowBatchInfoUpdate();
+		        && stockOperationType.getProcessor().getAllowBatchInfoUpdate();
 	}
 	
 	public Date getDispatchedDate() {

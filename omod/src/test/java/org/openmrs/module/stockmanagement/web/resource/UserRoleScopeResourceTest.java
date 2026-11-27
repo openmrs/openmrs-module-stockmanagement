@@ -67,7 +67,7 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
-		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
+		executeDataSet(EntityUtil.STOCK_MANAGEMENT_DATA_SET);
 		grantAuthenticatedUserRoleScopesPrivileges();
 	}
 	
@@ -113,14 +113,14 @@ public class UserRoleScopeResourceTest extends BaseModuleWebContextSensitiveTest
 		// a scope managed by the authenticated admin must belong to a different user
 		targetUser = createScopedUser();
 		
-		StockOperationType operationType = dao().getAllStockOperationTypes().get(0);
+		StockOperationType operationType = StockOperationType.ADJUSTMENT;
 		
 		UserRoleScopeLocationDTO locationDto = new UserRoleScopeLocationDTO();
 		locationDto.setLocationUuid(Context.getLocationService().getLocation(1).getUuid());
 		locationDto.setEnableDescendants(false);
 		
 		UserRoleScopeOperationTypeDTO operationTypeDto = new UserRoleScopeOperationTypeDTO();
-		operationTypeDto.setOperationTypeUuid(operationType.getUuid());
+		operationTypeDto.setOperationType(operationType.getOperationType());
 		
 		UserRoleScopeDTO dto = new UserRoleScopeDTO();
 		dto.setUserUuid(targetUser.getUuid());

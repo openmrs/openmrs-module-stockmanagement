@@ -9,17 +9,24 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import org.apache.commons.lang.StringUtils;
 import org.openmrs.Location;
 import org.openmrs.User;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import java.util.function.BiConsumer;
+import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
 import org.openmrs.module.stockmanagement.api.model.*;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 public abstract class StockOperationTypeProcessorBase implements StockOperationTypeProcessor {
 	
@@ -38,6 +45,67 @@ public abstract class StockOperationTypeProcessorBase implements StockOperationT
 	public boolean userCanProcess(User user, Location location, String privilege) {
 		return Context.getService(StockManagementService.class).userHasStockManagementPrivilege(
 		    Context.getAuthenticatedUser(), location, this.stockOperationType, privilege);
+	}
+	
+	@Override
+	public LocationType getSourceType() {
+		return LocationType.Location;
+	}
+	
+	@Override
+	public LocationType getDestinationType() {
+		return null;
+	}
+	
+	@Override
+	public boolean getHasSource() {
+		return getSourceType() != null;
+	}
+	
+	@Override
+	public boolean getHasDestination() {
+		return getDestinationType() != null;
+	}
+	
+	@Override
+	public List<String> getSourceLocationTags() {
+		return getLocationTagNames("sourceLocationTags");
+	}
+	
+	@Override
+	public List<String> getDestinationLocationTags() {
+		return getLocationTagNames("destinationLocationTags");
+	}
+	
+	// reads the global property stockmanagement.<operation type>.<setting>
+	private List<String> getLocationTagNames(String setting) {
+		String value = Context.getAdministrationService()
+		        .getGlobalProperty(ModuleConstants.MODULE_ID + "." + stockOperationType.getOperationType() + "." + setting);
+		if (StringUtils.isBlank(value)) {
+			return Collections.emptyList();
+		}
+		return Arrays.stream(value.split(",")).map(String::trim).filter(StringUtils::isNotBlank)
+		        .collect(Collectors.toList());
+	}
+	
+	@Override
+	public boolean getAvailableWhenReserved() {
+		return true;
+	}
+	
+	@Override
+	public boolean getAllowExpiredBatchNumbers() {
+		return false;
+	}
+	
+	@Override
+	public boolean getAllowBatchInfoUpdate() {
+		return false;
+	}
+	
+	@Override
+	public boolean notifiesOn(StockOperationAction.Action action) {
+		return false;
 	}
 	
 	@Override

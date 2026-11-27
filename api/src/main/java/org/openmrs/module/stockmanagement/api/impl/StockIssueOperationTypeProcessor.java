@@ -10,6 +10,7 @@
 package org.openmrs.module.stockmanagement.api.impl;
 
 import java.util.function.BiConsumer;
+import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.ReservedTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
@@ -25,6 +26,16 @@ public class StockIssueOperationTypeProcessor extends StockOperationTypeProcesso
 	
 	public StockIssueOperationTypeProcessor(StockOperationType stockOperationType) {
 		super(stockOperationType);
+	}
+	
+	@Override
+	public String getAcronym() {
+		return "SIS";
+	}
+	
+	@Override
+	public LocationType getDestinationType() {
+		return LocationType.Location;
 	}
 	
 	@Override

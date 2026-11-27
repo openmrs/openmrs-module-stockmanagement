@@ -32,8 +32,8 @@ public class UserRoleScopeOperationType extends org.openmrs.BaseChangeableOpenmr
 	@JoinColumn(name = "user_role_scope_id")
 	private UserRoleScope userRoleScope;
 	
-	@JoinColumn(name = "operation_type_id")
-	@ManyToOne(fetch = FetchType.LAZY)
+	@Enumerated(EnumType.STRING)
+	@Column(name = "operation_type", nullable = false, length = 50)
 	private StockOperationType stockOperationType;
 	
 	public UserRoleScopeOperationType() {

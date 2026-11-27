@@ -74,7 +74,7 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 	protected PageableResult doSearch(RequestContext context) {
 		String q = nullIfEmpty(context.getRequest().getParameter("q"));
 		String locationUuid = nullIfEmpty(context.getRequest().getParameter("locationUuid"));
-		String operationTypeUuid = nullIfEmpty(context.getRequest().getParameter("operationTypeUuid"));
+		String operationType = nullIfEmpty(context.getRequest().getParameter("operationType"));
 		
 		UserRoleScopeSearchFilter filter = new UserRoleScopeSearchFilter();
 		
@@ -85,9 +85,8 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 			filter.setLocation(location);
 		}
 		
-		if (operationTypeUuid != null) {
-			StockOperationType stockOperationType = getStockManagementService()
-			        .getStockOperationTypeByUuid(operationTypeUuid);
+		if (operationType != null) {
+			StockOperationType stockOperationType = StockOperationType.fromOperationType(operationType);
 			if (stockOperationType == null)
 				return emptyResult(context);
 			filter.setOperationType(stockOperationType);
@@ -206,8 +205,9 @@ public class UserRoleScopeResource extends ResourceBase<UserRoleScopeDTO> {
 			return new ArrayList<SimpleObject>();
 		}
 		
-		return userRoleScope.getOperationTypes().stream().map(p -> new SimpleObject().add("uuid", p.getUuid())
-		        .add("operationTypeName", p.getOperationTypeName()).add("operationTypeUuid", p.getOperationTypeUuid()))
+		return userRoleScope
+		        .getOperationTypes().stream().map(p -> new SimpleObject().add("uuid", p.getUuid())
+		                .add("operationTypeName", p.getOperationTypeName()).add("operationType", p.getOperationType()))
 		        .collect(Collectors.toList());
 	}
 	
