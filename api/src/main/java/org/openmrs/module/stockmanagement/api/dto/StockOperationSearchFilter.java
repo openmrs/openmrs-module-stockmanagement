@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.dto;
 
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 import org.openmrs.module.stockmanagement.api.model.StockOperationStatus;
 
 import java.util.Date;
@@ -20,7 +21,7 @@ public class StockOperationSearchFilter {
 	
 	private List<StockOperationStatus> status;
 	
-	private List<Integer> operationTypeId;
+	private List<StockOperationType> operationTypes;
 	
 	private Integer locationId;
 	
@@ -96,12 +97,12 @@ public class StockOperationSearchFilter {
 		this.status = status;
 	}
 	
-	public List<Integer> getOperationTypeId() {
-		return operationTypeId;
+	public List<StockOperationType> getOperationTypes() {
+		return operationTypes;
 	}
 	
-	public void setOperationTypeId(List<Integer> operationTypeId) {
-		this.operationTypeId = operationTypeId;
+	public void setOperationTypes(List<StockOperationType> operationTypes) {
+		this.operationTypes = operationTypes;
 	}
 	
 	public Integer getLocationId() {

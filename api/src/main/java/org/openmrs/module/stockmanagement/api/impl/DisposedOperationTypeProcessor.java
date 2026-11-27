@@ -23,6 +23,16 @@ public class DisposedOperationTypeProcessor extends AdjustmentOperationTypeProce
 	}
 	
 	@Override
+	public String getAcronym() {
+		return "DIS";
+	}
+	
+	@Override
+	public boolean getAllowExpiredBatchNumbers() {
+		return true;
+	}
+	
+	@Override
 	protected boolean negateAppliedQuantity() {
 		return true;
 	}

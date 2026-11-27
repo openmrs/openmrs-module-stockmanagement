@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.utils.Action2;
 import org.openmrs.module.stockmanagement.api.model.ReservedTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
@@ -25,6 +26,16 @@ public class StockIssueOperationTypeProcessor extends StockOperationTypeProcesso
 	
 	public StockIssueOperationTypeProcessor(StockOperationType stockOperationType) {
 		super(stockOperationType);
+	}
+	
+	@Override
+	public String getAcronym() {
+		return "SIS";
+	}
+	
+	@Override
+	public LocationType getDestinationType() {
+		return LocationType.Location;
 	}
 	
 	@Override

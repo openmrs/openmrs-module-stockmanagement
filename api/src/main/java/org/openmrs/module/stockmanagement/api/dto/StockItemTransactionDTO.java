@@ -9,6 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.api.dto;
 
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
+
 import org.openmrs.module.stockmanagement.api.model.StockOperationStatus;
 
 import java.math.BigDecimal;
@@ -53,7 +55,7 @@ public class StockItemTransactionDTO {
 	
 	private String stockOperationNumber;
 	
-	private String stockOperationTypeName;
+	private StockOperationType stockOperationType;
 	
 	private String stockItemPackagingUOMUuid;
 	
@@ -192,11 +194,15 @@ public class StockItemTransactionDTO {
 	}
 	
 	public String getStockOperationTypeName() {
-		return stockOperationTypeName;
+		return stockOperationType == null ? null : stockOperationType.getName();
 	}
 	
-	public void setStockOperationTypeName(String stockOperationTypeName) {
-		this.stockOperationTypeName = stockOperationTypeName;
+	public StockOperationType getStockOperationType() {
+		return stockOperationType;
+	}
+	
+	public void setStockOperationType(StockOperationType stockOperationType) {
+		this.stockOperationType = stockOperationType;
 	}
 	
 	public String getStockItemPackagingUOMUuid() {

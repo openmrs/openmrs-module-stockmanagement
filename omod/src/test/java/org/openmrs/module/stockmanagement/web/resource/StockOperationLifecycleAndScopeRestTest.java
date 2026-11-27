@@ -37,7 +37,6 @@ import org.openmrs.module.stockmanagement.api.dto.StockOperationItemDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeLocationDTO;
 import org.openmrs.module.stockmanagement.api.dto.UserRoleScopeOperationTypeDTO;
-import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.Party;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
@@ -81,10 +80,6 @@ import static org.junit.jupiter.api.Assertions.fail;
  */
 public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContextSensitiveTest {
 	
-	private static final String RECEIPT_OPERATION_TYPE_UUID = "fce0b4fc-9402-424a-aacb-f99599e51a9f";
-	
-	private static final String ISSUE_OPERATION_TYPE_UUID = "db40707f-9175-4199-8df2-a5702f41ec7d";
-	
 	@Autowired
 	private DbSessionFactory sessionFactory;
 	
@@ -110,10 +105,6 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	
 	private Party supplierParty;
 	
-	private StockOperationType receiptType;
-	
-	private StockOperationType stockIssueType;
-	
 	private Role managerRole;
 	
 	private User clerkUser;
@@ -130,20 +121,10 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		return daoInstance;
 	}
 	
-	private void setNotifyFlagsFalse(StockOperationType type) {
-		type.setNotifySubmitted(false);
-		type.setNotifyApproved(false);
-		type.setNotifyDispatched(false);
-		type.setNotifyReturned(false);
-		type.setNotifyRejected(false);
-		type.setNotifyCancelled(false);
-		type.setNotifyCompleted(false);
-	}
-	
 	@BeforeEach
 	public void setUp() throws Exception {
 		initializeInMemoryDatabase();
-		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
+		executeDataSet(EntityUtil.STOCK_MANAGEMENT_DATA_SET);
 		
 		stockManagementService = Context.getService(StockManagementService.class);
 		stockOperationResource = new StockOperationResource();
@@ -179,17 +160,6 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		supplierParty = createSupplierParty();
 		
-		receiptType = stockManagementService.getStockOperationTypeByUuid(RECEIPT_OPERATION_TYPE_UUID);
-		stockIssueType = stockManagementService.getStockOperationTypeByUuid(ISSUE_OPERATION_TYPE_UUID);
-		
-		receiptType.setHasSource(true);
-		receiptType.setSourceType(LocationType.Other);
-		receiptType.setHasDestination(true);
-		receiptType.setDestinationType(LocationType.Location);
-		setNotifyFlagsFalse(receiptType);
-		setNotifyFlagsFalse(stockIssueType);
-		dao().saveStockOperationType(receiptType);
-		dao().saveStockOperationType(stockIssueType);
 		Context.flushSession();
 		Context.clearSession();
 		
@@ -207,8 +177,8 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		samplePackagingUom = createPackagingUOM(sampleStockItem, BigDecimal.ONE);
 		
 		clerkUser = createTestUser("rest_clerk_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		grantScope(clerkUser, managerRole, parentLocation, true, receiptType);
-		grantScope(clerkUser, managerRole, parentLocation, true, stockIssueType);
+		grantScope(clerkUser, managerRole, parentLocation, true, StockOperationType.RECEIPT);
+		grantScope(clerkUser, managerRole, parentLocation, true, StockOperationType.STOCK_ISSUE);
 		
 		Context.getAdministrationService()
 		        .saveGlobalProperty(new GlobalProperty("stockmanagement.allowStockIssueWithoutRequisition", "true"));
@@ -227,7 +197,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		String expDateStr = dateFormat.format(DateUtils.addDays(new Date(), 365));
 		
 		// Exercise the REST request path via JSON payload deserialized into SimpleObject and passed to create()
-		String jsonPayload = "{\n" + "  \"operationTypeUuid\": \"" + receiptType.getUuid() + "\",\n"
+		String jsonPayload = "{\n" + "  \"operationType\": \"" + StockOperationType.RECEIPT.getOperationType() + "\",\n"
 		        + "  \"operationDate\": \"" + opDateStr + "\",\n" + "  \"sourceUuid\": \"" + supplierParty.getUuid()
 		        + "\",\n" + "  \"destinationUuid\": \"" + childParty.getUuid() + "\",\n" + "  \"stockOperationItems\": [{\n"
 		        + "    \"stockItemUuid\": \"" + sampleStockItem.getUuid() + "\",\n" + "    \"stockItemPackagingUOMUuid\": \""
@@ -344,7 +314,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		// Save Stock Issue via StockOperationResource from parentLocation to childLocation
 		StockOperationDTO issueDto = new StockOperationDTO();
-		issueDto.setOperationTypeUuid(stockIssueType.getUuid());
+		issueDto.setOperationType(StockOperationType.STOCK_ISSUE.getOperationType());
 		issueDto.setOperationDate(DateUtils.addDays(new Date(), -1));
 		issueDto.setSourceUuid(parentParty.getUuid());
 		issueDto.setDestinationUuid(childParty.getUuid());
@@ -636,7 +606,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	
 	private StockOperationDTO newIssueDto(String batchUuid, BigDecimal quantity) {
 		StockOperationDTO issueDto = new StockOperationDTO();
-		issueDto.setOperationTypeUuid(stockIssueType.getUuid());
+		issueDto.setOperationType(StockOperationType.STOCK_ISSUE.getOperationType());
 		issueDto.setOperationDate(DateUtils.addDays(new Date(), -1));
 		issueDto.setSourceUuid(parentParty.getUuid());
 		issueDto.setDestinationUuid(childParty.getUuid());
@@ -658,11 +628,11 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	public void restPermissions_shouldAllowUserInheritingScopeFromParentAndDenyUnscopedUser() {
 		// User A has scope at parentLocation with descendants enabled -> can process at childLocation
 		User userA = createTestUser("rest_user_a_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		grantScope(userA, managerRole, parentLocation, true, receiptType);
+		grantScope(userA, managerRole, parentLocation, true, StockOperationType.RECEIPT);
 		
 		// User B has scope only at grandchildLocation (not parent or child)
 		User userB = createTestUser("rest_user_b_" + UUID.randomUUID().toString().substring(0, 8), managerRole);
-		grantScope(userB, managerRole, grandchildLocation, false, receiptType);
+		grantScope(userB, managerRole, grandchildLocation, false, StockOperationType.RECEIPT);
 		
 		// Switch to User A
 		Context.authenticate(userA.getUsername(), "TestPassword123!");
@@ -787,7 +757,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		
 		if (operationType != null) {
 			UserRoleScopeOperationTypeDTO opDto = new UserRoleScopeOperationTypeDTO();
-			opDto.setOperationTypeUuid(operationType.getUuid());
+			opDto.setOperationType(operationType.getOperationType());
 			dto.setOperationTypes(Collections.singletonList(opDto));
 		}
 		
@@ -842,7 +812,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	private StockOperationDTO newReceiptDto(Party destinationParty, StockItem stockItem, StockItemPackagingUOM uom,
 	        BigDecimal quantity) {
 		StockOperationDTO dto = new StockOperationDTO();
-		dto.setOperationTypeUuid(receiptType.getUuid());
+		dto.setOperationType(StockOperationType.RECEIPT.getOperationType());
 		dto.setOperationDate(DateUtils.addDays(new Date(), -1));
 		dto.setSourceUuid(supplierParty.getUuid());
 		dto.setDestinationUuid(destinationParty.getUuid());
@@ -863,7 +833,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 	private StockOperationDTO createAndCompleteReceiptViaRest(Party destinationParty, StockItem stockItem,
 	        StockItemPackagingUOM uom, BigDecimal quantity, String batchNo) {
 		StockOperationDTO dto = new StockOperationDTO();
-		dto.setOperationTypeUuid(receiptType.getUuid());
+		dto.setOperationType(StockOperationType.RECEIPT.getOperationType());
 		dto.setOperationDate(DateUtils.addDays(new Date(), -1));
 		dto.setSourceUuid(supplierParty.getUuid());
 		dto.setDestinationUuid(destinationParty.getUuid());

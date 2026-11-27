@@ -76,7 +76,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	@Before
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
-		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
+		executeDataSet(EntityUtil.STOCK_MANAGEMENT_DATA_SET);
 	}
 	
 	private EntityUtil eu() {
@@ -270,12 +270,12 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
 		
 		filter = new StockOperationSearchFilter();
-		filter.setOperationTypeId(Arrays.asList(so.getStockOperationType().getId()));
+		filter.setOperationTypes(Arrays.asList(so.getStockOperationType()));
 		result = dao().findStockOperations(filter, null);
 		assertTrue(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
 		
 		filter = new StockOperationSearchFilter();
-		filter.setOperationTypeId(Arrays.asList(so.getStockOperationType().getId() + 3));
+		filter.setOperationTypes(Arrays.asList(StockOperationType.STOCKTAKE));
 		result = stockManagementService.findStockOperations(filter);
 		assertFalse(result.getData().stream().anyMatch(p -> p.getUuid().equalsIgnoreCase(so.getUuid())));
 		
@@ -363,7 +363,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		filter.setLocationId(so.getSource().getLocation().getLocationId());
 		HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = new HashSet<>();
 		RecordPrivilegeFilter recordPrivilegeFilter = new RecordPrivilegeFilter();
-		recordPrivilegeFilter.setOperationTypeId(Integer.MAX_VALUE);
+		recordPrivilegeFilter.setOperationType(StockOperationType.STOCKTAKE);
 		recordPrivilegeFilter.setLocationId(so.getDestination().getLocation().getId());
 		recordPrivilegeFilters.add(recordPrivilegeFilter);
 		result = dao().findStockOperations(filter, recordPrivilegeFilters);
@@ -423,6 +423,37 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	public void getFlattenedUserRoleScopesByUser_shouldHaveAllLocations() {
 		stockManagementService.setDao(dao());
 		dao().getFlattenedUserRoleScopesByUser(eu().getUser(), new HashSet<Role>(Arrays.asList(eu().getRole())), null, null);
+	}
+	
+	@Test
+	public void getFlattenedUserRoleScopesByUser_shouldOnlyReturnScopesForTheGivenOperationType() {
+		eu().getParty(dao());
+		UserRoleScope userRoleScope = eu().newUserRoleScope(dao());
+		userRoleScope.setVoided(false);
+		userRoleScope.setEnabled(true);
+		userRoleScope.setPermanent(true);
+		dao().saveUserRoleScope(userRoleScope);
+		UserRoleScopeLocation scopeLocation = eu().newUserRoleScopeLocation(dao());
+		scopeLocation.setUserRoleScope(userRoleScope);
+		scopeLocation.setVoided(false);
+		scopeLocation.setEnableDescendants(false);
+		dao().saveUserRoleScopeLocation(scopeLocation);
+		UserRoleScopeOperationType scopeOperationType = eu().newUserRoleScopeOperationType(dao());
+		scopeOperationType.setUserRoleScope(userRoleScope);
+		scopeOperationType.setVoided(false);
+		scopeOperationType.setStockOperationType(StockOperationType.ADJUSTMENT);
+		dao().saveUserRoleScopeOperationType(scopeOperationType);
+		Context.flushSession();
+		Set<Role> roles = Collections.singleton(eu().getRole());
+		
+		List<PrivilegeScope> adjustmentScopes = dao().getFlattenedUserRoleScopesByUser(eu().getUser(), roles,
+		    eu().getLocation(), StockOperationType.ADJUSTMENT);
+		List<PrivilegeScope> receiptScopes = dao().getFlattenedUserRoleScopesByUser(eu().getUser(), roles,
+		    eu().getLocation(), StockOperationType.RECEIPT);
+		
+		assertFalse(adjustmentScopes.isEmpty());
+		assertTrue(adjustmentScopes.stream().allMatch(p -> p.getStockOperationType() == StockOperationType.ADJUSTMENT));
+		assertTrue(receiptScopes.isEmpty());
 	}
 	
 	@Test

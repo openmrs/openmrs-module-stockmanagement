@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
 
@@ -18,10 +19,25 @@ import java.math.BigDecimal;
  * Model class that processes a transfer stock operation type. Transfers move item stock from one
  * location to another.
  */
-public class RequistionOperationTypeProcessor extends StockOperationTypeProcessorBase {
+public class RequisitionOperationTypeProcessor extends StockOperationTypeProcessorBase {
 	
-	public RequistionOperationTypeProcessor(StockOperationType stockOperationType) {
+	public RequisitionOperationTypeProcessor(StockOperationType stockOperationType) {
 		super(stockOperationType);
+	}
+	
+	@Override
+	public String getAcronym() {
+		return "REQ";
+	}
+	
+	@Override
+	public LocationType getDestinationType() {
+		return LocationType.Location;
+	}
+	
+	@Override
+	public boolean getAvailableWhenReserved() {
+		return false;
 	}
 	
 	@Override

@@ -32,8 +32,7 @@ public class StockIssueReport extends StockOperationLineItemReport {
 	
 	@Override
 	protected void setFilters(StockOperationLineItemFilter filter, Properties parameters) {
-		StockOperationType stockOperationType = stockManagementService
-		        .getStockOperationTypeByType(StockOperationType.STOCK_ISSUE);
+		StockOperationType stockOperationType = StockOperationType.STOCK_ISSUE;
 		filter.setStockOperationTypes(Arrays.asList(stockOperationType));
 		filter.setIncludeRequisitionInfo(true);
 	}

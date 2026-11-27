@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.utils.Action2;
 import org.openmrs.module.stockmanagement.api.model.ReservedTransaction;
 import org.openmrs.module.stockmanagement.api.model.StockItemTransaction;
@@ -22,10 +23,20 @@ import java.math.BigDecimal;
  * needing to return the items. Only the items that are put back into stock should be part of this
  * operation. Functionally it is the same as a receipt operation.
  */
-public class ReturnOperationTypeProcessorProcessor extends StockOperationTypeProcessorBase {
+public class ReturnOperationTypeProcessor extends StockOperationTypeProcessorBase {
 	
-	public ReturnOperationTypeProcessorProcessor(StockOperationType stockOperationType) {
+	public ReturnOperationTypeProcessor(StockOperationType stockOperationType) {
 		super(stockOperationType);
+	}
+	
+	@Override
+	public String getAcronym() {
+		return "RTU";
+	}
+	
+	@Override
+	public LocationType getDestinationType() {
+		return LocationType.Location;
 	}
 	
 	@Override
