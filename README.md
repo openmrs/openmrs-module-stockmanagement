@@ -122,6 +122,8 @@ All of them are blank by default, which allows any location. For example, settin
 
 Up to 3.x these rules were rows in a table seeded by the module. On upgrade, the module copies a site's existing rules into the properties once, so an upgraded site keeps the rules it had. The copy skips voided rules and never overwrites a property that already has a row, so check the properties after upgrading before changing them.
 
+If the module fails to start on changeset `stockmanagement-O3-6310-1`, some stock operations or user role scopes use an operation type this version doesn't define. Change the `operation_type` of those rows in `stockmgmt_stock_operation_type` to one of the nine codes above, then restart.
+
 A fresh install has no rules. The module used to seed the ones below, which a site or content package can set to get the earlier behaviour. Adjustments were meant to allow `Main Store` too, but that row was never inserted because of a typo in its changeset:
 
 | Operation type | Source tags | Destination tags |
