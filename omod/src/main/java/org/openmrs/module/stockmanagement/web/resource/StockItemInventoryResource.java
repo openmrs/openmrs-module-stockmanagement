@@ -94,12 +94,10 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			if (!StringUtils.isBlank(param)) {
 				drugId = NumberUtils.toInt(param, 0);
 				if (drugId == 0)
-					drugId = null;
-				if (drugId != null) {
-					Drug drug = Context.getConceptService().getDrug(drugId);
-					if (drug == null) {
-						return emptyResult(context);
-					}
+					return emptyResult(context);
+				Drug drug = Context.getConceptService().getDrug(drugId);
+				if (drug == null) {
+					return emptyResult(context);
 				}
 			}
 			
@@ -107,12 +105,10 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			if (!StringUtils.isBlank(param)) {
 				conceptId = NumberUtils.toInt(param, 0);
 				if (conceptId == 0)
-					conceptId = null;
-				if (conceptId != null) {
-					Concept concept = Context.getConceptService().getConcept(conceptId);
-					if (concept == null) {
-						return emptyResult(context);
-					}
+					return emptyResult(context);
+				Concept concept = Context.getConceptService().getConcept(conceptId);
+				if (concept == null) {
+					return emptyResult(context);
 				}
 			}
 			
@@ -159,12 +155,12 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 						return emptyResult(context);
 					}
 					stockItemIds = items.getData().stream().map(p -> p.getStockItemId()).collect(Collectors.toList());
-					
-				} else {
-					return emptyResult(context);
 				}
 			}
 		}
+		
+		boolean hasItemFilter = stockItemId != null || stockItemIds != null;
+		List<Integer> unRestrictedPartyIds = null;
 		
 		param = context.getParameter("partyUuid");
 		if (!StringUtils.isBlank(param)) {
@@ -233,6 +229,18 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 						}
 					}
 				}
+			}
+		}
+		
+		if (!hasItemFilter) {
+			if (partyIds != null) {
+				unRestrictedPartyIds = partyIds;
+			} else if (partyUuid != null) {
+				Party party = getStockManagementService().getPartyByUuid(partyUuid);
+				if (party == null) {
+					return emptyResult(context);
+				}
+				unRestrictedPartyIds = Arrays.asList(party.getId());
 			}
 		}
 		
@@ -309,6 +317,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 		filter.setIncludeStockItemName(includeStockItemName);
 		filter.setRequireNonExpiredStockBatches(requireNonExpiredStockBatches);
 		filter.setDate(date);
+		filter.setUnRestrictedPartyIds(unRestrictedPartyIds);
 		List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = new ArrayList<>();
 		if (stockItemId != null) {
 			if (partyIds == null) {
@@ -333,12 +342,65 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 				}
 			}
 		}
+		if (!hasItemFilter && stockBatchId != null) {
+			itemsToSearch.add(
+			    new StockItemInventorySearchFilter.ItemGroupFilter((Integer) null, (List<String>) null, stockBatchId));
+		}
 		filter.setItemGroupFilters(itemsToSearch);
-		//filter.setStartIndex(context.getStartIndex());
-		//filter.setLimit(context.getLimit());
+		if (itemsToSearch.isEmpty()) {
+			filter.setRequireItemGroupFilters(false);
+		}
+		boolean explicitPaging = context.getParameter("limit") != null || context.getParameter("startIndex") != null;
+		boolean requestPaging = !hasItemFilter || explicitPaging;
+		boolean needsFullResultForPostProcessing = filter.getTotalBy() != null
+		        || (filter.dispensing() && !filter.getItemGroupFilters().isEmpty()
+		                && (!filter.getInventoryGroupBy()
+		                        .equals(StockItemInventorySearchFilter.InventoryGroupBy.LocationStockItemBatchNo)
+		                        || filter.getAllowEmptyBatchInfo()));
+		Integer requestedLimit = requestPaging ? context.getLimit() : null;
+		Integer requestedStartIndex = requestPaging ? context.getStartIndex() : null;
+		if (requestPaging && !needsFullResultForPostProcessing) {
+			filter.setStartIndex(requestedStartIndex == null ? 0 : requestedStartIndex);
+			filter.setLimit(requestedLimit);
+		}
 		StockInventoryResult stockItemInventoryResult = getStockManagementService().getStockInventory(filter);
-		return new StockInventoryPageableResult(context, stockItemInventoryResult, stockItemInventoryResult.hasMoreResults(),
+		if (requestPaging && needsFullResultForPostProcessing) {
+			stockItemInventoryResult = pageInMemory(stockItemInventoryResult, requestedStartIndex, requestedLimit);
+		}
+		if (Boolean.parseBoolean(context.getParameter("totalCount")) && !requestPaging) {
+			stockItemInventoryResult.setTotalRecordCount((long) stockItemInventoryResult.getData().size());
+			stockItemInventoryResult.setLoadRecordCount(false);
+		}
+		boolean hasMoreResults = hasMoreResults(stockItemInventoryResult, requestedStartIndex, requestPaging);
+		return new StockInventoryPageableResult(context, stockItemInventoryResult, hasMoreResults,
 		        stockItemInventoryResult.getTotalRecordCount());
+	}
+	
+	private StockInventoryResult pageInMemory(StockInventoryResult result, Integer startIndex, Integer limit) {
+		if (result == null || result.getData() == null) {
+			return result;
+		}
+		List<StockItemInventory> data = result.getData();
+		int start = startIndex == null || startIndex < 0 ? 0 : startIndex;
+		int end = limit == null ? data.size() : Math.min(data.size(), start + limit);
+		if (start >= data.size()) {
+			result.setData(new ArrayList<>());
+		} else {
+			result.setData(new ArrayList<>(data.subList(start, end)));
+		}
+		result.setPageIndex(limit != null && limit > 0 ? start / limit : 0);
+		result.setPageSize(limit);
+		result.setTotalRecordCount((long) data.size());
+		result.setLoadRecordCount(false);
+		return result;
+	}
+	
+	private boolean hasMoreResults(StockInventoryResult result, Integer startIndex, boolean requestPaging) {
+		if (!requestPaging || result.getTotalRecordCount() == null || result.getData() == null) {
+			return result.hasMoreResults();
+		}
+		long firstRow = startIndex == null || startIndex < 0 ? 0 : startIndex;
+		return firstRow + result.getData().size() < result.getTotalRecordCount();
 	}
 	
 	@Override

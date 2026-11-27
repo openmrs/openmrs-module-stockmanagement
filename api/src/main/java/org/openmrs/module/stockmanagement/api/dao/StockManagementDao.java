@@ -31,6 +31,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @SuppressWarnings({ "unchecked" })
@@ -2619,6 +2620,10 @@ public class StockManagementDao extends DaoBase {
 		}
 	}
 	
+	private boolean hasNamedParameter(String query, String parameterName) {
+		return Pattern.compile(":" + Pattern.quote(parameterName) + "\\b").matcher(query).find();
+	}
+	
 	public StockInventoryResult getStockItemInventory(StockItemInventorySearchFilter filter,
 	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
 		HashMap<String, Object> parameterList = new HashMap<>();
@@ -2665,14 +2670,70 @@ public class StockManagementDao extends DaoBase {
 		}
 		
 		StockInventoryResult result = new StockInventoryResult();
+		int firstResult = filter.getStartIndex() == null ? 0 : Math.max(0, filter.getStartIndex());
 		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
+			result.setPageIndex(filter.getLimit() > 0 ? firstResult / filter.getLimit() : 0);
 			result.setPageSize(filter.getLimit());
+			List<String> countGroupColumns = new ArrayList<>();
+			if (groupByParty) {
+				countGroupColumns.add("concat('', sit.party.id)");
+			}
+			if (groupByStockItem) {
+				countGroupColumns.add("concat('', sit.stockItem.id)");
+			}
+			if (groupByStockBatch) {
+				countGroupColumns.add("concat('', sit.stockBatch.id)");
+			}
+			String countExpression = countGroupColumns.size() == 1 ? countGroupColumns.get(0)
+			        : "concat(" + String.join(", '-', ", countGroupColumns) + ")";
+			StringBuilder countHql = new StringBuilder("select count(distinct " + countExpression + ") ");
+			String hql = hqlQuery.toString();
+			countHql.append(hql.substring(hql.toLowerCase().indexOf("from")));
+			int groupByIdx = countHql.toString().toLowerCase().indexOf(" group by ");
+			if (groupByIdx >= 0) {
+				countHql.setLength(groupByIdx);
+			}
+			String countQueryString = countHql.toString();
+			Query countQuery = getSession().createQuery(countQueryString);
+			if (parameterList != null) {
+				for (Map.Entry<String, Object> entry : parameterList.entrySet()) {
+					if (hasNamedParameter(countQueryString, entry.getKey())) {
+						countQuery.setParameter(entry.getKey(), entry.getValue());
+					}
+				}
+			}
+			if (parameterWithList != null) {
+				for (Map.Entry<String, Collection> entry : parameterWithList.entrySet()) {
+					if (hasNamedParameter(countQueryString, entry.getKey())) {
+						countQuery.setParameterList(entry.getKey(), entry.getValue());
+					}
+				}
+			}
+			Long count = (Long) countQuery.uniqueResult();
+			result.setTotalRecordCount(count == null ? 0 : count);
+			result.setLoadRecordCount(false);
 		}
-		String orderByField = (groupByParty ? "sit.party.id"
-		        : (groupByStockItem ? "sit.stockItem.id" : (groupByStockBatch ? "sit.stockBatch.id" : "")));
-		result.setData(executeQuery(StockItemInventory.class, hqlQuery, result,
-		    filter.getLimit() != null ? " order by " + orderByField : null, parameterList, parameterWithList));
+		List<String> orderColumns = new ArrayList<>();
+		if (groupByParty) {
+			orderColumns.add("sit.party.id");
+		}
+		if (groupByStockItem) {
+			orderColumns.add("sit.stockItem.id");
+		}
+		if (groupByStockBatch) {
+			orderColumns.add("sit.stockBatch.id");
+		}
+		String orderBy = orderColumns.isEmpty() ? null : " order by " + String.join(", ", orderColumns);
+		Class<?> resultClass = filter.getInventoryMode() == StockItemInventorySearchFilter.InventoryMode.Consumption
+		        ? StockItemInventoryConsumption.class
+		        : StockItemInventory.class;
+		if (filter.getLimit() != null) {
+			Query query = createPagingQuery(result, resultClass, hqlQuery, orderBy, parameterList, parameterWithList);
+			query.setFirstResult(firstResult);
+			result.setData(query.list());
+		} else {
+			result.setData(executeQuery(resultClass, hqlQuery, result, null, parameterList, parameterWithList));
+		}
 		
 		if ((!groupByStockBatch || filter.getAllowEmptyBatchInfo()) && filter.dispensing()) {
 			for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : zeroStockQtyToReturn) {
@@ -2746,21 +2807,25 @@ public class StockManagementDao extends DaoBase {
 				}
 			}
 			
-			if (filter.isIncludeStockItemName()) {
+			if (!result.getData().isEmpty()) {
 				StockItemSearchFilter itemFilter = new StockItemSearchFilter();
+				itemFilter.setIncludeVoided(true);
 				itemFilter.setStockItemIds(
 				    result.getData().stream().map(p -> p.getStockItemId()).collect(Collectors.toList()));
 				Result<StockItemDTO> stockItemDTOResult = findStockItems(itemFilter);
 				if (!stockItemDTOResult.getData().isEmpty()) {
+					Map<Integer, StockItemDTO> stockItemsById = stockItemDTOResult.getData().stream()
+					        .collect(Collectors.toMap(StockItemDTO::getId, Function.identity(), (first, second) -> first));
 					for (StockItemInventory stockItemInventory : result.getData()) {
-						Optional<StockItemDTO> stockItemDTO = stockItemDTOResult.getData().stream()
-						        .filter(p -> p.getId().equals(stockItemInventory.getStockItemId())).findFirst();
-						if (stockItemDTO.isPresent()) {
-							stockItemInventory.setDrugName(stockItemDTO.get().getDrugName());
-							stockItemInventory.setConceptName(stockItemDTO.get().getConceptName());
-							stockItemInventory.setCommonName(stockItemDTO.get().getCommonName());
-							stockItemInventory.setAcronym(stockItemDTO.get().getAcronym());
-							stockItemInventory.setStockItemUuid(stockItemDTO.get().getUuid());
+						StockItemDTO stockItemDTO = stockItemsById.get(stockItemInventory.getStockItemId());
+						if (stockItemDTO != null) {
+							stockItemInventory.setStockItemUuid(stockItemDTO.getUuid());
+							if (filter.isIncludeStockItemName()) {
+								stockItemInventory.setDrugName(stockItemDTO.getDrugName());
+								stockItemInventory.setConceptName(stockItemDTO.getConceptName());
+								stockItemInventory.setCommonName(stockItemDTO.getCommonName());
+								stockItemInventory.setAcronym(stockItemDTO.getAcronym());
+							}
 						}
 					}
 				}
@@ -2889,7 +2954,9 @@ public class StockManagementDao extends DaoBase {
 				if (itemGroupClause.length() > 0) {
 					appliedItemGroupFilters++;
 					appendORFilter(itemGroupFilters, itemGroupClause.toString());
-					zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+					if (zeroQtyItemGroupFilter.getStockItemId() != null) {
+						zeroStockQtyToReturn.add(zeroQtyItemGroupFilter);
+					}
 					for (Map.Entry<String, Object> entry : itemGroupParameterList.entrySet()) {
 						parameterList.putIfAbsent(entry.getKey(), entry.getValue());
 					}
@@ -2917,6 +2984,17 @@ public class StockManagementDao extends DaoBase {
 		
 		if (itemGroupFilters.length() > 0) {
 			appendFilter(hqlFilter, itemGroupFilters.toString());
+		} else if (restrictedPartyIds != null) {
+			if (restrictedPartyIds.isEmpty()) {
+				return null;
+			}
+			if (restrictedPartyIds.size() == 1) {
+				appendFilter(hqlFilter, "sit.party.id = :rpid");
+				parameterList.putIfAbsent("rpid", restrictedPartyIds.get(0));
+			} else {
+				appendFilter(hqlFilter, "sit.party.id in (:rpids)");
+				parameterWithList.putIfAbsent("rpids", restrictedPartyIds);
+			}
 		}
 		
 		if (filter.getRequireNonExpiredStockBatches() != null && filter.getRequireNonExpiredStockBatches()) {
