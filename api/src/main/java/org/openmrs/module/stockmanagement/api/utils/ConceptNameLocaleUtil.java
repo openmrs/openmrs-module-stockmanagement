@@ -34,6 +34,9 @@ public final class ConceptNameLocaleUtil {
 	 * @return one name per concept
 	 */
 	public static List<ConceptNameDTO> selectBestNames(List<ConceptNameDTO> names, Locale userLocale, Locale defaultLocale) {
+		if (names == null || names.isEmpty()) {
+			return new ArrayList<>();
+		}
 		Map<Integer, ConceptNameDTO> bestNames = new LinkedHashMap<>();
 		for (ConceptNameDTO name : names) {
 			ConceptNameDTO best = bestNames.get(name.getConceptId());
@@ -47,11 +50,14 @@ public final class ConceptNameLocaleUtil {
 	
 	private static int rank(Locale locale, Locale userLocale, Locale defaultLocale) {
 		int userRank = rank(locale, userLocale);
-		if (userRank != LEAST_PREFERRED) {
+		if (userRank == 0 || userRank == 1) {
 			return userRank;
 		}
+		if (userRank == 2) {
+			return locale.equals(defaultLocale) ? 2 : 3;
+		}
 		int defaultRank = rank(locale, defaultLocale);
-		return defaultRank != LEAST_PREFERRED ? defaultRank + 3 : LEAST_PREFERRED;
+		return defaultRank != LEAST_PREFERRED ? defaultRank + 4 : LEAST_PREFERRED;
 	}
 	
 	private static int rank(Locale locale, Locale wanted) {

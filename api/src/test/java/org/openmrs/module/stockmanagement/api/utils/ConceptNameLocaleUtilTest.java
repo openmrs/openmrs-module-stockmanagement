@@ -9,7 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.utils;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.openmrs.module.stockmanagement.api.dto.ConceptNameDTO;
 
 import java.util.ArrayList;
@@ -18,9 +18,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ConceptNameLocaleUtilTest {
+	
+	private static final Locale EN_AU = new Locale("en", "AU");
 	
 	private static final Locale EN_GB = new Locale("en", "GB");
 	
@@ -61,6 +63,11 @@ public class ConceptNameLocaleUtilTest {
 	}
 	
 	@Test
+	public void shouldPreferTheExactDefaultLocaleOverAnotherCountryOfTheSameLanguage() {
+		assertEquals("Tablet (US)", select(EN_GB, EN_US, name(1, "Tablet (AU)", EN_AU), name(1, "Tablet (US)", EN_US)));
+	}
+	
+	@Test
 	public void shouldFallBackToTheDefaultLocaleWhenThereIsNoNameInTheLanguageOfTheUser() {
 		assertEquals("Comprimé", select(Locale.ENGLISH, FR, name(1, "Comprimido", ES), name(1, "Comprimé", FR)));
 	}
@@ -96,5 +103,10 @@ public class ConceptNameLocaleUtilTest {
 	public void shouldReturnNothingForNoNames() {
 		assertEquals(0,
 		    ConceptNameLocaleUtil.selectBestNames(Collections.<ConceptNameDTO> emptyList(), Locale.ENGLISH, FR).size());
+	}
+	
+	@Test
+	public void shouldReturnNothingForNullNames() {
+		assertEquals(0, ConceptNameLocaleUtil.selectBestNames(null, Locale.ENGLISH, FR).size());
 	}
 }
