@@ -65,8 +65,8 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
 		SimpleObject dispenseRequestObject = new SimpleObject();
 		String DISPENSE_CUSTOM_REP = "(dispenseLocation,patient,order,encounter,stockItem,quantity,stockItemPackagingUOM)";
 		
-		if (propertiesToCreate.containsKey("dispenseItems") && !propertiesToCreate.get("dispenseItems").equals(null)
-		        && !propertiesToCreate.get("dispenseItems").equals("")) {
+		Object items = propertiesToCreate.get("dispenseItems");
+		if (items != null && !"".equals(items)) {
 			List<SimpleObject> dispenseItems = propertiesToCreate.get("dispenseItems");
 			for (int i = 0; i < dispenseItems.size(); i++) {
 				dispenseRequests.add(covertToDispenseRequest(dispenseItems.get(i)));
@@ -83,8 +83,9 @@ public class DispenseRequestResource extends ResourceBase<DispenseRequest> {
 	
 	public DispenseRequest covertToDispenseRequest(Map dispenseItem) {
 		Integer dispenseItemQuantity;
-		if (!dispenseItem.get("quantity").equals("") && !dispenseItem.get("quantity").equals(null)) {
-			dispenseItemQuantity = Integer.parseInt(dispenseItem.get("quantity").toString());
+		Object quantity = dispenseItem.get("quantity");
+		if (quantity != null && !"".equals(quantity)) {
+			dispenseItemQuantity = Integer.parseInt(quantity.toString());
 		} else {
 			throw new IllegalArgumentException("quantity can not be null");
 		}
