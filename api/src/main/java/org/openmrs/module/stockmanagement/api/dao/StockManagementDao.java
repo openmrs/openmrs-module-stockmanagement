@@ -1957,7 +1957,6 @@ public class StockManagementDao extends DaoBase {
 			        + " sit.stockBatch sb where ");
 			
 			StringBuilder hqlFilter = new StringBuilder();
-			appendFilter(hqlFilter, "p.id = sit.party.id");
 			StringBuilder itemGroupClause = new StringBuilder();
 			int paramIndex = 0;
 			HashMap<String, Object> parameterList = new HashMap<>();
@@ -1981,7 +1980,7 @@ public class StockManagementDao extends DaoBase {
 			appendFilter(hqlFilter, "sb.expiration is null or sb.expiration > :today");
 			parameterList.put("today", DateUtil.today());
 			
-			hqlFilter.append(" group by sit.party.id as partyId, sit.stockItem.id");
+			hqlFilter.append(" group by sit.party.id, sit.stockItem.id");
 			hqlQuery.append(hqlFilter);
 			
 			DbSession session = getSession();
