@@ -12,10 +12,12 @@ package org.openmrs.module.stockmanagement.dao;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openmrs.*;
+import org.openmrs.api.ConceptNameType;
 import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.dto.ConceptNameDTO;
 import org.openmrs.test.jupiter.BaseModuleContextSensitiveTest;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -26,7 +28,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * It is an integration test (extends BaseModuleContextSensitiveTest), which verifies DAO methods
@@ -733,5 +739,76 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		StockItemPackagingUomReference voidedReference = dao().getStockItemPackagingUomReferenceByUuid(reference.getUuid());
 		assertThat(voidedReference, hasProperty("voided", is(true)));
 		assertThat(voidedReference, hasProperty("voidReason", is("test void")));
+	}
+	
+	@Test
+	public void getConceptNamesByConceptIds_shouldReturnOneNameInTheLocaleOfTheUser() {
+		Concept concept = saveConcept(name("Comprimido", new Locale("es"), false), name("Comprimé", Locale.FRENCH, false),
+		    name("Tablet", Locale.ENGLISH, false));
+		
+		List<ConceptNameDTO> names = getConceptNamesAsEnglishUser(concept);
+		
+		assertThat(names.size(), is(1));
+		assertThat(names.get(0).getName(), is("Tablet"));
+	}
+	
+	@Test
+	public void getConceptNamesByConceptIds_shouldSkipVoidedNames() {
+		Concept concept = saveConcept(name("Comprimido", new Locale("es"), false), name("Tablet", Locale.ENGLISH, true));
+		
+		List<ConceptNameDTO> names = getConceptNamesAsEnglishUser(concept);
+		
+		assertThat(names.size(), is(1));
+		assertThat(names.get(0).getName(), is("Comprimido"));
+	}
+	
+	@Test
+	public void getConceptNames_shouldReturnTheNameInTheLocaleOfTheUser() {
+		Concept concept = saveConcept(name("Comprimido", new Locale("es"), false), name("Tablet", Locale.ENGLISH, false));
+		
+		Locale locale = Context.getLocale();
+		try {
+			Context.setLocale(Locale.ENGLISH);
+			Map<Integer, String> names = dao().getConceptNames(Collections.singletonList(concept.getConceptId()));
+			assertThat(names, is(Collections.singletonMap(concept.getConceptId(), "Tablet")));
+		}
+		finally {
+			Context.setLocale(locale);
+		}
+	}
+	
+	private List<ConceptNameDTO> getConceptNamesAsEnglishUser(Concept concept) {
+		Locale locale = Context.getLocale();
+		try {
+			Context.setLocale(Locale.ENGLISH);
+			return dao().getConceptNamesByConceptIds(Collections.singletonList(concept.getConceptId()));
+		}
+		finally {
+			Context.setLocale(locale);
+		}
+	}
+	
+	private Concept saveConcept(ConceptName... names) {
+		Concept concept = new Concept();
+		concept.setDatatype(Context.getConceptService().getConceptDatatypeByName("N/A"));
+		concept.setConceptClass(Context.getConceptService().getConceptClassByName("Misc"));
+		for (ConceptName name : names) {
+			concept.addName(name);
+		}
+		Context.getConceptService().saveConcept(concept);
+		Context.flushSession();
+		return concept;
+	}
+	
+	private ConceptName name(String name, Locale locale, boolean voided) {
+		ConceptName conceptName = new ConceptName(name, locale);
+		conceptName.setConceptNameType(ConceptNameType.FULLY_SPECIFIED);
+		if (voided) {
+			conceptName.setVoided(true);
+			conceptName.setVoidedBy(Context.getAuthenticatedUser());
+			conceptName.setDateVoided(new Date());
+			conceptName.setVoidReason("test");
+		}
+		return conceptName;
 	}
 }
