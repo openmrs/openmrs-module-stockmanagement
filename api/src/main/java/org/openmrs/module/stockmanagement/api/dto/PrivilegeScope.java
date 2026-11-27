@@ -9,6 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.api.dto;
 
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
+
 import java.util.Date;
 
 public class PrivilegeScope {
@@ -17,7 +19,7 @@ public class PrivilegeScope {
 	
 	private String privilege;
 	
-	private String operationTypeUuid;
+	private StockOperationType stockOperationType;
 	
 	private String locationUuid;
 	
@@ -45,12 +47,16 @@ public class PrivilegeScope {
 		this.privilege = privilege;
 	}
 	
-	public String getOperationTypeUuid() {
-		return operationTypeUuid;
+	public String getOperationType() {
+		return stockOperationType == null ? null : stockOperationType.getOperationType();
 	}
 	
-	public void setOperationTypeUuid(String operationTypeUuid) {
-		this.operationTypeUuid = operationTypeUuid;
+	public StockOperationType getStockOperationType() {
+		return stockOperationType;
+	}
+	
+	public void setStockOperationType(StockOperationType stockOperationType) {
+		this.stockOperationType = stockOperationType;
 	}
 	
 	public String getLocationUuid() {
@@ -97,7 +103,7 @@ public class PrivilegeScope {
 		PrivilegeScope privilegeScope = new PrivilegeScope();
 		privilegeScope.role = role;
 		privilegeScope.privilege = privilege;
-		privilegeScope.operationTypeUuid = operationTypeUuid;
+		privilegeScope.stockOperationType = stockOperationType;
 		privilegeScope.locationUuid = locationUuid;
 		privilegeScope.partyUuid = partyUuid;
 		privilegeScope.isPermanent = isPermanent;
@@ -121,7 +127,7 @@ public class PrivilegeScope {
 			return false;
 		if (privilege != null ? !privilege.equals(that.privilege) : that.privilege != null)
 			return false;
-		if (operationTypeUuid != null ? !operationTypeUuid.equals(that.operationTypeUuid) : that.operationTypeUuid != null)
+		if (stockOperationType != that.stockOperationType)
 			return false;
 		if (locationUuid != null ? !locationUuid.equals(that.locationUuid) : that.locationUuid != null)
 			return false;
@@ -137,7 +143,7 @@ public class PrivilegeScope {
 	public int hashCode() {
 		int result = role != null ? role.hashCode() : 0;
 		result = 31 * result + (privilege != null ? privilege.hashCode() : 0);
-		result = 31 * result + (operationTypeUuid != null ? operationTypeUuid.hashCode() : 0);
+		result = 31 * result + (stockOperationType != null ? stockOperationType.hashCode() : 0);
 		result = 31 * result + (locationUuid != null ? locationUuid.hashCode() : 0);
 		result = 31 * result + (partyUuid != null ? partyUuid.hashCode() : 0);
 		result = 31 * result + (isPermanent ? 1 : 0);

@@ -11,11 +11,39 @@ package org.openmrs.module.stockmanagement.api;
 
 import org.openmrs.Location;
 import org.openmrs.User;
+import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
+import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.StockOperation;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public interface StockOperationTypeProcessor {
+	
+	/** @return the prefix of operation numbers */
+	String getAcronym();
+	
+	LocationType getSourceType();
+	
+	/** @return null if the type has no destination */
+	LocationType getDestinationType();
+	
+	boolean getHasSource();
+	
+	boolean getHasDestination();
+	
+	/** @return location tag names a source location must have one of; empty allows any location */
+	List<String> getSourceLocationTags();
+	
+	List<String> getDestinationLocationTags();
+	
+	boolean getAvailableWhenReserved();
+	
+	boolean getAllowExpiredBatchNumbers();
+	
+	boolean getAllowBatchInfoUpdate();
+	
+	boolean notifiesOn(StockOperationAction.Action action);
 	
 	boolean requiresReason();
 	

@@ -30,8 +30,7 @@ public class StockReceiptReport extends StockOperationLineItemReport {
 	
 	@Override
 	protected void setFilters(StockOperationLineItemFilter filter, Properties parameters) {
-		StockOperationType stockOperationType = stockManagementService
-		        .getStockOperationTypeByType(StockOperationType.RECEIPT);
+		StockOperationType stockOperationType = StockOperationType.RECEIPT;
 		filter.setStockOperationTypes(Arrays.asList(stockOperationType));
 	}
 	

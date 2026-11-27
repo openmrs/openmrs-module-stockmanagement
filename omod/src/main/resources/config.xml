@@ -111,6 +111,102 @@
     </messages>
 
     <globalProperty>
+        <property>stockmanagement.adjustment.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for adjustments must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.disposed.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for disposals must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.transferout.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for transfers out must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.return.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for returns must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.stockissue.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for stock issues must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.requisition.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for requisitions must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.stocktake.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for stock takes must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.initial.sourceLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a source location for opening stock must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.receipt.destinationLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a destination location for receipts must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.return.destinationLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a destination location for returns must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.stockissue.destinationLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a destination location for stock issues must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
+        <property>stockmanagement.requisition.destinationLocationTags</property>
+        <description>
+            Comma-separated names of the location tags a destination location for requisitions must have one of.
+            Leave blank to allow any location.
+        </description>
+    </globalProperty>
+
+    <globalProperty>
         <property>stockmanagement.stockItemSearchMaxIntermediateResult</property>
         <defaultValue>50</defaultValue>
         <description>
