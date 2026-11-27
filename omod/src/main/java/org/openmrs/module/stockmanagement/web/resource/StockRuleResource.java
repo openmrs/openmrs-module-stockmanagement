@@ -43,8 +43,6 @@ import java.util.*;
                 "1.12.*", "2.*" })
 public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 	
-	private HashSet<PrivilegeScope> privilegeScopes = null;
-	
 	@Override
 	public StockRuleDTO getByUniqueId(String uniqueId) {
 		StockRuleSearchFilter filter = new StockRuleSearchFilter();
@@ -237,10 +235,8 @@ public class StockRuleResource extends ResourceBase<StockRuleDTO> {
 		SimpleObject simpleObject = new SimpleObject();
 		simpleObject.add("canView", true);
 		
-		if (privilegeScopes == null) {
-			privilegeScopes = getStockManagementService().getPrivilegeScopes(Context.getAuthenticatedUser(), null, null,
-			    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE));
-		}
+		HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
+		    Context.getAuthenticatedUser(), null, null, Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE));
 		
 		boolean canEdit = !stockRuleDTO.getVoided()
 		        && privilegeScopes.stream().anyMatch(p -> stockRuleDTO.getLocationUuid().equals(p.getLocationUuid()));
