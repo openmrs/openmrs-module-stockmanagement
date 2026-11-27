@@ -111,6 +111,17 @@ public class StockManagementDao extends DaoBase {
 		return (StockRule) getSession().createCriteria(StockRule.class).add(Restrictions.eq("uuid", uuid)).uniqueResult();
 	}
 	
+	public Long getStockRuleEvaluationFrequency(Integer id) {
+		if (id == null) {
+			return null;
+		}
+		Query query = getSession()
+		        .createQuery("select sr.evaluationFrequency from stockmanagement.StockRule sr where sr.id = :id");
+		query.setParameter("id", id);
+		query.setFlushMode(FlushMode.MANUAL);
+		return (Long) query.uniqueResult();
+	}
+	
 	public StockRule saveStockRule(StockRule stockRule) {
 		getSession().saveOrUpdate(stockRule);
 		return stockRule;
@@ -3654,23 +3665,11 @@ public class StockManagementDao extends DaoBase {
 		return orderItem;
 	}
 	
-	public Result<StockRuleDTO> findStockRules(StockRuleSearchFilter filter,
+	public Result<StockRule> findStockRules(StockRuleSearchFilter filter,
 	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
 		HashMap<String, Object> parameterList = new HashMap<>();
 		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select sr.uuid as uuid, sr.id as id, sr.stockItem.id as stockItemId,\n"
-		        + "si.uuid as stockItemUuid," + "sr.name as name,\n" + "sr.description as description,\n"
-		        + "sr.location.locationId  as locationId,\n" + "l.uuid  as locationUuid,\n" + "l.name as locationName,\n"
-		        + "sr.quantity as quantity,\n" + "sipu.id as stockItemPackagingUOMId,\n"
-		        + "sipu.uuid as stockItemPackagingUOMUuid,\n" + "pu.conceptId as packagingUoMId,\n"
-		        + "sr.enabled as enabled, sr.evaluationFrequency as evaluationFrequency,\n"
-		        + "sr.lastEvaluation as lastEvaluation, sr.nextEvaluation as nextEvaluation,\n"
-		        + "sr.actionFrequency as actionFrequency, sr.lastActionDate as lastActionDate,\n"
-		        + "sr.nextActionDate as nextActionDate,\n" + "sr.alertRole as alertRole, sr.mailRole as mailRole,\n"
-		        + "sr.creator.userId as creator,\n" + "sr.dateCreated as dateCreated,\n"
-		        + "sr.enableDescendants as enableDescendants,\n" + "sr.voided as voided\n"
-		        + "from stockmanagement.StockRule sr join sr.stockItem si join\n" + " sr.location l join \n"
-		        + "\t sr.stockItemPackagingUOM sipu left join sipu.packagingUom pu");
+		StringBuilder hqlFrom = new StringBuilder("from stockmanagement.StockRule sr");
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
@@ -3762,44 +3761,55 @@ public class StockManagementDao extends DaoBase {
 			parameterList.putIfAbsent("enabled", filter.getEnabled());
 		}
 		
+		if (isNotNullOrEmpty(filter.getName())) {
+			appendFilter(hqlFilter, "lower(sr.name) like :name");
+			parameterList.put("name", "%" + filter.getName().trim().toLowerCase(Locale.ROOT) + "%");
+		}
+		
 		if (!filter.getIncludeVoided()) {
 			appendFilter(hqlFilter, "sr.voided = :vdd");
 			parameterList.putIfAbsent("vdd", false);
 		}
 		
 		if (hqlFilter.length() > 0) {
-			hqlQuery.append(" where ");
-			hqlQuery.append(hqlFilter);
+			hqlFrom.append(" where ");
+			hqlFrom.append(hqlFilter);
 		}
 		
-		Result<StockRuleDTO> result = new Result<>();
-		if (filter.getLimit() != null) {
-			result.setPageIndex(filter.getStartIndex());
-			result.setPageSize(filter.getLimit());
+		DbSession dbSession = getSession();
+		Long totalCount = null;
+		if (filter.getStartIndex() != null || filter.getLimit() != null) {
+			Query countQuery = dbSession.createQuery("select count(sr.id) " + hqlFrom);
+			applyQueryParameters(countQuery, parameterList, parameterWithList);
+			Long count = (Long) countQuery.uniqueResult();
+			totalCount = count == null ? 0L : count;
 		}
 		
-		result.setData(
-		    executeQuery(StockRuleDTO.class, hqlQuery, result, " order by sr.id desc", parameterList, parameterWithList));
-		
-		if (!result.getData().isEmpty()) {
-			List<Integer> conceptNamesToFetch = result.getData().stream().map(p -> p.getPackagingUoMId())
-			        .filter(p -> p != null).distinct().collect(Collectors.toList());
-			Map<Integer, List<ConceptNameDTO>> conceptNameDTOs = conceptNamesToFetch.isEmpty() ? null
-			        : getConceptNamesByConceptIds(conceptNamesToFetch).stream()
-			                .collect(Collectors.groupingBy(ConceptNameDTO::getConceptId));
-			
-			for (StockRuleDTO stockRuleDTO : result.getData()) {
-				if (conceptNameDTOs != null) {
-					if (stockRuleDTO.getPackagingUoMId() != null
-					        && conceptNameDTOs.containsKey(stockRuleDTO.getPackagingUoMId())) {
-						stockRuleDTO
-						        .setPackagingUomName(conceptNameDTOs.get(stockRuleDTO.getPackagingUoMId()).get(0).getName());
-					}
-				}
-			}
+		Query query = dbSession.createQuery("select sr " + hqlFrom + " order by sr.id desc");
+		applyQueryParameters(query, parameterList, parameterWithList);
+		if (filter.getStartIndex() != null && filter.getStartIndex() >= 0) {
+			query.setFirstResult(filter.getStartIndex());
+		}
+		if (filter.getLimit() != null && filter.getLimit() >= 0) {
+			query.setMaxResults(filter.getLimit());
+			query.setFetchSize(filter.getLimit());
+		}
+		List<StockRule> data = query.list();
+		if (totalCount == null) {
+			totalCount = (long) data.size();
 		}
 		
-		return result;
+		return new Result<>(data, totalCount);
+	}
+	
+	private void applyQueryParameters(Query query, Map<String, Object> parameterList,
+	        Map<String, Collection> parameterWithList) {
+		for (Map.Entry<String, Object> entry : parameterList.entrySet()) {
+			query.setParameter(entry.getKey(), entry.getValue());
+		}
+		for (Map.Entry<String, Collection> entry : parameterWithList.entrySet()) {
+			query.setParameterList(entry.getKey(), entry.getValue());
+		}
 	}
 	
 	public void voidStockRules(List<String> stockRuleUuids, String reason, int voidedBy) {

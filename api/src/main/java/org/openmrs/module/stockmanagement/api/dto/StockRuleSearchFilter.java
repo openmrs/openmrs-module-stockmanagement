@@ -44,6 +44,8 @@ public class StockRuleSearchFilter {
 	
 	private Boolean enabled;
 	
+	private String name;
+	
 	private boolean IncludeVoided = false;
 	
 	public Integer getId() {
@@ -156,6 +158,14 @@ public class StockRuleSearchFilter {
 	
 	public void setEnabled(Boolean enabled) {
 		this.enabled = enabled;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public void setName(String name) {
+		this.name = name;
 	}
 	
 	public boolean getIncludeVoided() {

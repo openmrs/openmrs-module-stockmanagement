@@ -69,6 +69,14 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	 * webservices.rest 3.2+ answers with the same field-keyed 400 as 3.1 and earlier.
 	 */
 	protected void validateDelegate(Validator validator, Object delegate, String objectName) {
+		validate(validator, delegate, objectName);
+	}
+	
+	/**
+	 * Runs a validator explicitly and throws core's ValidationException carrying field-keyed errors
+	 * when validation fails.
+	 */
+	public static void validate(Validator validator, Object delegate, String objectName) {
 		Errors errors = new BeanPropertyBindingResult(delegate, objectName);
 		validator.validate(delegate, errors);
 		if (errors.hasErrors()) {
@@ -86,6 +94,10 @@ public abstract class ResourceBase<T> extends DelegatingCrudResource<T> {
 	 * that REST error responses never carry a null message.
 	 */
 	protected String safeMessage(Throwable exception, String defaultMessage) {
+		return extractSafeMessage(exception, defaultMessage);
+	}
+	
+	public static String extractSafeMessage(Throwable exception, String defaultMessage) {
 		if (exception == null)
 			return defaultMessage;
 		String message = exception.getMessage();

@@ -13,6 +13,7 @@ import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.openmrs.*;
+import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.APIException;
 import org.openmrs.api.LocationService;
 import org.openmrs.api.impl.BaseOpenmrsService;
@@ -2601,71 +2602,50 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		return dao.getStockRuleByUuid(uuid);
 	}
 	
-	public StockRuleDTO saveStockRule(StockRuleDTO stockRuleDTO) {
-		StockRule stockRule = null;
-		boolean isNew = false;
-		if (stockRuleDTO.getUuid() != null) {
-			stockRule = dao.getStockRuleByUuid(stockRuleDTO.getUuid());
-			if (stockRule == null) {
-				invalidRequest("stockmanagement.stockrule.notexists");
-			}
-			if (!userHasStockManagementPrivilege(Context.getAuthenticatedUser(), stockRule.getLocation(), null,
-			    Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)) {
-				invalidRequest("stockmanagement.stockrule.nopermissiontoupdate");
+	public StockRule saveStockRule(StockRule stockRule) {
+		if (stockRule == null) {
+			invalidRequest("stockmanagement.stockrule.notexists");
+		}
+		Location location = stockRule.getLocation();
+		if (location == null || !userHasStockManagementPrivilege(Context.getAuthenticatedUser(), location, null,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)) {
+			throw new APIAuthenticationException(
+			        Context.getMessageSourceService().getMessage("stockmanagement.stockrule.nopermissiontoupdate"));
+		}
+		boolean isNew = stockRule.getId() == null;
+		if (!isNew) {
+			Long previousEvaluationFrequency = dao.getStockRuleEvaluationFrequency(stockRule.getId());
+			if (stockRule.getLastEvaluation() != null && stockRule.getEvaluationFrequency() != null
+			        && !stockRule.getEvaluationFrequency().equals(previousEvaluationFrequency)) {
+				int minutesToAdd;
+				if (stockRule.getEvaluationFrequency() < Integer.MIN_VALUE) {
+					minutesToAdd = Integer.MIN_VALUE;
+				} else if (stockRule.getEvaluationFrequency() > Integer.MAX_VALUE) {
+					minutesToAdd = Integer.MAX_VALUE;
+				} else {
+					minutesToAdd = Math.toIntExact(stockRule.getEvaluationFrequency().longValue());
+				}
+				stockRule.setNextEvaluation(DateUtils.addMinutes(stockRule.getLastEvaluation(), minutesToAdd));
 			}
 			stockRule.setChangedBy(Context.getAuthenticatedUser());
 			stockRule.setDateChanged(new Date());
-			
 		} else {
-			isNew = true;
-			stockRule = new StockRule();
-			stockRule.setCreator(Context.getAuthenticatedUser());
-			stockRule.setDateCreated(new Date());
-			stockRule.setStockItem(dao.getStockItemByUuid(stockRuleDTO.getStockItemUuid()));
-			stockRule.setLocation(Context.getLocationService().getLocationByUuid(stockRuleDTO.getLocationUuid()));
-			if (stockRule.getLocation() == null || !userHasStockManagementPrivilege(Context.getAuthenticatedUser(),
-			    stockRule.getLocation(), null, Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)) {
-				invalidRequest("stockmanagement.stockrule.nopermissiontoupdate");
+			if (stockRule.getCreator() == null) {
+				stockRule.setCreator(Context.getAuthenticatedUser());
+			}
+			if (stockRule.getDateCreated() == null) {
+				stockRule.setDateCreated(new Date());
 			}
 		}
-		stockRule.setName(stockRuleDTO.getName());
-		stockRule.setDescription(stockRuleDTO.getDescription());
-		stockRule.setQuantity(stockRuleDTO.getQuantity());
-		stockRule.setStockItemPackagingUOM(dao.getStockItemPackagingUOMByUuid(stockRuleDTO.getStockItemPackagingUOMUuid()));
-		stockRule.setEnabled(stockRuleDTO.getEnabled());
-		if (!isNew && stockRule.getLastEvaluation() != null && stockRuleDTO.getEvaluationFrequency() != null) {
-			if (!stockRuleDTO.getEvaluationFrequency().equals(stockRule.getEvaluationFrequency())) {
-				int minutesToAdd = 0;
-				if (stockRuleDTO.getEvaluationFrequency() < Integer.MIN_VALUE) {
-					minutesToAdd = Integer.MIN_VALUE;
-				} else if (stockRuleDTO.getEvaluationFrequency() > Integer.MAX_VALUE) {
-					minutesToAdd = Integer.MAX_VALUE;
-				} else {
-					minutesToAdd = Math.toIntExact(stockRuleDTO.getEvaluationFrequency().longValue());
-				}
-				stockRule.setNextEvaluation(DateUtils.addMinutes(stockRuleDTO.getLastEvaluation(), minutesToAdd));
-			}
+		stockRule.setAlertRole(StringUtils.isBlank(stockRule.getAlertRole()) ? null : stockRule.getAlertRole());
+		stockRule.setMailRole(StringUtils.isBlank(stockRule.getMailRole()) ? null : stockRule.getMailRole());
+		if (stockRule.getEnableDescendants() == null) {
+			stockRule.setEnableDescendants(false);
 		}
-		stockRule.setEvaluationFrequency(stockRuleDTO.getEvaluationFrequency());
-		stockRule.setActionFrequency(stockRuleDTO.getActionFrequency());
-		
-		stockRule.setAlertRole(StringUtils.isBlank(stockRuleDTO.getAlertRole()) ? null : stockRuleDTO.getAlertRole());
-		stockRule.setMailRole(StringUtils.isBlank(stockRuleDTO.getMailRole()) ? null : stockRuleDTO.getMailRole());
-		stockRule.setEnableDescendants(
-		    stockRuleDTO.getEnableDescendants() == null ? false : stockRuleDTO.getEnableDescendants());
-		
-		stockRule = dao.saveStockRule(stockRule);
-		
-		StockRuleSearchFilter stockRuleSearchFilter = new StockRuleSearchFilter();
-		stockRuleSearchFilter.setId(stockRule.getId());
-		Result<StockRuleDTO> result = dao.findStockRules(stockRuleSearchFilter, null);
-		if (!result.getData().isEmpty()) {
-			return result.getData().get(0);
-		}
-		return null;
+		return dao.saveStockRule(stockRule);
 	}
 	
-	public Result<StockRuleDTO> findStockRules(StockRuleSearchFilter filter) {
+	public Result<StockRule> findStockRules(StockRuleSearchFilter filter) {
 		HashSet<RecordPrivilegeFilter> recordPrivilegeFilters = getRecordPrivilegeFilters(Context.getAuthenticatedUser(),
 		    null, null, Privileges.APP_STOCKMANAGEMENT_STOCKITEMS);
 		if (recordPrivilegeFilters == null || recordPrivilegeFilters.isEmpty())
@@ -2673,36 +2653,34 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		return findStockRules(filter, recordPrivilegeFilters);
 	}
 	
-	public Result<StockRuleDTO> findStockRules(StockRuleSearchFilter filter,
+	public Result<StockRule> findStockRules(StockRuleSearchFilter filter,
 	        HashSet<RecordPrivilegeFilter> recordPrivilegeFilters) {
 		if (recordPrivilegeFilters != null && recordPrivilegeFilters.isEmpty())
 			return new Result<>(new ArrayList<>(), 0);
-		Result<StockRuleDTO> result = dao.findStockRules(filter, recordPrivilegeFilters);
-		if (!result.getData().isEmpty()) {
-			List<UserPersonNameDTO> personNames = dao.getPersonNameByUserIds(result.getData().stream()
-			        .map(p -> p.getCreator()).filter(p -> p != null).distinct().collect(Collectors.toList()));
-			for (StockRuleDTO stockRule : result.getData()) {
-				if (stockRule.getCreator() != null) {
-					Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
-					        .filter(p -> p.getUserId().equals(stockRule.getCreator())).findFirst();
-					if (userPersonNameDTO.isPresent()) {
-						stockRule.setCreatorFamilyName(userPersonNameDTO.get().getFamilyName());
-						stockRule.setCreatorGivenName(userPersonNameDTO.get().getGivenName());
-					}
-				}
-			}
-		}
-		return result;
+		return dao.findStockRules(filter, recordPrivilegeFilters);
 	}
 	
 	public void voidStockRules(List<String> stockRuleUuids, String reason, int voidedBy) {
-		StockRuleSearchFilter stockRuleSearchFilter = new StockRuleSearchFilter();
-		stockRuleSearchFilter.setUuids(stockRuleUuids);
-		Result<StockRuleDTO> result = findStockRules(stockRuleSearchFilter);
-		if (result.getData().isEmpty()) {
+		if (stockRuleUuids == null || stockRuleUuids.isEmpty()) {
 			return;
 		}
-		dao.voidStockRules(result.getData().stream().map(p -> p.getUuid()).collect(Collectors.toList()), reason, voidedBy);
+		List<String> rulesToVoid = new ArrayList<>();
+		User authenticatedUser = Context.getAuthenticatedUser();
+		for (String uuid : stockRuleUuids) {
+			StockRule stockRule = dao.getStockRuleByUuid(uuid);
+			if (stockRule == null || Boolean.TRUE.equals(stockRule.getVoided())) {
+				continue;
+			}
+			if (!userHasStockManagementPrivilege(authenticatedUser, stockRule.getLocation(), null,
+			    Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)) {
+				throw new APIAuthenticationException(
+				        Context.getMessageSourceService().getMessage("stockmanagement.stockrule.nopermissiontoupdate"));
+			}
+			rulesToVoid.add(stockRule.getUuid());
+		}
+		if (!rulesToVoid.isEmpty()) {
+			dao.voidStockRules(rulesToVoid, reason, voidedBy);
+		}
 	}
 	
 	public List<StockRuleNotificationUser> getDueStockRules(Integer lastStockRuleId, int limit) {

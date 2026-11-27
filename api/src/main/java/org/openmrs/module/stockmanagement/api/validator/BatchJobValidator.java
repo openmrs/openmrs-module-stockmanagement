@@ -21,7 +21,6 @@ import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.BatchJobDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
-import org.openmrs.module.stockmanagement.api.dto.StockRuleDTO;
 import org.openmrs.module.stockmanagement.api.dto.reporting.Fullfillment;
 import org.openmrs.module.stockmanagement.api.dto.reporting.MostLeastMoving;
 import org.openmrs.module.stockmanagement.api.model.BatchJobType;

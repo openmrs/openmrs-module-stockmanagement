@@ -1263,7 +1263,7 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		StockRuleSearchFilter filter = new StockRuleSearchFilter();
 		filter.setLimit(10);
 		filter.setStartIndex(0);
-		Result<StockRuleDTO> result = stockManagementService.findStockRules(filter, null);
+		Result<StockRule> result = stockManagementService.findStockRules(filter, null);
 		assertThat(result.getData().size(), greaterThanOrEqualTo(1));
 		assertEquals(result.getData().get(0).getUuid(), stockRule.getUuid());
 		
@@ -1391,6 +1391,41 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		filter.setId(Integer.MAX_VALUE);
 		result = stockManagementService.findStockRules(filter, null);
 		assertTrue(result.getData().isEmpty());
+	}
+	
+	@Test
+	public void findStockRules_shouldTreatStartIndexAsRowOffset() {
+		stockManagementService.setDao(dao());
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		dao().saveStockItem(stockItem);
+		
+		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		packagingUom.setFactor(BigDecimal.valueOf(2));
+		dao().saveStockItemPackagingUOM(packagingUom);
+		
+		StockRule firstRule = eu().newStockRule(dao(), stockItem, packagingUom);
+		firstRule.setVoided(false);
+		firstRule.setEnabled(true);
+		dao().saveStockRule(firstRule);
+		
+		StockRule secondRule = eu().newStockRule(dao(), stockItem, packagingUom);
+		secondRule.setVoided(false);
+		secondRule.setEnabled(true);
+		dao().saveStockRule(secondRule);
+		
+		StockRule thirdRule = eu().newStockRule(dao(), stockItem, packagingUom);
+		thirdRule.setVoided(false);
+		thirdRule.setEnabled(true);
+		dao().saveStockRule(thirdRule);
+		
+		StockRuleSearchFilter offsetFilter = new StockRuleSearchFilter();
+		offsetFilter.setStockItemUuids(Arrays.asList(stockItem.getUuid()));
+		offsetFilter.setStartIndex(1);
+		offsetFilter.setLimit(1);
+		Result<StockRule> offsetResult = stockManagementService.findStockRules(offsetFilter, null);
+		assertEquals(1, offsetResult.getData().size());
+		assertEquals(Long.valueOf(3L), offsetResult.getTotalRecordCount());
+		assertEquals(secondRule.getUuid(), offsetResult.getData().get(0).getUuid());
 	}
 	
 	@Test

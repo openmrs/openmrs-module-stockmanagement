@@ -16,20 +16,20 @@ import org.openmrs.annotation.Handler;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
-import org.openmrs.module.stockmanagement.api.dto.StockRuleDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
+import org.openmrs.module.stockmanagement.api.model.StockRule;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
 
 import java.math.BigDecimal;
 
-@Handler(supports = { StockRuleDTO.class }, order = 50)
+@Handler(supports = { StockRule.class }, order = 50)
 public class StockRuleValidator implements Validator {
 	
 	@Override
 	public boolean supports(Class<?> aClass) {
-		return StockRuleDTO.class.isAssignableFrom(aClass);
+		return StockRule.class.isAssignableFrom(aClass);
 	}
 	
 	@Override
@@ -40,17 +40,18 @@ public class StockRuleValidator implements Validator {
 			return;
 		}
 		
-		StockRuleDTO object = (StockRuleDTO) target;
-		StockItem stockItem = null;
+		StockManagementService service = Context.getService(StockManagementService.class);
+		StockRule object = (StockRule) target;
+		StockItem stockItem = object.getStockItem();
 		
-		if (StringUtils.isBlank(object.getStockItemUuid())) {
-			errors.rejectValue("stockItemUuid",
+		if (stockItem == null) {
+			errors.rejectValue("stockItem",
 			    String.format(messageSourceService.getMessage("stockmanagement.stockrule.fieldrequired"), "stock item"));
 			return;
-		} else {
-			stockItem = Context.getService(StockManagementService.class).getStockItemByUuid(object.getStockItemUuid());
+		} else if (stockItem.getId() == null) {
+			stockItem = stockItem.getUuid() != null ? service.getStockItemByUuid(stockItem.getUuid()) : null;
 			if (stockItem == null) {
-				errors.rejectValue("stockItemUuid", String.format(
+				errors.rejectValue("stockItem", String.format(
 				    messageSourceService.getMessage("stockmanagement.stockrule.fieldvaluenotexist"), "stock item"));
 				return;
 			}
@@ -72,14 +73,16 @@ public class StockRuleValidator implements Validator {
 			return;
 		}
 		
-		if (StringUtils.isBlank(object.getLocationUuid())) {
-			errors.rejectValue("locationUuid",
-			    String.format(messageSourceService.getMessage("stockmanagement.stockrule.fieldrequired"), "locationUuid"));
+		Location location = object.getLocation();
+		if (location == null) {
+			errors.rejectValue("location",
+			    String.format(messageSourceService.getMessage("stockmanagement.stockrule.fieldrequired"), "location"));
 			return;
-		} else {
-			Location location = Context.getLocationService().getLocationByUuid(object.getLocationUuid());
+		} else if (location.getId() == null) {
+			location = location.getUuid() != null ? Context.getLocationService().getLocationByUuid(location.getUuid())
+			        : null;
 			if (location == null) {
-				errors.rejectValue("locationUuid", String.format(
+				errors.rejectValue("location", String.format(
 				    messageSourceService.getMessage("stockmanagement.stockrule.fieldvaluenotexist"), "location"));
 				return;
 			}
@@ -122,19 +125,23 @@ public class StockRuleValidator implements Validator {
 			return;
 		}
 		
-		if (object.getStockItemPackagingUOMUuid() == null) {
-			errors.rejectValue("stockItemPackagingUOMUuid",
+		StockItemPackagingUOM stockItemPackagingUOM = object.getStockItemPackagingUOM();
+		if (stockItemPackagingUOM == null) {
+			errors.rejectValue("stockItemPackagingUOM",
 			    String.format(messageSourceService.getMessage("stockmanagement.stockrule.fieldrequired"), "packaging unit"));
 			return;
 		} else {
-			StockItemPackagingUOM stockItemPackagingUOM = Context.getService(StockManagementService.class)
-			        .getStockItemPackagingUOMByUuid(object.getStockItemPackagingUOMUuid());
+			if (stockItemPackagingUOM.getId() == null) {
+				stockItemPackagingUOM = stockItemPackagingUOM.getUuid() != null
+				        ? service.getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid())
+				        : null;
+			}
 			if (stockItemPackagingUOM == null) {
-				errors.rejectValue("stockItemPackagingUOMUuid", String.format(
+				errors.rejectValue("stockItemPackagingUOM", String.format(
 				    messageSourceService.getMessage("stockmanagement.stockrule.fieldvaluenotexist"), "packaging unit"));
 				return;
 			} else if (!stockItemPackagingUOM.getStockItem().getUuid().equals(stockItem.getUuid())) {
-				errors.rejectValue("stockItemPackagingUOMUuid",
+				errors.rejectValue("stockItemPackagingUOM",
 				    messageSourceService.getMessage("stockmanagement.stockrule.packagingunitinvalidforstockitem"));
 				return;
 			}
