@@ -26,7 +26,9 @@ public final class ConceptNameLocaleUtil {
 	
 	/**
 	 * Picks the name to show for each concept, in this order: the user's exact locale, the user's
-	 * language, the default locale, the default locale's language, then any other name.
+	 * language with no country, the default locale if it shares the user's language, the user's
+	 * language in another country, the default locale, the default locale's language, then any other
+	 * name.
 	 * 
 	 * @param names the names of one or more concepts, in any locale
 	 * @param userLocale the locale of the current user
