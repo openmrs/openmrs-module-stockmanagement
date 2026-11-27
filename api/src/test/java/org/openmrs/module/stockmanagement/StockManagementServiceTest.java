@@ -25,6 +25,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSession;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
@@ -1875,6 +1876,39 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
+	public void saveStockOperation_shouldGiveEachExpiryOfABatchNumberItsOwnBatch() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		stockItem.setVoided(false);
+		stockItem.setHasExpiration(true);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM uom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		uom.setVoided(false);
+		dao().saveStockItemPackagingUOM(uom);
+		List<Date> expiries = Arrays.asList(DateUtils.addYears(DateUtil.today(), 1),
+		    DateUtils.addYears(DateUtil.today(), 2));
+		StockOperationDTO receipt = new StockOperationDTO();
+		receipt.setOperationTypeUuid("fce0b4fc-9402-424a-aacb-f99599e51a9f");
+		receipt.setAtLocationUuid(eu().getLocation().getUuid());
+		receipt.setDestinationUuid(eu().getParty(dao()).getUuid());
+		receipt.setOperationDate(new Date());
+		receipt.setStockOperationItems(new ArrayList<>());
+		for (Date expiry : expiries) {
+			StockOperationItemDTO line = new StockOperationItemDTO();
+			line.setStockItemUuid(stockItem.getUuid());
+			line.setStockItemPackagingUOMUuid(uom.getUuid());
+			line.setBatchNo("B-01");
+			line.setExpiration(expiry);
+			line.setQuantity(BigDecimal.TEN);
+			receipt.getStockOperationItems().add(line);
+		}
+		StockManagementService service = Context.getService(StockManagementService.class);
+		StockOperation operation = service.saveStockOperation(receipt);
+		List<Date> batchExpiries = service.getStockOperationItemsByStockOperation(operation.getId()).stream()
+		        .map(item -> item.getStockBatch().getExpiration()).collect(Collectors.toList());
+		assertThat(batchExpiries, containsInAnyOrder(expiries.toArray()));
+	}
+	
+	@Test
 	public void saveUserRoleScope_shouldDefaultNullLocationAndOperationTypeLists() {
 		stockManagementService.setDao(dao());
 		UserRoleScopeDTO dto = new UserRoleScopeDTO();
@@ -2116,5 +2150,101 @@ public class StockManagementServiceTest extends BaseModuleContextSensitiveTest {
 		// the point of this test is that saving with a null enableDescendants does not throw; the
 		// location rows are persisted separately from the in-memory scope collection
 		assertNotNull(saved.getId());
+	}
+	
+	@Test
+	public void saveStockOperationBatchNumbers_shouldGiveEachExpiryOfABatchNumberItsOwnBatch() {
+		StockItem stockItem = eu().newStockItem(dao(), false);
+		stockItem.setVoided(false);
+		stockItem.setHasExpiration(true);
+		dao().saveStockItem(stockItem);
+		StockItemPackagingUOM uom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
+		uom.setVoided(false);
+		dao().saveStockItemPackagingUOM(uom);
+		List<Date> expiries = Arrays.asList(DateUtils.addYears(DateUtil.today(), 1),
+		    DateUtils.addYears(DateUtil.today(), 2));
+		StockOperationDTO receipt = new StockOperationDTO();
+		receipt.setOperationTypeUuid("fce0b4fc-9402-424a-aacb-f99599e51a9f");
+		receipt.setAtLocationUuid(eu().getLocation().getUuid());
+		receipt.setDestinationUuid(eu().getParty(dao()).getUuid());
+		receipt.setOperationDate(new Date());
+		receipt.setStockOperationItems(new ArrayList<>());
+		for (int i = 0; i < expiries.size(); i++) {
+			StockOperationItemDTO line = new StockOperationItemDTO();
+			line.setStockItemUuid(stockItem.getUuid());
+			line.setStockItemPackagingUOMUuid(uom.getUuid());
+			line.setBatchNo("B-0" + (i + 1));
+			line.setExpiration(expiries.get(i));
+			line.setQuantity(BigDecimal.TEN);
+			receipt.getStockOperationItems().add(line);
+		}
+		StockManagementService service = Context.getService(StockManagementService.class);
+		StockOperation operation = service.saveStockOperation(receipt);
+		operation.setStatus(StockOperationStatus.SUBMITTED);
+		operation.getStockOperationType().setAllowBatchInfoUpdate(true);
+		dao().saveStockOperation(operation);
+		Role role = giveAuthenticatedUserStockOperationScope(operation.getAtLocation(), operation.getStockOperationType());
+		Context.flushSession();
+		Context.clearSession();
+		try {
+			// both lines get the same batch number, each keeping its own expiry
+			StockOperationBatchNumbersDTO batchNumbers = new StockOperationBatchNumbersDTO();
+			batchNumbers.setUuid(operation.getUuid());
+			batchNumbers.setBatchNumbers(new ArrayList<>());
+			for (StockOperationItem item : service.getStockOperationItemsByStockOperation(operation.getId())) {
+				StockOperationBatchNumbersDTO.StockOperationItemBatchNumber batchNumber = new StockOperationBatchNumbersDTO.StockOperationItemBatchNumber();
+				batchNumber.setUuid(item.getUuid());
+				batchNumber.setBatchNo("B-09");
+				batchNumber.setExpiration(item.getStockBatch().getExpiration());
+				batchNumbers.getBatchNumbers().add(batchNumber);
+			}
+			service.saveStockOperationBatchNumbers(batchNumbers);
+			
+			List<StockBatch> batches = service.getStockOperationItemsByStockOperation(operation.getId()).stream()
+			        .map(StockOperationItem::getStockBatch).collect(Collectors.toList());
+			assertThat(batches.stream().map(StockBatch::getBatchNo).collect(Collectors.toList()), everyItem(is("B-09")));
+			assertThat(batches.stream().map(b -> b.getExpiration().getTime()).collect(Collectors.toList()),
+			    containsInAnyOrder(expiries.stream().map(Date::getTime).toArray()));
+		}
+		finally {
+			Context.getAuthenticatedUser().removeRole(role);
+		}
+	}
+	
+	private Role giveAuthenticatedUserStockOperationScope(Location location, StockOperationType stockOperationType) {
+		UserService userService = Context.getUserService();
+		Role role = new Role("Stock batch number clerk");
+		role.setDescription("Can view and change stock operations");
+		for (String name : Arrays.asList(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONS,
+		    Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE)) {
+			Privilege privilege = userService.getPrivilege(name);
+			role.addPrivilege(privilege != null ? privilege : userService.savePrivilege(new Privilege(name, name)));
+		}
+		userService.saveRole(role);
+		User user = Context.getAuthenticatedUser();
+		user.addRole(role);
+		
+		UserRoleScope scope = new UserRoleScope();
+		scope.setUser(user);
+		scope.setRole(role);
+		scope.setPermanent(true);
+		scope.setEnabled(true);
+		scope.setCreator(user);
+		scope.setDateCreated(new Date());
+		dao().saveUserRoleScope(scope);
+		UserRoleScopeLocation scopeLocation = new UserRoleScopeLocation();
+		scopeLocation.setUserRoleScope(scope);
+		scopeLocation.setLocation(location);
+		scopeLocation.setEnableDescendants(false);
+		scopeLocation.setCreator(user);
+		scopeLocation.setDateCreated(new Date());
+		dao().saveUserRoleScopeLocation(scopeLocation);
+		UserRoleScopeOperationType scopeOperationType = new UserRoleScopeOperationType();
+		scopeOperationType.setUserRoleScope(scope);
+		scopeOperationType.setStockOperationType(stockOperationType);
+		scopeOperationType.setCreator(user);
+		scopeOperationType.setDateCreated(new Date());
+		dao().saveUserRoleScopeOperationType(scopeOperationType);
+		return role;
 	}
 }
