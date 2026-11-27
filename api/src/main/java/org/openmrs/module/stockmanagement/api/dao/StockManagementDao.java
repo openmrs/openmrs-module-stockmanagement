@@ -893,25 +893,15 @@ public class StockManagementDao extends DaoBase {
 	}
 	
 	public Map<Integer, String> getConceptNames(List<Integer> conceptIds) {
-		if (conceptIds == null || conceptIds.isEmpty())
-			return new HashMap<>();
-		Query query = getSession().createQuery(
-		    "select cc.concept.conceptId as conceptId, cc.name as name from ConceptName cc where cc.concept.conceptId in (:ids) and cc.conceptNameType = (:cnt)")
-		        .setParameterList("ids", conceptIds).setParameter("cnt", ConceptNameType.FULLY_SPECIFIED);
-		List result = query.list();
-		Map<Integer, String> resultMap = new HashMap<>();
-		for (Object object : result) {
-			resultMap.putIfAbsent(Integer.valueOf(((Number) (((Object[]) object)[0])).intValue()),
-			    (String) (((Object[]) object)[1]));
-		}
-		return resultMap;
+		return getConceptNamesByConceptIds(conceptIds).stream()
+		        .collect(Collectors.toMap(ConceptNameDTO::getConceptId, ConceptNameDTO::getName));
 	}
 	
 	public List<ConceptNameDTO> getConceptNamesByConceptIds(List<Integer> ids) {
 		if (ids == null || ids.isEmpty())
 			return new ArrayList<>();
 		Query query = getSession().createQuery(
-		    "select cc.concept.conceptId as conceptId, cc.name as name, cc.locale as locale from ConceptName cc where cc.concept.conceptId in (:ids) and cc.conceptNameType = (:cnt)")
+		    "select cc.concept.conceptId as conceptId, cc.name as name, cc.locale as locale from ConceptName cc where cc.concept.conceptId in (:ids) and cc.conceptNameType = (:cnt) and cc.voided = false")
 		        .setParameterList("ids", ids).setParameter("cnt", ConceptNameType.FULLY_SPECIFIED);
 		query = query.setResultTransformer(new AliasToBeanResultTransformer(ConceptNameDTO.class));
 		return ConceptNameLocaleUtil.selectBestNames(query.list(), Context.getLocale(), LocaleUtility.getDefaultLocale());
