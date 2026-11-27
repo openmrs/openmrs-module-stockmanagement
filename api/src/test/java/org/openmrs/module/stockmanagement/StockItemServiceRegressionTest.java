@@ -52,7 +52,7 @@ public class StockItemServiceRegressionTest extends BaseModuleContextSensitiveTe
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
-		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
+		executeDataSet(EntityUtil.STOCK_MANAGEMENT_DATA_SET);
 	}
 	
 	private void withOnlyPrivilege(String privilegeName, Runnable action) {

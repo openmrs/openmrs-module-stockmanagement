@@ -85,23 +85,11 @@ public interface StockManagementService extends OpenmrsService {
 	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONTYPE)
-	StockOperationType getStockOperationTypeByUuid(String uuid);
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONTYPE)
 	StockOperationType getStockOperationTypeByType(String type);
 	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONTYPE)
 	List<StockOperationType> getAllStockOperationTypes();
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONTYPE)
-	StockOperationTypeLocationScope getStockOperationTypeLocationScopeByUuid(String uuid);
-	
-	@Transactional(readOnly = true)
-	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKOPERATIONTYPE)
-	List<StockOperationTypeLocationScope> getAllStockOperationTypeLocationScopes();
 	
 	@Transactional(readOnly = true)
 	UserRoleScopeOperationType getUserRoleScopeOperationTypeByUuid(String uuid);

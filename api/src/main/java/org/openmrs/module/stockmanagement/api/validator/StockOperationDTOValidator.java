@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.validator;
 
+import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.Location;
 import org.openmrs.LocationTag;
@@ -56,15 +57,13 @@ public class StockOperationDTOValidator implements Validator {
 				errors.rejectValue("uuid", messageSourceService.getMessage("stockmanagement.stockoperation.notupdateable"));
 				return;
 			}
-			object.setOperationTypeUuid(stockOperation.getStockOperationType().getUuid());
+			object.setStockOperationType(stockOperation.getStockOperationType());
 		}
 		
-		if (object.getOperationTypeUuid() == null) {
-			if (StringUtils.isBlank(object.getOperationTypeUuid())) {
-				errors.rejectValue("operationTypeUuid",
-				    messageSourceService.getMessage("stockmanagement.stockoperation.operationtypeuuidrequired"));
-				return;
-			}
+		if (StringUtils.isBlank(object.getOperationType())) {
+			errors.rejectValue("operationType",
+			    messageSourceService.getMessage("stockmanagement.stockoperation.operationtyperequired"));
+			return;
 		}
 		
 		if (object.getOperationDate() == null) {
@@ -82,14 +81,15 @@ public class StockOperationDTOValidator implements Validator {
 		Location permissionLocation = null;
 		
 		StockOperationType stockOperationType = stockOperation != null ? stockOperation.getStockOperationType()
-		        : service.getStockOperationTypeByUuid(object.getOperationTypeUuid());
+		        : object.getStockOperationType();
 		if (stockOperationType == null) {
 			// an unknown type must be a clean rejection, not a NullPointerException downstream
-			errors.rejectValue("operationTypeUuid",
+			errors.rejectValue("operationType",
 			    messageSourceService.getMessage("stockmanagement.stockoperation.typenotfound"));
 			return;
 		}
-		if (stockOperationType.getHasSource() != null && stockOperationType.getHasSource()) {
+		StockOperationTypeProcessor processor = stockOperationType.getProcessor();
+		if (processor.getHasSource()) {
 			if (object.getSourceUuid() == null) {
 				errors.rejectValue("sourceUuid",
 				    messageSourceService.getMessage("stockmanagement.stockoperation.sourcerequired"));
@@ -101,27 +101,17 @@ public class StockOperationDTOValidator implements Validator {
 				    messageSourceService.getMessage("stockmanagement.stockoperation.sourceinvalid"));
 				return;
 			}
-			if (stockOperationType.getSourceType() == LocationType.Location) {
+			if (processor.getSourceType() == LocationType.Location) {
 				if (party.getLocation() == null) {
 					errors.rejectValue("sourceUuid",
 					    messageSourceService.getMessage("stockmanagement.stockoperation.sourcenotlocation"));
 					return;
 				}
 				
-				Set<StockOperationTypeLocationScope> locationScope = stockOperationType
-				        .getStockOperationTypeLocationScopes();
-				if (locationScope != null && !locationScope.isEmpty()) {
-					List<StockOperationTypeLocationScope> sourceScope = locationScope.stream().filter(p -> p.getIsSource())
-					        .collect(Collectors.toList());
-					if (!sourceScope.isEmpty()) {
-						Set<LocationTag> locationTags = party.getLocation().getTags();
-						if (locationTags == null || locationTags.isEmpty() || !sourceScope.stream().anyMatch(
-						    p -> locationTags.stream().anyMatch(x -> x.getName().equals(p.getLocationTag())))) {
-							errors.rejectValue("sourceUuid", messageSourceService
-							        .getMessage("stockmanagement.stockoperation.sourcelocationtagnotmatched"));
-							return;
-						}
-					}
+				if (!hasAnyTag(party.getLocation(), processor.getSourceLocationTags())) {
+					errors.rejectValue("sourceUuid",
+					    messageSourceService.getMessage("stockmanagement.stockoperation.sourcelocationtagnotmatched"));
+					return;
 				}
 				permissionLocation = party.getLocation();
 			} else {
@@ -137,7 +127,7 @@ public class StockOperationDTOValidator implements Validator {
 			return;
 		}
 		
-		if (stockOperationType.getHasDestination() != null && stockOperationType.getHasDestination()) {
+		if (processor.getHasDestination()) {
 			if (object.getDestinationUuid() == null) {
 				errors.rejectValue("destinationUuid",
 				    messageSourceService.getMessage("stockmanagement.stockoperation.destinationrequired"));
@@ -149,27 +139,17 @@ public class StockOperationDTOValidator implements Validator {
 				    messageSourceService.getMessage("stockmanagement.stockoperation.destinationinvalid"));
 				return;
 			}
-			if (stockOperationType.getDestinationType() == LocationType.Location) {
+			if (processor.getDestinationType() == LocationType.Location) {
 				if (party.getLocation() == null) {
 					errors.rejectValue("destinationUuid",
 					    messageSourceService.getMessage("stockmanagement.stockoperation.destinationnotlocation"));
 					return;
 				}
 				
-				Set<StockOperationTypeLocationScope> locationScope = stockOperationType
-				        .getStockOperationTypeLocationScopes();
-				if (locationScope != null && !locationScope.isEmpty()) {
-					List<StockOperationTypeLocationScope> destinationScope = locationScope.stream()
-					        .filter(p -> p.getIsDestination()).collect(Collectors.toList());
-					if (!destinationScope.isEmpty()) {
-						Set<LocationTag> locationTags = party.getLocation().getTags();
-						if (locationTags == null || locationTags.isEmpty() || !destinationScope.stream().anyMatch(
-						    p -> locationTags.stream().anyMatch(x -> x.getName().equals(p.getLocationTag())))) {
-							errors.rejectValue("destinationUuid", messageSourceService
-							        .getMessage("stockmanagement.stockoperation.destinationlocationtagnotmatched"));
-							return;
-						}
-					}
+				if (!hasAnyTag(party.getLocation(), processor.getDestinationLocationTags())) {
+					errors.rejectValue("destinationUuid",
+					    messageSourceService.getMessage("stockmanagement.stockoperation.destinationlocationtagnotmatched"));
+					return;
 				}
 				
 				if (permissionLocation == null)
@@ -188,27 +168,26 @@ public class StockOperationDTOValidator implements Validator {
 			return;
 		}
 		
-		if (stockOperationType.requiresReason() && StringUtils.isBlank(object.getReasonUuid())) {
-			errors.rejectValue("operationTypeUuid",
-			    messageSourceService.getMessage("stockmanagement.stockoperation.noreason"));
+		if (processor.requiresReason() && StringUtils.isBlank(object.getReasonUuid())) {
+			errors.rejectValue("operationType", messageSourceService.getMessage("stockmanagement.stockoperation.noreason"));
 			return;
 		}
 		
 		if (object.getStockOperationItems() == null || object.getStockOperationItems().isEmpty()) {
-			errors.rejectValue("operationTypeUuid",
+			errors.rejectValue("operationType",
 			    messageSourceService.getMessage("stockmanagement.stockoperation.itemsrequired"));
 			return;
 		}
 		
 		if (permissionLocation == null) {
-			errors.rejectValue("operationTypeUuid",
+			errors.rejectValue("operationType",
 			    messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
 			return;
 		}
 		
 		object.setAtLocationUuid(permissionLocation.getUuid());
-		if (!stockOperationType.userCanProcess(Context.getAuthenticatedUser(), permissionLocation)) {
-			errors.rejectValue("operationTypeUuid",
+		if (!processor.userCanProcess(Context.getAuthenticatedUser(), permissionLocation)) {
+			errors.rejectValue("operationType",
 			    messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
 			return;
 		}
@@ -245,13 +224,13 @@ public class StockOperationDTOValidator implements Validator {
 				return;
 			}
 			
-			if (stockOperationType.requiresBatchUuid() && stockOperationItemDTO.getStockBatchUuid() == null) {
+			if (processor.requiresBatchUuid() && stockOperationItemDTO.getStockBatchUuid() == null) {
 				errors.rejectValue("stockOperationItems", String
 				        .format(messageSourceService.getMessage("stockmanagement.stockoperation.batchuuidrequired"), index));
 				return;
 			}
 			
-			if (stockOperationType.requiresActualBatchInformation()) {
+			if (processor.requiresActualBatchInformation()) {
 				if (StringUtils.isBlank(stockOperationItemDTO.getBatchNo())) {
 					errors.rejectValue("stockOperationItems", String.format(
 					    messageSourceService.getMessage("stockmanagement.stockoperation.batchnorequired"), index));
@@ -280,15 +259,14 @@ public class StockOperationDTOValidator implements Validator {
 				}
 			}
 			
-			if (!stockOperationType.isQuantityOptional() && stockOperationItemDTO.getQuantity() == null) {
+			if (!processor.isQuantityOptional() && stockOperationItemDTO.getQuantity() == null) {
 				errors.rejectValue("stockOperationItems",
 				    String.format(messageSourceService.getMessage("stockmanagement.stockoperation.qtyrequired"), index));
 				return;
 			}
 			
 			if (stockOperationItemDTO.getQuantity() != null) {
-				if (!stockOperationType.isNegativeItemQuantityAllowed()
-				        && stockOperationItemDTO.getQuantity().compareTo(zero) <= 0) {
+				if (!processor.isNegativeItemQuantityAllowed() && stockOperationItemDTO.getQuantity().compareTo(zero) <= 0) {
 					errors.rejectValue("stockOperationItems",
 					    String.format(messageSourceService.getMessage("stockmanagement.stockoperation.qtyrequired"), index));
 					return;
@@ -308,7 +286,7 @@ public class StockOperationDTOValidator implements Validator {
 				return;
 			}
 			
-			if (stockOperationType.getOperationType().equals(StockOperationType.STOCK_ISSUE)) {
+			if (stockOperationType == StockOperationType.STOCK_ISSUE) {
 				if (stockOperationItemDTO.getQuantityRequested() != null
 				        || stockOperationItemDTO.getStockItemPackagingUOMUuid() != null) {
 					if (stockOperationItemDTO.getQuantityRequested() != null
@@ -328,5 +306,10 @@ public class StockOperationDTOValidator implements Validator {
 				}
 			}
 		}
+	}
+	
+	private boolean hasAnyTag(Location location, List<String> tagNames) {
+		return tagNames.isEmpty() || (location.getTags() != null
+		        && location.getTags().stream().anyMatch(tag -> tagNames.contains(tag.getName())));
 	}
 }

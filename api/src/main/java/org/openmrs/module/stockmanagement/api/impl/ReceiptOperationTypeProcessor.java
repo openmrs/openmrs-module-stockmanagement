@@ -9,6 +9,7 @@
  */
 package org.openmrs.module.stockmanagement.api.impl;
 
+import org.openmrs.module.stockmanagement.api.dto.StockOperationAction;
 import org.openmrs.module.stockmanagement.api.utils.Action2;
 import org.openmrs.module.stockmanagement.api.model.*;
 
@@ -23,6 +24,37 @@ public class ReceiptOperationTypeProcessor extends StockOperationTypeProcessorBa
 	
 	public ReceiptOperationTypeProcessor(StockOperationType stockOperationType) {
 		super(stockOperationType);
+	}
+	
+	@Override
+	public String getAcronym() {
+		return "RCPT";
+	}
+	
+	@Override
+	public LocationType getSourceType() {
+		return LocationType.Other;
+	}
+	
+	@Override
+	public LocationType getDestinationType() {
+		return LocationType.Location;
+	}
+	
+	@Override
+	public boolean getAvailableWhenReserved() {
+		return false;
+	}
+	
+	@Override
+	public boolean getAllowBatchInfoUpdate() {
+		return true;
+	}
+	
+	@Override
+	public boolean notifiesOn(StockOperationAction.Action action) {
+		return action == StockOperationAction.Action.SUBMIT || action == StockOperationAction.Action.APPROVE
+		        || action == StockOperationAction.Action.COMPLETE;
 	}
 	
 	@Override

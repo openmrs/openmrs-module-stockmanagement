@@ -9,6 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.api.dto.reporting;
 
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
+
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUOMDTO;
 import org.openmrs.module.stockmanagement.api.model.StockOperationStatus;
 
@@ -63,7 +65,7 @@ public class StockOperationLineItem {
 	private String quantityRequestedPackagingUOMName;
 	
 	// Stock Operation
-	private String operationTypeName;
+	private StockOperationType operationType;
 	
 	private Date operationDate;
 	
@@ -260,11 +262,15 @@ public class StockOperationLineItem {
 	}
 	
 	public String getOperationTypeName() {
-		return operationTypeName;
+		return operationType == null ? null : operationType.getName();
 	}
 	
-	public void setOperationTypeName(String operationTypeName) {
-		this.operationTypeName = operationTypeName;
+	public StockOperationType getOperationType() {
+		return operationType;
+	}
+	
+	public void setOperationType(StockOperationType operationType) {
+		this.operationType = operationType;
 	}
 	
 	public Date getOperationDate() {

@@ -61,7 +61,7 @@ public class UserRoleScopeOperationTypeResource extends SubResourceBase<UserRole
 			description.addProperty("uuid");
 			description.addProperty("userRoleScopeId");
 			description.addProperty("operationTypeName");
-			description.addProperty("operationTypeUuid");
+			description.addProperty("operationType");
 		}
 		
 		if (rep instanceof DefaultRepresentation) {}
@@ -80,7 +80,7 @@ public class UserRoleScopeOperationTypeResource extends SubResourceBase<UserRole
 		ModelImpl modelImpl = (ModelImpl) super.getGETModel(rep);
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
 			modelImpl.property("uuid", new StringProperty()).property("userRoleScopeId", new StringProperty())
-			        .property("operationTypeName", new StringProperty()).property("operationTypeUuid", new StringProperty());
+			        .property("operationTypeName", new StringProperty()).property("operationType", new StringProperty());
 		}
 		if (rep instanceof DefaultRepresentation) {}
 		

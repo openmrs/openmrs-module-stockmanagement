@@ -59,7 +59,7 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
-		executeDataSet(EntityUtil.STOCK_OPERATION_TYPE_DATA_SET);
+		executeDataSet(EntityUtil.STOCK_MANAGEMENT_DATA_SET);
 	}
 	
 	private EntityUtil eu() {
@@ -183,40 +183,6 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		    hasProperty("userRoleScope", is(userRoleScopeOperationType.getUserRoleScope())));
 		assertThat(savedUserRoleScopeOperationType,
 		    hasProperty("stockOperationType", is(userRoleScopeOperationType.getStockOperationType())));
-	}
-	
-	@Test
-	public void saveStockOperationType_shouldSaveAllProperties() {
-		//Given
-		StockOperationType stockOperationType = eu().newStockOperationType(dao());
-		
-		//When
-		dao().saveStockOperationType(stockOperationType);
-		
-		//Let's clean up the cache to be sure getStockOperationTypeByUuid fetches from DB and not from cache
-		Context.flushSession();
-		Context.flushSession();
-		
-		//Then
-		StockOperationType savedStockOperationType = dao().getStockOperationTypeByUuid(stockOperationType.getUuid());
-		assertThat(savedStockOperationType, hasProperty("uuid", is(stockOperationType.getUuid())));
-		assertThat(savedStockOperationType, hasProperty("creator", is(stockOperationType.getCreator())));
-		assertThat(savedStockOperationType, hasProperty("dateCreated", is(stockOperationType.getDateCreated())));
-		assertThat(savedStockOperationType, hasProperty("changedBy", is(stockOperationType.getChangedBy())));
-		assertThat(savedStockOperationType, hasProperty("dateChanged", is(stockOperationType.getDateChanged())));
-		assertThat(savedStockOperationType, hasProperty("voided", is(stockOperationType.getVoided())));
-		assertThat(savedStockOperationType, hasProperty("dateVoided", is(stockOperationType.getDateVoided())));
-		assertThat(savedStockOperationType, hasProperty("voidedBy", is(stockOperationType.getVoidedBy())));
-		assertThat(savedStockOperationType, hasProperty("voidReason", is(stockOperationType.getVoidReason())));
-		assertThat(savedStockOperationType, hasProperty("name", is(stockOperationType.getName())));
-		assertThat(savedStockOperationType, hasProperty("description", is(stockOperationType.getDescription())));
-		assertThat(savedStockOperationType, hasProperty("operationType", is(stockOperationType.getOperationType())));
-		assertThat(savedStockOperationType, hasProperty("hasSource", is(stockOperationType.getHasSource())));
-		assertThat(savedStockOperationType, hasProperty("sourceType", is(stockOperationType.getSourceType())));
-		assertThat(savedStockOperationType, hasProperty("hasDestination", is(stockOperationType.getHasDestination())));
-		assertThat(savedStockOperationType, hasProperty("destinationType", is(stockOperationType.getDestinationType())));
-		assertThat(savedStockOperationType,
-		    hasProperty("availableWhenReserved", is(stockOperationType.getAvailableWhenReserved())));
 	}
 	
 	@Test
@@ -412,6 +378,40 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 	}
 	
 	@Test
+	public void saveStockOperation_shouldStoreTheOperationTypeAsTheEnumName() {
+		StockOperation stockOperation = eu().newStockOperation(dao());
+		stockOperation.setStockOperationType(StockOperationType.TRANSFER_OUT);
+		dao().saveStockOperation(stockOperation);
+		Context.flushSession();
+		Context.clearSession();
+		
+		Object stored = dao().getSession()
+		        .createSQLQuery("select operation_type from stockmgmt_stock_operation where uuid = :uuid")
+		        .setParameter("uuid", stockOperation.getUuid()).uniqueResult();
+		
+		assertEquals("TRANSFER_OUT", stored);
+		assertEquals(StockOperationType.TRANSFER_OUT,
+		    dao().getStockOperationByUuid(stockOperation.getUuid()).getStockOperationType());
+	}
+	
+	@Test
+	public void saveUserRoleScopeOperationType_shouldStoreTheOperationTypeAsTheEnumName() {
+		UserRoleScopeOperationType scopeOperationType = eu().newUserRoleScopeOperationType(dao());
+		scopeOperationType.setStockOperationType(StockOperationType.STOCK_ISSUE);
+		dao().saveUserRoleScopeOperationType(scopeOperationType);
+		Context.flushSession();
+		Context.clearSession();
+		
+		Object stored = dao().getSession()
+		        .createSQLQuery("select operation_type from stockmgmt_user_role_scope_operation_type where uuid = :uuid")
+		        .setParameter("uuid", scopeOperationType.getUuid()).uniqueResult();
+		
+		assertEquals("STOCK_ISSUE", stored);
+		assertEquals(StockOperationType.STOCK_ISSUE,
+		    dao().getUserRoleScopeOperationTypeByUuid(scopeOperationType.getUuid()).getStockOperationType());
+	}
+	
+	@Test
 	public void saveStockOperation_shouldSaveAllProperties() {
 		//Given
 		StockOperation stockOperation = eu().newStockOperation(dao());
@@ -460,44 +460,6 @@ public class StockManagementDaoTest extends BaseModuleContextSensitiveTest {
 		assertThat(savedStockOperation, hasProperty("returnedBy", is(stockOperation.getReturnedBy())));
 		assertThat(savedStockOperation, hasProperty("rejectedDate", is(stockOperation.getRejectedDate())));
 		assertThat(savedStockOperation, hasProperty("rejectedBy", is(stockOperation.getRejectedBy())));
-	}
-	
-	@Test
-	public void saveStockOperationTypeLocationScope_shouldSaveAllProperties() {
-		//Given
-		StockOperationTypeLocationScope stockOperationTypeLocationScope = eu().newStockOperationTypeLocationScope(dao());
-		
-		//When
-		dao().saveStockOperationTypeLocationScope(stockOperationTypeLocationScope);
-		
-		//Let's clean up the cache to be sure getStockOperationTypeLocationScopeByUuid fetches from DB and not from cache
-		Context.flushSession();
-		Context.flushSession();
-		
-		//Then
-		StockOperationTypeLocationScope savedStockOperationTypeLocationScope = dao()
-		        .getStockOperationTypeLocationScopeByUuid(stockOperationTypeLocationScope.getUuid());
-		assertThat(savedStockOperationTypeLocationScope, hasProperty("uuid", is(stockOperationTypeLocationScope.getUuid())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("creator", is(stockOperationTypeLocationScope.getCreator())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("dateCreated", is(stockOperationTypeLocationScope.getDateCreated())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("changedBy", is(stockOperationTypeLocationScope.getChangedBy())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("dateChanged", is(stockOperationTypeLocationScope.getDateChanged())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("voided", is(stockOperationTypeLocationScope.getVoided())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("dateVoided", is(stockOperationTypeLocationScope.getDateVoided())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("voidedBy", is(stockOperationTypeLocationScope.getVoidedBy())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("voidReason", is(stockOperationTypeLocationScope.getVoidReason())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("stockOperationType", is(stockOperationTypeLocationScope.getStockOperationType())));
-		assertThat(savedStockOperationTypeLocationScope,
-		    hasProperty("locationTag", is(stockOperationTypeLocationScope.getLocationTag())));
 	}
 	
 	@Test

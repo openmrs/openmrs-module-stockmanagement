@@ -32,8 +32,7 @@ public class StockTransferOutReport extends StockOperationLineItemReport {
 	
 	@Override
 	protected void setFilters(StockOperationLineItemFilter filter, Properties parameters) {
-		StockOperationType stockOperationType = stockManagementService
-		        .getStockOperationTypeByType(StockOperationType.TRANSFER_OUT);
+		StockOperationType stockOperationType = StockOperationType.TRANSFER_OUT;
 		filter.setStockOperationTypes(Arrays.asList(stockOperationType));
 		filter.setIncludeRequisitionInfo(false);
 	}

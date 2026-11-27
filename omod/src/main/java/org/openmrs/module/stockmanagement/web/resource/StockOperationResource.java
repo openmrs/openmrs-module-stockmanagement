@@ -70,7 +70,8 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		filter.setStockOperationUuid(uniqueId);
 		Result<StockOperationDTO> result = getStockManagementService().findStockOperations(filter);
 		StockOperationDTO stockOperationDTO = result.getData().isEmpty() ? null : result.getData().get(0);
-		if (stockOperationDTO != null && StockOperationType.STOCK_ISSUE.equals(stockOperationDTO.getOperationType())) {
+		if (stockOperationDTO != null
+		        && StockOperationType.STOCK_ISSUE.getOperationType().equals(stockOperationDTO.getOperationType())) {
 			Result<StockOperationLinkDTO> parents = getStockManagementService()
 			        .getParentStockOperationLinks(stockOperationDTO.getUuid());
 			if (parents.getData() != null && parents.getData().size() > 0) {
@@ -95,20 +96,20 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		if (StringUtils.isNotBlank(param))
 			filter.setSearchText(param);
 		StockManagementService stockManagementService = getStockManagementService();
-		param = context.getParameter("operationTypeUuid");
+		param = context.getParameter("operationType");
 		if (StringUtils.isNotBlank(param)) {
 			String[] params = param.split(",", 10);
-			List<Integer> typeIds = new ArrayList<>();
-			for (String typeUuid : params) {
-				StockOperationType operationType = stockManagementService.getStockOperationTypeByUuid(typeUuid);
+			List<StockOperationType> operationTypes = new ArrayList<>();
+			for (String typeCode : params) {
+				StockOperationType operationType = StockOperationType.fromOperationType(typeCode);
 				if (operationType != null) {
-					typeIds.add(operationType.getId());
+					operationTypes.add(operationType);
 				}
 			}
-			if (typeIds.isEmpty()) {
+			if (operationTypes.isEmpty()) {
 				return emptyResult(context);
 			}
-			filter.setOperationTypeId(typeIds);
+			filter.setOperationTypes(operationTypes);
 		}
 		
 		param = context.getParameter("status");
@@ -248,8 +249,8 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 	
 	private void logSaveFailure(StockOperationDTO delegate, Exception exception) {
 		log.error(String.format(
-		    "Failed to save stock operation. operationUuid=%s, operationTypeUuid=%s, sourceUuid=%s, destinationUuid=%s, itemCount=%s",
-		    delegate == null ? null : delegate.getUuid(), delegate == null ? null : delegate.getOperationTypeUuid(),
+		    "Failed to save stock operation. operationUuid=%s, operationType=%s, sourceUuid=%s, destinationUuid=%s, itemCount=%s",
+		    delegate == null ? null : delegate.getUuid(), delegate == null ? null : delegate.getOperationType(),
 		    delegate == null ? null : delegate.getSourceUuid(), delegate == null ? null : delegate.getDestinationUuid(),
 		    delegate == null || delegate.getStockOperationItems() == null ? 0 : delegate.getStockOperationItems().size()),
 		    exception);
@@ -264,7 +265,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		description.addProperty("reasonUuid");
 		description.addProperty("remarks");
 		description.addProperty("sourceUuid");
-		description.addProperty("operationTypeUuid");
+		description.addProperty("operationType");
 		description.addProperty("responsiblePersonUuid");
 		description.addProperty("approvalRequired");
 		description.addProperty("responsiblePersonOther");
@@ -326,7 +327,6 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			description.addProperty("status");
 			description.addProperty("returnReason");
 			description.addProperty("rejectionReason");
-			description.addProperty("operationTypeUuid");
 			description.addProperty("operationType");
 			description.addProperty("operationTypeName");
 			description.addProperty("responsiblePersonUuid");
@@ -454,8 +454,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		boolean canReceiveItems = stockOperationDTO.canReceiveItems();
 		boolean canDisplayReceivedItems = stockOperationDTO.canDisplayReceivedItems();
 		boolean isRequisitionAndCanIssueStock = stockOperationDTO.isRequisitionAndCanIssueStock();
-		StockOperationType stockOperationType = getStockManagementService()
-		        .getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid());
+		StockOperationType stockOperationType = stockOperationDTO.getStockOperationType();
 		boolean canUpdateBatchInformation = stockOperationDTO.canUpdateBatchInformation(stockOperationType);
 		Boolean userHasEditPermissions = null;
 		
@@ -463,7 +462,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
 			    Context.getAuthenticatedUser(),
 			    Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
-			    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+			    stockOperationDTO.getStockOperationType(),
 			    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE,
 			        Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_APPROVE));
 			
@@ -490,16 +489,14 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 				}
 				if (canReceiveItems) {
 					HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-					    Context.getAuthenticatedUser(), party.getLocation(),
-					    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+					    Context.getAuthenticatedUser(), party.getLocation(), stockOperationDTO.getStockOperationType(),
 					    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS));
 					canReceiveItems = canReceiveItems && privilegeScopes.stream().anyMatch(
 					    p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_RECEIVEITEMS));
 				}
 				if (isRequisitionAndCanIssueStock) {
 					HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
-					    Context.getAuthenticatedUser(), party.getLocation(),
-					    getStockManagementService().getStockOperationTypeByType(StockOperationType.STOCK_ISSUE),
+					    Context.getAuthenticatedUser(), party.getLocation(), StockOperationType.STOCK_ISSUE,
 					    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
 					isRequisitionAndCanIssueStock = isRequisitionAndCanIssueStock && privilegeScopes.stream()
 					        .anyMatch(p -> p.getPrivilege().equals(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
@@ -512,7 +509,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 				HashSet<PrivilegeScope> privilegeScopes = getStockManagementService().getPrivilegeScopes(
 				    Context.getAuthenticatedUser(),
 				    Context.getLocationService().getLocationByUuid(stockOperationDTO.getAtLocationUuid()),
-				    getStockManagementService().getStockOperationTypeByUuid(stockOperationDTO.getOperationTypeUuid()),
+				    stockOperationDTO.getStockOperationType(),
 				    Arrays.asList(Privileges.TASK_STOCKMANAGEMENT_STOCKOPERATIONS_MUTATE));
 				userHasEditPermissions = Boolean.valueOf(!privilegeScopes.isEmpty());
 			}
@@ -603,8 +600,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 			        .property("remarks", new StringProperty()).property("sourceUuid", new StringProperty())
 			        .property("sourceName", new StringProperty()).property("status", new StringProperty())
 			        .property("returnReason", new StringProperty()).property("rejectionReason", new StringProperty())
-			        .property("operationTypeUuid", new StringProperty()).property("operationType", new StringProperty())
-			        .property("operationTypeName", new StringProperty())
+			        .property("operationType", new StringProperty()).property("operationTypeName", new StringProperty())
 			        .property("responsiblePersonUuid", new StringProperty())
 			        .property("responsiblePersonGivenName", new StringProperty())
 			        .property("responsiblePersonFamilyName", new StringProperty())

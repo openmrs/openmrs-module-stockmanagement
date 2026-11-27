@@ -9,6 +9,8 @@
  */
 package org.openmrs.module.stockmanagement.api.dto;
 
+import org.openmrs.module.stockmanagement.api.model.StockOperationType;
+
 import org.openmrs.module.stockmanagement.api.model.StockOperationStatus;
 
 public class StockOperationLinkDTO {
@@ -21,7 +23,7 @@ public class StockOperationLinkDTO {
 	
 	private String parentOperationNumber;
 	
-	private String parentOperationTypeName;
+	private StockOperationType parentOperationType;
 	
 	private StockOperationStatus parentStatus;
 	
@@ -31,7 +33,7 @@ public class StockOperationLinkDTO {
 	
 	private String childOperationNumber;
 	
-	private String childOperationTypeName;
+	private StockOperationType childOperationType;
 	
 	private StockOperationStatus childStatus;
 	
@@ -118,18 +120,26 @@ public class StockOperationLinkDTO {
 	}
 	
 	public String getParentOperationTypeName() {
-		return parentOperationTypeName;
+		return parentOperationType == null ? null : parentOperationType.getName();
 	}
 	
-	public void setParentOperationTypeName(String parentOperationTypeName) {
-		this.parentOperationTypeName = parentOperationTypeName;
+	public StockOperationType getParentOperationType() {
+		return parentOperationType;
+	}
+	
+	public void setParentOperationType(StockOperationType parentOperationType) {
+		this.parentOperationType = parentOperationType;
 	}
 	
 	public String getChildOperationTypeName() {
-		return childOperationTypeName;
+		return childOperationType == null ? null : childOperationType.getName();
 	}
 	
-	public void setChildOperationTypeName(String childOperationTypeName) {
-		this.childOperationTypeName = childOperationTypeName;
+	public StockOperationType getChildOperationType() {
+		return childOperationType;
+	}
+	
+	public void setChildOperationType(StockOperationType childOperationType) {
+		this.childOperationType = childOperationType;
 	}
 }

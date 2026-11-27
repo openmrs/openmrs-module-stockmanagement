@@ -28,7 +28,7 @@ public class EntityUtil {
 	
 	public static final String BASE_DATASET_DIR = "org/openmrs/module/stockmanagement/api/";
 	
-	public static final String STOCK_OPERATION_TYPE_DATA_SET = BASE_DATASET_DIR + "StockOperationType.xml";
+	public static final String STOCK_MANAGEMENT_DATA_SET = BASE_DATASET_DIR + "StockManagementTestData.xml";
 	
 	public static final String STOCK_ITEMS_IMPORT_CSV = BASE_DATASET_DIR + "StockItemsImport2.csv";
 	
@@ -276,33 +276,8 @@ public class EntityUtil {
 		UserRoleScope userRoleScope = newUserRoleScope(dao);
 		dao.saveUserRoleScope(userRoleScope);
 		userRoleScopeOperationType.setUserRoleScope(userRoleScope);
-		StockOperationType stockOperationType = newStockOperationType(dao);
-		dao.saveStockOperationType(stockOperationType);
-		userRoleScopeOperationType.setStockOperationType(stockOperationType);
+		userRoleScopeOperationType.setStockOperationType(StockOperationType.ADJUSTMENT);
 		return userRoleScopeOperationType;
-	}
-	
-	public StockOperationType newStockOperationType(StockManagementDao dao) {/*
-	                                                                         StockOperationType stockOperationType = new StockOperationType();
-	                                                                         stockOperationType.setCreator(getUser());
-	                                                                         stockOperationType.setDateCreated(getRandomDate());
-	                                                                         stockOperationType.setChangedBy(getUser());
-	                                                                         stockOperationType.setDateChanged(getRandomDate());
-	                                                                         stockOperationType.setVoided(getRandomBool());
-	                                                                         stockOperationType.setDateVoided(getRandomDate());
-	                                                                         stockOperationType.setVoidedBy(getUser());
-	                                                                         stockOperationType.setVoidReason(getRandomString(255));
-	                                                                         stockOperationType.setId(1);
-	                                                                         stockOperationType.setName(getRandomString(255));
-	                                                                         stockOperationType.setDescription(getRandomString(1024));
-	                                                                         stockOperationType.setOperationType(getRandomString(255));
-	                                                                         stockOperationType.setHasSource(getRandomBool());
-	                                                                         stockOperationType.setSourceType((LocationType) getRandomEnum(LocationType.class));
-	                                                                         stockOperationType.setHasDestination(getRandomBool());
-	                                                                         stockOperationType.setDestinationType((LocationType) getRandomEnum(LocationType.class));
-	                                                                         stockOperationType.setAvailableWhenReserved(getRandomBool());
-	                                                                         return stockOperationType;*/
-		return dao.getAllStockOperationTypes().get(0);
 	}
 	
 	public StockItem newStockItem(StockManagementDao dao, boolean associateUoMs) {
@@ -488,9 +463,7 @@ public class EntityUtil {
 		setProperty(stockOperation, "status", getRandomEnum(StockOperationStatus.class));
 		stockOperation.setReturnReason(getRandomString(500));
 		stockOperation.setRejectionReason(getRandomString(500));
-		StockOperationType stockOperationType = newStockOperationType(dao);
-		dao.saveStockOperationType(stockOperationType);
-		stockOperation.setStockOperationType(stockOperationType);
+		stockOperation.setStockOperationType(StockOperationType.ADJUSTMENT);
 		stockOperation.setResponsiblePerson(getUser());
 		stockOperation.setResponsiblePersonOther(getRandomString(50));
 		stockOperation.setApprovalRequired(getRandomBool());
@@ -501,23 +474,6 @@ public class EntityUtil {
 		stockOperation.setRejectedBy(getUser());
 		stockOperation.setRejectedDate(getRandomDate());
 		return stockOperation;
-	}
-	
-	public StockOperationTypeLocationScope newStockOperationTypeLocationScope(StockManagementDao dao) {
-		StockOperationTypeLocationScope stockOperationTypeLocationScope = new StockOperationTypeLocationScope();
-		stockOperationTypeLocationScope.setCreator(getUser());
-		stockOperationTypeLocationScope.setDateCreated(getRandomDate());
-		stockOperationTypeLocationScope.setChangedBy(getUser());
-		stockOperationTypeLocationScope.setDateChanged(getRandomDate());
-		stockOperationTypeLocationScope.setVoided(getRandomBool());
-		stockOperationTypeLocationScope.setDateVoided(getRandomDate());
-		stockOperationTypeLocationScope.setVoidedBy(getUser());
-		stockOperationTypeLocationScope.setVoidReason(getRandomString(255));
-		StockOperationType stockOperationType = newStockOperationType(dao);
-		dao.saveStockOperationType(stockOperationType);
-		stockOperationTypeLocationScope.setStockOperationType(stockOperationType);
-		stockOperationTypeLocationScope.setLocationTag(getLocationTag());
-		return stockOperationTypeLocationScope;
 	}
 	
 	public StockSource newStockSource(StockManagementDao dao) {

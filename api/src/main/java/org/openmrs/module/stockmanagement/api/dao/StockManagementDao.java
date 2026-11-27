@@ -180,39 +180,6 @@ public class StockManagementDao extends DaoBase {
 		return locationTree;
 	}
 	
-	public StockOperationType getStockOperationTypeByUuid(String uuid) {
-		return (StockOperationType) getSession().createCriteria(StockOperationType.class).add(Restrictions.eq("uuid", uuid))
-		        .uniqueResult();
-	}
-	
-	public StockOperationType getStockOperationTypeByType(String type) {
-		return (StockOperationType) getSession().createCriteria(StockOperationType.class)
-		        .add(Restrictions.eq("operationType", type)).uniqueResult();
-	}
-	
-	public List<StockOperationType> getAllStockOperationTypes(boolean includeVoid) {
-		Criteria criteria = getSession().createCriteria(StockOperationType.class);
-		if (!includeVoid)
-			criteria.add(Restrictions.eq("voided", false));
-		return criteria.list();
-	}
-	
-	public StockOperationType saveStockOperationType(StockOperationType stockOperationType) {
-		getSession().saveOrUpdate(stockOperationType);
-		return stockOperationType;
-	}
-	
-	public StockOperationTypeLocationScope getStockOperationTypeLocationScopeByUuid(String uuid) {
-		return (StockOperationTypeLocationScope) getSession().createCriteria(StockOperationTypeLocationScope.class)
-		        .add(Restrictions.eq("uuid", uuid)).uniqueResult();
-	}
-	
-	public StockOperationTypeLocationScope saveStockOperationTypeLocationScope(
-	        StockOperationTypeLocationScope stockOperationTypeLocationScope) {
-		getSession().saveOrUpdate(stockOperationTypeLocationScope);
-		return stockOperationTypeLocationScope;
-	}
-	
 	private boolean isNotNullOrEmpty(String value) {
 		return value != null && !value.isEmpty();
 	}
@@ -299,14 +266,6 @@ public class StockManagementDao extends DaoBase {
 		return result;
 	}
 	
-	public List<StockOperationType> getAllStockOperationTypes() {
-		return getSession().createCriteria(StockOperationType.class).list();
-	}
-	
-	public List<StockOperationTypeLocationScope> getAllStockOperationTypeLocationScopes() {
-		return getSession().createCriteria(StockOperationTypeLocationScope.class).list();
-	}
-	
 	public void voidUserRoleScopes(List<String> userRoleScopeIds, String reason, int voidedBy) {
 		DbSession session = getSession();
 		Query query = session.createQuery(
@@ -358,12 +317,11 @@ public class StockManagementDao extends DaoBase {
 		        + "so.operationOrder as operationOrder,\n" + "so.remarks as remarks,\n" + "sorce.uuid as sourceUuid,\n"
 		        + "coalesce(sorcel.name,sorces.name) as sourceName,\n" + "so.status as status,\n"
 		        + "so.returnReason as returnReason,\n" + "so.rejectionReason as rejectionReason,\n"
-		        + "sot.uuid as operationTypeUuid,\n" + "sot.operationType as operationType,\n"
-		        + "sot.name as operationTypeName,\n" + "rp.userId as responsiblePerson,\n"
+		        + "so.stockOperationType as stockOperationType,\n" + "rp.userId as responsiblePerson,\n"
 		        + "rp.uuid as responsiblePersonUuid,\n" + "so.responsiblePersonOther as responsiblePersonOther,\n"
 		        + "so.creator.userId as creator,\n" + "so.dateCreated as dateCreated,\n" + "rsn.uuid as reasonUuid,\n"
 		        + "rsn.conceptId as reasonId,\n" + "so.approvalRequired as approvalRequired,\n" + "so.voided as voided\n"
-		        + "from stockmanagement.StockOperation so inner join\n" + "     so.stockOperationType sot left join\n"
+		        + "from stockmanagement.StockOperation so left join\n"
 		        + "\t so.destination dest left join dest.location destl left join dest.stockSource dests left join\n"
 		        + "\t so.source sorce left join sorce.location sorcel left join sorce.stockSource sorces left join\n"
 		        + "\t so.responsiblePerson rp left join\n" + "\t so.atLocation loc left join\n" + "\t so.reason rsn");
@@ -383,14 +341,9 @@ public class StockManagementDao extends DaoBase {
 			parameterList.putIfAbsent("partyId", filter.getPartyId());
 		}
 		
-		if (filter.getOperationTypeId() != null && filter.getOperationTypeId().size() > 0) {
-			if (filter.getOperationTypeId().size() == 1) {
-				appendFilter(hqlFilter, "so.stockOperationType.id = :otid");
-				parameterList.putIfAbsent("otid", filter.getOperationTypeId().get(0));
-			} else {
-				appendFilter(hqlFilter, "so.stockOperationType.id in (:otid)");
-				parameterWithList.putIfAbsent("otid", filter.getOperationTypeId());
-			}
+		if (filter.getOperationTypes() != null && !filter.getOperationTypes().isEmpty()) {
+			appendFilter(hqlFilter, "so.stockOperationType in (:otid)");
+			parameterWithList.putIfAbsent("otid", filter.getOperationTypes());
 		}
 		
 		if (filter.getStatus() != null && filter.getStatus().size() > 0) {
@@ -481,14 +434,12 @@ public class StockManagementDao extends DaoBase {
 			int paramIndex = 0;
 			StringBuilder recordPrivileges = new StringBuilder();
 			for (PartyDTO party : partyDTOs) {
-				appendORFilter(recordPrivileges,
-				    String.format(
-				        " (dest.id = :rpfl%1$s OR sorce.id = :rpfl%1$s ) AND so.stockOperationType.id in (:rpft%1$s)",
-				        paramIndex));
+				appendORFilter(recordPrivileges, String.format(
+				    " (dest.id = :rpfl%1$s OR sorce.id = :rpfl%1$s ) AND so.stockOperationType in (:rpft%1$s)", paramIndex));
 				parameterList.putIfAbsent("rpfl" + Integer.toString(paramIndex), party.getId());
 				parameterWithList.putIfAbsent("rpft" + Integer.toString(paramIndex),
 				    recordPrivilegeFilters.stream().filter(p -> p.getLocationId().equals(party.getLocationId()))
-				            .map(p -> p.getOperationTypeId()).collect(Collectors.toList()));
+				            .map(p -> p.getOperationType()).collect(Collectors.toList()));
 				paramIndex++;
 			}
 			
@@ -849,11 +800,11 @@ public class StockManagementDao extends DaoBase {
 		if (user == null || roles.size() == 0)
 			return new ArrayList<>();
 		StringBuilder hqlQuery = new StringBuilder("SELECT DISTINCT urs.role.role as role, l.uuid as locationUuid,"
-		        + " p.uuid as partyUuid, sot.uuid as operationTypeUuid, urs.permanent as isPermanent, "
+		        + " p.uuid as partyUuid, ursot.stockOperationType as stockOperationType, urs.permanent as isPermanent, "
 		        + "urs.activeFrom as activeFrom, urs.activeTo as activeTo\n"
 		        + "FROM stockmanagement.UserRoleScope urs join     \n" + "     urs.userRoleScopeLocations ursl join\n"
-		        + "     urs.userRoleScopeOperationTypes ursot join\n" + "     ursot.stockOperationType sot, \n"
-		        + "     stockmanagement.LocationTree lt, \n" + "     Location l, \n" + "     stockmanagement.Party p \n"
+		        + "     urs.userRoleScopeOperationTypes ursot, \n" + "     stockmanagement.LocationTree lt, \n"
+		        + "     Location l, \n" + "     stockmanagement.Party p \n"
 		        + "WHERE ursl.enableDescendants = 1 AND ursl.location.id = lt.parentLocationId AND lt.childLocationId = l.id AND lt.childLocationId = p.location.id AND urs.user = :user AND urs.role in (:roles) AND urs.enabled = 1 AND urs.voided = 0 AND "
 		        + "(urs.permanent = 1 OR (urs.activeFrom <= :from AND urs.activeTo >= :to )) and ursl.voided=0 and ursot.voided=0");
 		
@@ -880,11 +831,11 @@ public class StockManagementDao extends DaoBase {
 		List<PrivilegeScope> result = query.list();
 		
 		hqlQuery = new StringBuilder("SELECT DISTINCT urs.role.role as role, l.uuid as locationUuid,"
-		        + " p.uuid as partyUuid, sot.uuid as operationTypeUuid, urs.permanent as isPermanent, "
+		        + " p.uuid as partyUuid, ursot.stockOperationType as stockOperationType, urs.permanent as isPermanent, "
 		        + "urs.activeFrom as activeFrom, urs.activeTo as activeTo\n"
 		        + "FROM stockmanagement.UserRoleScope urs join     \n" + "     urs.userRoleScopeLocations ursl join\n"
-		        + "     urs.userRoleScopeOperationTypes ursot join\n" + "     ursot.stockOperationType sot, \n"
-		        + "     Location l, \n" + "     stockmanagement.Party p \n"
+		        + "     urs.userRoleScopeOperationTypes ursot, \n" + "     Location l, \n"
+		        + "     stockmanagement.Party p \n"
 		        + "WHERE ursl.enableDescendants = 0 AND ursl.location.id = l.id AND ursl.location.id = p.location.id AND urs.user = :user AND urs.role in (:roles) AND urs.enabled = 1 AND urs.voided = 0 AND "
 		        + "(urs.permanent = 1 OR (urs.activeFrom <= :from AND urs.activeTo >= :to )) and ursl.voided=0 and ursot.voided=0");
 		
@@ -2547,11 +2498,11 @@ public class StockManagementDao extends DaoBase {
 		HashMap<String, Collection> parameterWithList = new HashMap<>();
 		StringBuilder hqlQuery = new StringBuilder("SELECT sol.id as id,\n" + "sol.uuid as uuid,\n"
 		        + "p.uuid as parentUuid,\n" + "p.operationNumber as parentOperationNumber,\n"
-		        + "psot.name as parentOperationTypeName,\n" + "p.status as parentStatus,\n" + "p.voided as parentVoided,\n"
-		        + "c.uuid as childUuid,\n" + "c.operationNumber as childOperationNumber,\n"
-		        + "csot.name as childOperationTypeName,\n" + "c.status as childStatus,\n" + "c.voided as childVoided\n"
-		        + "from stockmanagement.StockOperationLink sol join\n"
-		        + "\t sol.parent p join p.stockOperationType psot join\n" + " sol.child c join c.stockOperationType csot\n");
+		        + "p.stockOperationType as parentOperationType,\n" + "p.status as parentStatus,\n"
+		        + "p.voided as parentVoided,\n" + "c.uuid as childUuid,\n" + "c.operationNumber as childOperationNumber,\n"
+		        + "c.stockOperationType as childOperationType,\n" + "c.status as childStatus,\n"
+		        + "c.voided as childVoided\n" + "from stockmanagement.StockOperationLink sol join\n"
+		        + "\t sol.parent p join\n" + " sol.child c\n");
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		if (!StringUtils.isBlank(parentOrChildStockOperationUuid)) {
@@ -2586,13 +2537,12 @@ public class StockManagementDao extends DaoBase {
 		        + "sipu.packagingUom.conceptId as packagingUoMId,\n" + "sb.uuid as stockBatchUuid,\n"
 		        + "sb.batchNo as stockBatchNo,\n" + "sb.expiration as expiration,\n" + "so.uuid as stockOperationUuid,\n"
 		        + "so.status as stockOperationStatus,\n" + "so.operationNumber as stockOperationNumber,\n"
-		        + "sot.name as stockOperationTypeName,\n" + "sit.quantity as quantity,"
+		        + "so.stockOperationType as stockOperationType,\n" + "sit.quantity as quantity,"
 		        + "sit.patient.id as patientId, txPatient.uuid as patientUuid, sit.order.orderId as orderId, sit.encounter.encounterId as encounterId,\n"
 		        + "so.source.id as operationSourcePartyId, so.destination.id as operationDestinationPartyId\n"
 		        + "from stockmanagement.StockItemTransaction sit join\n"
 		        + "\t sit.stockItem si left join sit.party p left join\n" + " sit.stockBatch sb left join\n"
-		        + " sit.stockItemPackagingUOM sipu left join\n"
-		        + " sit.stockOperation so left join so.stockOperationType sot left join sit.patient txPatient");
+		        + " sit.stockItemPackagingUOM sipu left join\n" + " sit.stockOperation so left join sit.patient txPatient");
 		
 		StringBuilder hqlFilter = new StringBuilder();
 		
@@ -3697,10 +3647,10 @@ public class StockManagementDao extends DaoBase {
 	public Result<StockOperationLineItem> findStockOperationLineItems(StockOperationLineItemFilter filter) {
 		HashMap<String, Object> parameterList = new HashMap<>();
 		HashMap<String, Collection> parameterWithList = new HashMap<>();
-		StringBuilder hqlQuery = new StringBuilder("select so.id as stockOperationId,\n" + "sot.name as operationTypeName,\n"
-		        + "so.operationDate as operationDate,\n" + "so.operationNumber as operationNumber,\n"
-		        + "so.completedBy.userId as completedBy,\n" + "so.completedDate as completedDate,\n"
-		        + "coalesce(sorcel.name,sorces.name) as sourceName,\n"
+		StringBuilder hqlQuery = new StringBuilder("select so.id as stockOperationId,\n"
+		        + "so.stockOperationType as operationType,\n" + "so.operationDate as operationDate,\n"
+		        + "so.operationNumber as operationNumber,\n" + "so.completedBy.userId as completedBy,\n"
+		        + "so.completedDate as completedDate,\n" + "coalesce(sorcel.name,sorces.name) as sourceName,\n"
 		        + "coalesce(destl.name,dests.name) as destinationName,\n" + "so.reason.conceptId as reasonId,\n"
 		        + "so.responsiblePerson.userId as responsiblePerson,\n"
 		        + "so.responsiblePersonOther as responsiblePersonOther,\n" + "so.remarks as remarks,\n"
@@ -3715,8 +3665,8 @@ public class StockManagementDao extends DaoBase {
 		        + (filter.includeRequisitionInfo() ? "sop.operationNumber as requisitionOperationNumber," : "")
 		        + "qrqpu.factor as quantityRequestedPackagingUOMFactor,\n" + "soi.quantityRequested as quantityRequested,\n"
 		        + "qrqpu.packagingUom.conceptId as quantityRequestedPackagingUoMId\n"
-		        + "from stockmanagement.StockOperation so inner join\n" + " so.stockOperationType sot join \n"
-		        + " so.stockOperationItems soi join\n" + " soi.stockItem si left join\n" + " soi.stockBatch sb left join\n"
+		        + "from stockmanagement.StockOperation so join \n" + " so.stockOperationItems soi join\n"
+		        + " soi.stockItem si left join\n" + " soi.stockBatch sb left join\n"
 		        + " soi.stockItemPackagingUOM sipu left join soi.quantityRequestedPackagingUOM qrqpu left join \n"
 		        + " so.destination dest left join dest.location destl left join dest.stockSource dests left join\n"
 		        + " so.source sorce left join sorce.location sorcel left join sorce.stockSource sorces\n"
@@ -3804,13 +3754,8 @@ public class StockManagementDao extends DaoBase {
 		}
 		
 		if (filter.getStockOperationTypes() != null && filter.getStockOperationTypes().size() > 0) {
-			if (filter.getStockOperationTypes().size() == 1) {
-				appendFilter(hqlFilter, "so.stockOperationType.id = :otid");
-				parameterList.putIfAbsent("otid", filter.getStockOperationTypes().get(0).getId());
-			} else {
-				appendFilter(hqlFilter, "so.stockOperationType.id in (:otid)");
-				parameterWithList.putIfAbsent("otid", filter.getStockOperationTypes());
-			}
+			appendFilter(hqlFilter, "so.stockOperationType in (:otid)");
+			parameterWithList.putIfAbsent("otid", filter.getStockOperationTypes());
 		}
 		
 		if (filter.getStockOperationStatuses() != null && filter.getStockOperationStatuses().size() > 0) {

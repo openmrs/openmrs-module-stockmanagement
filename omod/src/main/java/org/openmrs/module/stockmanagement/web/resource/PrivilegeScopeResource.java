@@ -77,7 +77,7 @@ public class PrivilegeScopeResource extends ResourceBase<PrivilegeScope> {
 		DelegatingResourceDescription description = new DelegatingResourceDescription();
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
 			description.addProperty("privilege");
-			description.addProperty("operationTypeUuid");
+			description.addProperty("operationType");
 			description.addProperty("locationUuid");
 			description.addProperty("partyUuid");
 			description.addProperty("isPermanent");
@@ -98,7 +98,7 @@ public class PrivilegeScopeResource extends ResourceBase<PrivilegeScope> {
 	public Model getGETModel(Representation rep) {
 		ModelImpl modelImpl = (ModelImpl) super.getGETModel(rep);
 		if (rep instanceof DefaultRepresentation || rep instanceof FullRepresentation) {
-			modelImpl.property("privilege", new StringProperty()).property("operationTypeUuid", new StringProperty())
+			modelImpl.property("privilege", new StringProperty()).property("operationType", new StringProperty())
 			        .property("locationUuid", new StringProperty()).property("partyUuid", new StringProperty())
 			        .property("isPermanent", new BooleanProperty()).property("activeFrom", new DateProperty())
 			        .property("activeTo", new DateProperty());
