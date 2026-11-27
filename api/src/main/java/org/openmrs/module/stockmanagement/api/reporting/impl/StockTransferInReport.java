@@ -16,7 +16,7 @@ import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineIt
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockOperationLineItemFilter;
 import org.openmrs.module.stockmanagement.api.model.Party;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
-import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
+import com.opencsv.CSVWriter;
 
 import java.util.Arrays;
 import java.util.Properties;

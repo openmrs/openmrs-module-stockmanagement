@@ -18,7 +18,7 @@ import org.openmrs.module.stockmanagement.api.dto.reporting.MostLeastMoving;
 import org.openmrs.module.stockmanagement.api.model.BatchJob;
 import org.openmrs.module.stockmanagement.api.model.BatchJobStatus;
 import org.openmrs.module.stockmanagement.api.utils.*;
-import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
+import com.opencsv.CSVWriter;
 
 import java.io.File;
 import java.io.IOException;
