@@ -149,15 +149,15 @@ public interface StockManagementService extends OpenmrsService {
 	
 	@Transactional
 	@Authorized(Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)
-	StockRuleDTO saveStockRule(StockRuleDTO stockRuleDTO);
+	StockRule saveStockRule(StockRule stockRule);
 	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	Result<StockRuleDTO> findStockRules(StockRuleSearchFilter filter);
+	Result<StockRule> findStockRules(StockRuleSearchFilter filter);
 	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)
-	Result<StockRuleDTO> findStockRules(StockRuleSearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
+	Result<StockRule> findStockRules(StockRuleSearchFilter filter, HashSet<RecordPrivilegeFilter> recordPrivilegeFilters);
 	
 	@Transactional(readOnly = true)
 	@Authorized(Privileges.APP_STOCKMANAGEMENT_STOCKITEMS)

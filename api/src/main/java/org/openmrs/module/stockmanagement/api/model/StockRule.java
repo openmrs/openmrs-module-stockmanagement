@@ -51,7 +51,7 @@ public class StockRule extends org.openmrs.BaseChangeableOpenmrsData implements 
 	private StockItemPackagingUOM stockItemPackagingUOM;
 	
 	@Column(name = "enabled")
-	private boolean enabled;
+	private Boolean enabled;
 	
 	@Column(name = "evaluation_frequency")
 	private Long evaluationFrequency;
@@ -139,11 +139,11 @@ public class StockRule extends org.openmrs.BaseChangeableOpenmrsData implements 
 		this.stockItemPackagingUOM = stockItemPackagingUOM;
 	}
 	
-	public boolean getEnabled() {
+	public Boolean getEnabled() {
 		return enabled;
 	}
 	
-	public void setEnabled(boolean enabled) {
+	public void setEnabled(Boolean enabled) {
 		this.enabled = enabled;
 	}
 	

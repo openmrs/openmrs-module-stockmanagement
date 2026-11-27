@@ -176,6 +176,20 @@ Five endpoints are plain controllers in [`web/controller`](omod/src/main/java/or
 | `POST locationtreesynchronize` | Rebuild the location tree                                                  |
 | `POST indexrebuild`            | Does nothing and returns `true`                                            |
 
+### Stock rules (`stockrule`)
+
+`/ws/rest/v1/stockmanagement/stockrule` uses standard OpenMRS REST representations, row-offset paging and error responses (replacing the earlier flat `StockRuleDTO` shape):
+
+- **Query and paging** (`GET /stockrule`): supports `locationUuid` (or `location`), `stockItemUuid` (or `stockItem`), `enabled` (`true`/`false`), `q` (name substring match), `includeAll` (`true` to include voided rules), `startIndex` (0-based row offset, default `0`), `limit` (page size), and `totalCount` (`true` to include `totalCount`). Results include standard `links` (`next`/`prev`) when more pages exist.
+- **Representations** (`?v=default`, `full`, `ref`, or `custom:(...)`):
+  - `ref`: `uuid`, `display` (the rule name), `voided` (when voided) and `links`.
+  - `default`: `uuid`, `display`, `name`, `description`, `stockItem` (`ref`), `location` (`ref`), `stockItemPackagingUOM` (`ref`), `quantity`, `enabled`, `evaluationFrequency`, `lastEvaluation`, `nextEvaluation`, `actionFrequency`, `lastActionDate`, `nextActionDate`, `alertRole`, `mailRole`, `enableDescendants`, `voided` and `links` (`self`, `full`).
+  - `full`: same scalar fields with `stockItem`, `location` and `stockItemPackagingUOM` in `default` representation, plus `permission` (`{ "canView": true, "canEdit": boolean }`), `auditInfo` and `links` (`self`).
+  - `custom:(...)`: returns only the requested properties, including nested paths such as `custom:(uuid,name,quantity,stockItem:(uuid,commonName),location:(uuid,name),stockItemPackagingUOM:(uuid,factor,packagingUom:(uuid,display)))`.
+- **Create and update** (`POST /stockrule`, `POST /stockrule/{uuid}`): accepts standard entity references by UUID string (or `{ "uuid": "..." }`) for `stockItem` (creatable only), `location` (creatable only) and `stockItemPackagingUOM`, along with `name`, `description`, `quantity`, `enabled`, `evaluationFrequency`, `actionFrequency`, `alertRole`, `mailRole` and `enableDescendants` (and `voided: false` or `"deleted": "false"` to unvoid on update).
+- **Delete** (`DELETE /stockrule/{uuid}?reason=...`): voids the rule (and optional comma-separated `ids`). `?purge=true` returns `400` (`ResourceDoesNotSupportOperationException`).
+- **Errors**: validation failures, bad parameters (`startIndex < 0`, non-updatable fields, `reason > 250` chars) and unsupported operations return `400`; missing privileges or location scope return `401`/`403`; unknown UUIDs return `404`.
+
 ## Development
 
 ### Building
