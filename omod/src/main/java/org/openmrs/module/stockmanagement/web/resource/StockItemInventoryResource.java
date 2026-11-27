@@ -21,8 +21,10 @@ import org.openmrs.Location;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.openmrs.module.stockmanagement.web.StockInventoryPageableResult;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -84,7 +86,7 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 		StockItemInventorySearchFilter.InventoryGroupBy inventoryGroupBy = null, totalBy = null;
 		param = context.getParameter("stockItemUuid");
 		if (!StringUtils.isBlank(param)) {
-			StockItem stockItem = getStockManagementService().getStockItemByUuid(param);
+			StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(param);
 			if (stockItem == null) {
 				return emptyResult(context);
 			}
@@ -137,10 +139,10 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 			}
 			
 			if (drugId != null || conceptId != null) {
-				StockItemSearchFilter stockItemSearchFilter = new StockItemSearchFilter();
+				StockItemSearch stockItemSearchFilter = new StockItemSearch();
 				stockItemSearchFilter.setDrugId(drugId);
 				stockItemSearchFilter.setConceptId(conceptId);
-				Result<StockItemDTO> stockItems = getStockManagementService().findStockItems(stockItemSearchFilter);
+				Result<StockItemDTO> stockItems = new StockItemRestMapper().findStockItems(stockItemSearchFilter);
 				if (stockItems.getData().isEmpty()) {
 					return emptyResult(context);
 				}
@@ -264,10 +266,10 @@ public class StockItemInventoryResource extends ResourceBase<StockItemInventory>
 		param = context.getParameter("stockBatchUuid");
 		if (!StringUtils.isBlank(param)) {
 			withBatchInfo = true;
-			StockBatchSearchFilter stockBatchSearchFilter = new StockBatchSearchFilter();
+			StockItemSearch stockBatchSearchFilter = new StockItemSearch();
 			stockBatchSearchFilter.setStockBatchUuid(param);
 			stockBatchSearchFilter.setIncludeVoided(true);
-			Result<StockBatchDTO> stockBatches = getStockManagementService().findStockBatches(stockBatchSearchFilter);
+			Result<StockBatchDTO> stockBatches = new StockItemRestMapper().findStockBatches(stockBatchSearchFilter);
 			if (stockBatches.getData().isEmpty()) {
 				return emptyResult(context);
 			}

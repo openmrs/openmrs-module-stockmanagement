@@ -13,6 +13,7 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
@@ -46,7 +47,7 @@ public class StockItemDTOValidator implements Validator {
 		StockItemDTO object = (StockItemDTO) target;
 		StockItem stockItem = null;
 		if (object.getUuid() != null) {
-			stockItem = service.getStockItemByUuid(object.getUuid());
+			stockItem = Context.getService(StockItemService.class).getStockItemByUuid(object.getUuid());
 			if (stockItem == null) {
 				errors.rejectValue("uuid", messageSourceService.getMessage("stockmanagement.stockitem.notexists"));
 				return;

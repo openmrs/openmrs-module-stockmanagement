@@ -13,6 +13,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.ImportResult;
 import org.openmrs.module.stockmanagement.api.dto.SessionInfo;
@@ -109,7 +110,8 @@ public class StockItemImportController {
 		boolean hasHeader = hasHeaderParam != null
 		        && (hasHeaderParam.toLowerCase().equals("true") || hasHeaderParam.toLowerCase().equals("1"));
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
-		ImportResult importResult = stockManagementService.importStockItems(filePath.toPath(), hasHeader);
+		ImportResult importResult = Context.getService(StockItemService.class).importStockItems(filePath.toPath(),
+		    hasHeader);
 		importResult.setUploadSessionId(fileName);
 		return importResult;
 	}

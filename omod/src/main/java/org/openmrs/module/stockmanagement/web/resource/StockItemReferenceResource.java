@@ -14,6 +14,7 @@ import io.swagger.models.ModelImpl;
 import io.swagger.models.properties.StringProperty;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemReferenceDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemReference;
@@ -40,12 +41,12 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 	
 	@Override
 	public StockItemReferenceDTO getByUniqueId(String uniqueId) {
-		return convertToDTO(getStockManagementService().getStockItemReferenceByUuid(uniqueId));
+		return convertToDTO(Context.getService(StockItemService.class).getStockItemReferenceByUuid(uniqueId));
 	}
 	
 	@Override
 	protected void delete(StockItemReferenceDTO delegate, String reason, RequestContext context) throws ResponseException {
-		getStockManagementService().voidStockItemReference(delegate.getUuid(), reason,
+		Context.getService(StockItemService.class).voidStockItemReference(delegate.getUuid(), reason,
 		    Context.getAuthenticatedUser().getUserId());
 	}
 	
@@ -53,7 +54,8 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 	protected PageableResult doSearch(RequestContext context) {
 		String param = context.getParameter("stockItemUuid");
 		List<StockItemReferenceDTO> stockItemReferenceDTOS = new ArrayList<>();
-		for (StockItemReference stockItemReference : getStockManagementService().getStockItemReferenceByStockItem(param)) {
+		for (StockItemReference stockItemReference : Context.getService(StockItemService.class)
+		        .getStockItemReferenceByStockItem(param)) {
 			stockItemReferenceDTOS.add(convertToDTO(stockItemReference));
 		}
 		return toAlreadyPaged(stockItemReferenceDTOS, context);
@@ -71,7 +73,8 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 	
 	@Override
 	public StockItemReferenceDTO save(StockItemReferenceDTO delegate) {
-		StockItemReference stockItemReference = getStockManagementService().saveStockItemReference(convertFromDTO(delegate));
+		StockItemReference stockItemReference = Context.getService(StockItemService.class)
+		        .saveStockItemReference(convertFromDTO(delegate));
 		return getByUniqueId(stockItemReference.getUuid());
 	}
 	
@@ -185,12 +188,14 @@ public class StockItemReferenceResource extends ResourceBase<StockItemReferenceD
 	public StockItemReference convertFromDTO(StockItemReferenceDTO dto) {
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		if (dto != null) {
-			StockItemReference stockItemReference = stockManagementService.getStockItemReferenceByUuid(dto.getUuid());
+			StockItemReference stockItemReference = Context.getService(StockItemService.class)
+			        .getStockItemReferenceByUuid(dto.getUuid());
 			if (stockItemReference == null) {
 				stockItemReference = new StockItemReference();
 			}
 			stockItemReference.setReferenceSource(stockManagementService.getStockSourceByUuid(dto.getStockSourceUuid()));
-			stockItemReference.setStockItem(stockManagementService.getStockItemByUuid(dto.getStockItemUuid()));
+			stockItemReference
+			        .setStockItem(Context.getService(StockItemService.class).getStockItemByUuid(dto.getStockItemUuid()));
 			stockItemReference.setStockReferenceCode(dto.getReferenceCode());
 			return stockItemReference;
 		} else {

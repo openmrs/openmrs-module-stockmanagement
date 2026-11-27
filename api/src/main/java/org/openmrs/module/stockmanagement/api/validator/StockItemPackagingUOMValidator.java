@@ -13,6 +13,7 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.annotation.Handler;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUOMDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
@@ -46,7 +47,8 @@ public class StockItemPackagingUOMValidator implements Validator {
 		StockItemPackagingUOMDTO object = (StockItemPackagingUOMDTO) target;
 		StockItemPackagingUOM stockItemPackagingUOM = null;
 		if (object.getUuid() != null) {
-			stockItemPackagingUOM = service.getStockItemPackagingUOMByUuid(object.getUuid());
+			stockItemPackagingUOM = Context.getService(StockItemService.class)
+			        .getStockItemPackagingUOMByUuid(object.getUuid());
 			if (stockItemPackagingUOM == null) {
 				errors.rejectValue("uuid",
 				    messageSourceService.getMessage("stockmanagement.stockitempackagingunit.notexists"));

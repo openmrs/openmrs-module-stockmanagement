@@ -16,6 +16,7 @@ import org.openmrs.Location;
 import org.openmrs.LocationTag;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.model.LocationType;
 import org.openmrs.module.stockmanagement.api.model.StockOperationType;
@@ -61,6 +62,9 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		if (daoInstance == null) {
 			daoInstance = new StockManagementDao();
 			daoInstance.setSessionFactory(sessionFactory);
+			org.openmrs.module.stockmanagement.api.db.hibernate.HibernateStockItemDAO items = new org.openmrs.module.stockmanagement.api.db.hibernate.HibernateStockItemDAO();
+			items.setSessionFactory(sessionFactory);
+			daoInstance.setStockItemDAO(items);
 		}
 		return daoInstance;
 	}
@@ -126,8 +130,8 @@ public class StockOperationDTOValidatorTest extends BaseModuleContextSensitiveTe
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), true);
 		packagingUom.setVoided(false);
 		packagingUom.getStockItem().setVoided(false);
-		dao().saveStockItem(packagingUom.getStockItem());
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItem(packagingUom.getStockItem());
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		StockOperationItemDTO item = new StockOperationItemDTO();
 		item.setStockItemUuid(packagingUom.getStockItem().getUuid());
 		item.setStockItemPackagingUOMUuid(packagingUom.getUuid());

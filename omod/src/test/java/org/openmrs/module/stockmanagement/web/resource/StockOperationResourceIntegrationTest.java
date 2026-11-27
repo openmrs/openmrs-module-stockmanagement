@@ -31,6 +31,7 @@ import org.openmrs.User;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockOperationItemDTO;
@@ -169,8 +170,8 @@ public class StockOperationResourceIntegrationTest extends BaseModuleWebContextS
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), true);
 		packagingUom.setVoided(false);
 		packagingUom.getStockItem().setVoided(false);
-		dao().saveStockItem(packagingUom.getStockItem());
-		dao().saveStockItemPackagingUOM(packagingUom);
+		Context.getService(StockItemService.class).saveStockItem(packagingUom.getStockItem());
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 		StockOperationItemDTO item = new StockOperationItemDTO();
 		item.setStockItemUuid(packagingUom.getStockItem().getUuid());
 		item.setStockItemPackagingUOMUuid(packagingUom.getUuid());

@@ -23,9 +23,10 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.openmrs.Drug;
 import org.openmrs.api.ValidationException;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
-import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.webservices.rest.web.response.IllegalRequestException;
 import org.openmrs.module.webservices.rest.web.v1_0.controller.BaseRestController;
 import org.openmrs.module.stockmanagement.api.dto.StockItemDTO;
@@ -33,11 +34,12 @@ import org.openmrs.web.test.jupiter.BaseModuleWebContextSensitiveTest;
 
 public class StockItemResourceTest extends BaseModuleWebContextSensitiveTest {
 	
-	private final StockItemResource resource = new StockItemResource();
+	private StockItemResource resource;
 	
 	@BeforeEach
 	public void setup() throws Exception {
 		initializeInMemoryDatabase();
+		resource = new StockItemResource();
 	}
 	
 	@Test
@@ -63,8 +65,8 @@ public class StockItemResourceTest extends BaseModuleWebContextSensitiveTest {
 	
 	@Test
 	public void save_shouldReturnBadRequestForBusinessFailuresWithASafeMessage() throws Exception {
-		StockManagementService service = mock(StockManagementService.class);
-		resource.setStockManagementService(service);
+		StockItemRestMapper service = mock(StockItemRestMapper.class);
+		resource.setItemMapper(service);
 		for (String message : Arrays.asList("Invalid stock item", null, "", " ")) {
 			doThrow(new StockManagementException(message)).when(service).saveStockItem(any(StockItemDTO.class));
 			
@@ -79,6 +81,28 @@ public class StockItemResourceTest extends BaseModuleWebContextSensitiveTest {
 			new BaseRestController().handleException(exception, mock(HttpServletRequest.class), response);
 			verify(response).setStatus(HttpServletResponse.SC_BAD_REQUEST);
 		}
+	}
+	
+	@Test
+	public void saveAndGet_shouldSaveAndRetrieveStockItem() {
+		Drug drug = Context.getConceptService().getDrug(3);
+		StockItemDTO dto = new StockItemDTO();
+		dto.setDrugUuid(drug.getUuid());
+		dto.setDispensingUnitUuid(Context.getConceptService().getConcept(20).getUuid());
+		dto.setCommonName("Amoxicillin 250mg");
+		dto.setHasExpiration(true);
+		dto.setExpiryNotice(60);
+		
+		StockItemDTO saved = resource.save(dto);
+		assertNotNull(saved);
+		assertNotNull(saved.getUuid());
+		assertEquals("Amoxicillin 250mg", saved.getCommonName());
+		assertEquals(drug.getUuid(), saved.getDrugUuid());
+		
+		StockItemDTO retrieved = resource.getByUniqueId(saved.getUuid());
+		assertNotNull(retrieved);
+		assertEquals(saved.getUuid(), retrieved.getUuid());
+		assertEquals("Amoxicillin 250mg", retrieved.getCommonName());
 	}
 	
 	private StockItemDTO newStockItem() {

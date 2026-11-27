@@ -29,6 +29,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.PartyDTO;
 import org.openmrs.module.stockmanagement.api.dto.PrivilegeScope;
@@ -815,7 +816,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		otherItem.setHasExpiration(true);
 		otherItem.setCreator(Context.getAuthenticatedUser());
 		otherItem.setDateCreated(new Date());
-		stockManagementService.saveStockItem(otherItem);
+		Context.getService(StockItemService.class).saveStockItem(otherItem);
 		createAndCompleteReceipt(parentParty, sampleStockItem, samplePackagingUom, BigDecimal.valueOf(10), "BATCH-ONE");
 		createAndCompleteReceipt(parentParty, otherItem, createPackagingUOM(otherItem, BigDecimal.ONE),
 		    BigDecimal.valueOf(5), "BATCH-OTHER");
@@ -1775,7 +1776,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		StockBatch batch = stockManagementService.getStockOperationByUuid(receipt.getUuid()).getStockOperationItems()
 		        .iterator().next().getStockBatch();
 		batch.setExpiration(DateUtils.addDays(new Date(), -1));
-		dao().saveStockBatch(batch);
+		Context.getService(StockItemService.class).saveStockBatch(batch);
 		Context.flushSession();
 		Context.clearSession();
 		assertEquals(0, BigDecimal.ZERO.compareTo(balanceAt(parentParty)));
@@ -1952,7 +1953,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		stockItem.setVoided(false);
 		stockItem.setCreator(Context.getAuthenticatedUser());
 		stockItem.setDateCreated(new Date());
-		return stockManagementService.saveStockItem(stockItem);
+		return Context.getService(StockItemService.class).saveStockItem(stockItem);
 	}
 	
 	private StockItemPackagingUOM createPackagingUOM(StockItem stockItem, BigDecimal factor) {
@@ -1964,7 +1965,7 @@ public class StockManagementFlowsAndQueriesServiceTest extends BaseModuleContext
 		packagingUom.setVoided(false);
 		packagingUom.setCreator(Context.getAuthenticatedUser());
 		packagingUom.setDateCreated(new Date());
-		return stockManagementService.saveStockItemPackagingUOM(packagingUom);
+		return Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 	}
 	
 	private StockOperationDTO newReceiptDto(Party destinationParty, StockItem stockItem, StockItemPackagingUOM uom,

@@ -33,8 +33,10 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
+import org.openmrs.module.stockmanagement.api.db.StockItemDAO;
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUomReferenceDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUomReference;
@@ -129,11 +131,11 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 	
 	private StockItemPackagingUOM createNonVoidedPackagingUom() {
 		StockItem stockItem = eu().newStockItem(dao(), false);
-		dao().saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM packagingUom = eu().newStockItemPackagingUOM(dao(), false, stockItem);
 		packagingUom.setVoided(false);
 		packagingUom.setFactor(BigDecimal.valueOf(30));
-		return dao().saveStockItemPackagingUOM(packagingUom);
+		return Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 	}
 	
 	private StockItemPackagingUomReferenceDTO createReferenceViaResource() {
@@ -163,7 +165,9 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		// on REST 3.0/3.1
 		StockManagementService service = mock(StockManagementService.class);
 		resource.setStockManagementService(service);
-		when(service.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
+		StockItemService items = mock(StockItemService.class);
+		resource.setStockItemService(items);
+		when(items.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
 		        .thenThrow(new ValidationException("name is too long"));
 		
 		try {
@@ -181,7 +185,9 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		// safe generic message, never the raw exception or its cause
 		StockManagementService service = mock(StockManagementService.class);
 		resource.setStockManagementService(service);
-		when(service.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
+		StockItemService items = mock(StockItemService.class);
+		resource.setStockItemService(items);
+		when(items.saveStockItemPackagingUomReference(any(StockItemPackagingUomReference.class)))
 		        .thenThrow(new NullPointerException());
 		
 		try {
@@ -446,7 +452,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		char[] legacyCode = new char[250];
 		Arrays.fill(legacyCode, 'X');
 		legacy.setStockReferenceCode(new String(legacyCode));
-		StockItemPackagingUomReference saved = dao().saveStockItemPackagingUomReference(legacy);
+		StockItemPackagingUomReference saved = itemDao().saveStockItemPackagingUomReference(legacy);
 		
 		StockItemPackagingUomReferenceDTO dto = resource.getByUniqueId(saved.getUuid());
 		try {
@@ -489,7 +495,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		reference.setStockItemPackagingUOM(packagingUom);
 		reference.setReferenceSource(stockSource);
 		reference.setStockReferenceCode("M221680001EP30T");
-		reference = dao().saveStockItemPackagingUomReference(reference);
+		reference = itemDao().saveStockItemPackagingUomReference(reference);
 		StockItemPackagingUomReferenceDTO dto = resource.convertToDTO(reference);
 		
 		// swap the clerk role (which carries the mutate task privilege) for a view-only role, then
@@ -549,7 +555,7 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		reference.setReferenceSource(stockSource);
 		reference.setStockReferenceCode("M221680001EP30T");
 		reference.setName("UNHTS packaging reference");
-		reference = dao().saveStockItemPackagingUomReference(reference);
+		reference = itemDao().saveStockItemPackagingUomReference(reference);
 		
 		StockItemPackagingUomReferenceDTO dto = resource.convertToDTO(reference);
 		assertEquals(reference.getUuid(), dto.getUuid());
@@ -560,5 +566,9 @@ public class StockItemPackagingUomReferenceResourceTest extends BaseModuleWebCon
 		assertEquals(packagingUom.getUuid(), converted.getStockItemPackagingUOM().getUuid());
 		assertEquals(stockSource.getUuid(), converted.getReferenceSource().getUuid());
 		assertEquals("M221680001EP30T", converted.getStockReferenceCode());
+	}
+	
+	private StockItemDAO itemDao() {
+		return Context.getRegisteredComponent("stockmanagement.StockItemDAO", StockItemDAO.class);
 	}
 }

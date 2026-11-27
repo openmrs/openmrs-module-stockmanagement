@@ -15,7 +15,9 @@ import io.swagger.models.properties.*;
 import io.swagger.models.properties.StringProperty;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.DateUtils;
+import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
@@ -61,7 +63,7 @@ public class StockItemTransactionResource extends ResourceBase<StockItemTransact
 		filter.setLimit(context.getLimit());
 		String param = context.getParameter("stockItemUuid");
 		if (StringUtils.isNotBlank(param)) {
-			StockItem stockItem = getStockManagementService().getStockItemByUuid(param);
+			StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(param);
 			if (stockItem == null) {
 				return emptyResult(context);
 			}

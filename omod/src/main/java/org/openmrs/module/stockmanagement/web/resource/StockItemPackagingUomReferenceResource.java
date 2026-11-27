@@ -17,6 +17,7 @@ import org.openmrs.api.APIAuthenticationException;
 import org.openmrs.api.APIException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemPackagingUomReferenceDTO;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUomReference;
@@ -44,11 +45,21 @@ import java.util.List;
                 "1.9.*", "1.10.*", "1.11.*", "1.12.*", "2.*" })
 public class StockItemPackagingUomReferenceResource extends ResourceBase<StockItemPackagingUomReferenceDTO> {
 	
+	private StockItemService stockItemService;
+	
+	void setStockItemService(StockItemService stockItemService) {
+		this.stockItemService = stockItemService;
+	}
+	
+	private StockItemService stockItemService() {
+		return stockItemService != null ? stockItemService : Context.getService(StockItemService.class);
+	}
+	
 	private static final Log log = LogFactory.getLog(StockItemPackagingUomReferenceResource.class);
 	
 	@Override
 	public StockItemPackagingUomReferenceDTO getByUniqueId(String uniqueId) {
-		return convertToDTO(getStockManagementService().getStockItemPackagingUomReferenceByUuid(uniqueId));
+		return convertToDTO(stockItemService().getStockItemPackagingUomReferenceByUuid(uniqueId));
 	}
 	
 	@Override
@@ -60,7 +71,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			throw new IllegalRequestException("Parameter reason can not exceed 250 characters");
 		}
 		try {
-			getStockManagementService().voidStockItemPackagingUomReference(delegate.getUuid(), reason,
+			stockItemService().voidStockItemPackagingUomReference(delegate.getUuid(), reason,
 			    Context.getAuthenticatedUser().getUserId());
 		}
 		catch (APIAuthenticationException e) {
@@ -86,7 +97,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			List<StockItemPackagingUomReferenceDTO> referenceDTOS = new ArrayList<>();
 			// an unknown packaging UOM uuid yields an empty result rather than a not-found error;
 			// includeAll matches the sibling resources so voided references stay listable for audit
-			for (StockItemPackagingUomReference reference : getStockManagementService()
+			for (StockItemPackagingUomReference reference : stockItemService()
 			        .getStockItemPackagingUomReferencesByPackagingUom(stockItemPackagingUomUuid,
 			            Boolean.TRUE.equals(context.getIncludeAll()))) {
 				referenceDTOS.add(convertToDTO(reference));
@@ -98,7 +109,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 		String referenceCode = context.getParameter("referenceCode");
 		if (StringUtils.isNotBlank(stockSourceUuid) && StringUtils.isNotBlank(referenceCode)) {
 			List<StockItemPackagingUomReferenceDTO> referenceDTOS = new ArrayList<>();
-			for (StockItemPackagingUomReference reference : getStockManagementService()
+			for (StockItemPackagingUomReference reference : stockItemService()
 			        .getStockItemPackagingUomReferencesBySourceAndCode(stockSourceUuid, referenceCode)) {
 				referenceDTOS.add(convertToDTO(reference));
 			}
@@ -124,7 +135,7 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 	public StockItemPackagingUomReferenceDTO save(StockItemPackagingUomReferenceDTO delegate) {
 		StockItemPackagingUomReference reference;
 		try {
-			reference = getStockManagementService().saveStockItemPackagingUomReference(convertFromDTO(delegate));
+			reference = stockItemService().saveStockItemPackagingUomReference(convertFromDTO(delegate));
 		}
 		catch (APIAuthenticationException e) {
 			throw e;
@@ -252,11 +263,11 @@ public class StockItemPackagingUomReferenceResource extends ResourceBase<StockIt
 			// only look up the stored reference on an update (a delegate loaded from storage carries
 			// its id); a create carrying an existing uuid must not overwrite that reference
 			StockItemPackagingUomReference reference = dto.getId() == null ? null
-			        : stockManagementService.getStockItemPackagingUomReferenceByUuid(dto.getUuid());
+			        : stockItemService().getStockItemPackagingUomReferenceByUuid(dto.getUuid());
 			if (reference == null) {
 				reference = new StockItemPackagingUomReference();
 				reference.setStockItemPackagingUOM(
-				    stockManagementService.getStockItemPackagingUOMByUuid(dto.getStockItemPackagingUomUuid()));
+				    stockItemService().getStockItemPackagingUOMByUuid(dto.getStockItemPackagingUomUuid()));
 				reference.setReferenceSource(stockManagementService.getStockSourceByUuid(dto.getStockSourceUuid()));
 			}
 			reference.setStockReferenceCode(dto.getReferenceCode());

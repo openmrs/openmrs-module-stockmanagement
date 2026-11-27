@@ -17,6 +17,7 @@ import org.openmrs.Location;
 import org.openmrs.Patient;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.Result;
 import org.openmrs.module.stockmanagement.api.dto.reporting.DispensingLineFilter;
@@ -102,7 +103,7 @@ public class DispensingLogsReport extends ReportGenerator {
 			}
 			
 			if (!StringUtils.isBlank(stockItemUuid)) {
-				StockItem stockItem = stockManagementService.getStockItemByUuid(stockItemUuid);
+				StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(stockItemUuid);
 				if (stockItem == null) {
 					stockManagementService.failBatchJob(batchJob.getUuid(), "Report stock item parameter not found");
 					return;

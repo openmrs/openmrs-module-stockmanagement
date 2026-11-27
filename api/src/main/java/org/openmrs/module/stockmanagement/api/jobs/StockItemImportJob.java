@@ -20,12 +20,14 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.Drug;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.model.StockItemPackagingUOM;
 import org.openmrs.module.stockmanagement.api.model.StockItemReference;
 import org.openmrs.module.stockmanagement.api.model.StockSource;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 
 import java.io.File;
@@ -341,9 +343,9 @@ public class StockItemImportJob {
 	private void updateStockItems(Map<Integer, Object[]> stockItems) {
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		
-		List<StockItemDTO> stockItemIds = stockManagementService
+		List<StockItem> stockItemIds = Context.getService(StockItemService.class)
 		        .getExistingStockItemIds(stockItems.values().stream().map(p -> {
-			        StockItemSearchFilter.ItemGroupFilter itemGroupFilter = new StockItemSearchFilter.ItemGroupFilter();
+			        StockItemSearch.ItemGroupFilter itemGroupFilter = new StockItemSearch.ItemGroupFilter();
 			        if (p[DRUG_ID] != null) {
 				        itemGroupFilter.setDrugId((Integer) p[DRUG_ID]);
 				        itemGroupFilter.setIsDrug(true);
@@ -355,13 +357,14 @@ public class StockItemImportJob {
 		        }).collect(Collectors.groupingBy(p -> p)).keySet());
 		
 		// Get the rowIds for existing stock items
-		Map<Object, List<Object[]>> rowsToUpdate = stockItems.entrySet().stream()
-		        .map(p -> new Object[] { p.getKey(),
-		                stockItemIds.stream()
-		                        .filter(x -> (p.getValue()[DRUG_ID] != null && p.getValue()[DRUG_ID].equals(x.getDrugId()))
-		                                || (p.getValue()[DRUG_ID] == null && x.getDrugId() == null
-		                                        && p.getValue()[CONCEPT_ID].equals(x.getConceptId())))
-		                        .findFirst() })
+		Map<Object, List<Object[]>> rowsToUpdate = stockItems.entrySet().stream().map(
+		    p -> new Object[] { p.getKey(), stockItemIds.stream()
+		            .filter(x -> (p.getValue()[DRUG_ID] != null
+		                    && p.getValue()[DRUG_ID].equals((x.getDrug() == null ? null : x.getDrug().getId())))
+		                    || (p.getValue()[DRUG_ID] == null && (x.getDrug() == null ? null : x.getDrug().getId()) == null
+		                            && p.getValue()[CONCEPT_ID]
+		                                    .equals((x.getConcept() == null ? null : x.getConcept().getId()))))
+		            .findFirst() })
 		        .filter(p -> ((Optional<?>) p[1]).isPresent()).collect(Collectors.groupingBy(p -> p[0]));
 		
 		List<Map.Entry<Integer, Object[]>> newStockItems = stockItems.entrySet().stream()
@@ -423,14 +426,14 @@ public class StockItemImportJob {
 		Map<Integer, StockItem> prevStockItemConcepts = null;
 		
 		if (!rowsToUpdate.isEmpty()) {
-			stockItemsToUpdate = stockManagementService
+			stockItemsToUpdate = Context.getService(StockItemService.class)
 			        .getStockItems(stockItemIds.stream().map(p -> p.getId()).collect(Collectors.toList())).stream()
 			        .collect(Collectors.groupingBy(StockItem::getId));
 			
 			// Prefetch the stockitempackaging uoms
-			stockItemPackagingUoms = stockManagementService
+			stockItemPackagingUoms = Context.getService(StockItemService.class)
 			        .getStockItemPackagingUOMs(rowsToUpdate.entrySet().stream().map(p -> {
-				        Integer stockItemId = ((Optional<StockItemDTO>) (p.getValue().get(0)[1])).get().getId();
+				        Integer stockItemId = ((Optional<StockItem>) (p.getValue().get(0)[1])).get().getId();
 				        Object[] updates = stockItems.get(p.getKey());
 				        List<Integer> conceptIdsForUom = new ArrayList<Integer>();
 				        if (DISPENSING_PUOM < updates.length && updates[DISPENSING_PUOM] != null) {
@@ -451,7 +454,7 @@ public class StockItemImportJob {
 				        }
 				        if (conceptIdsForUom.isEmpty())
 					        return null;
-				        return new StockItemPackagingUOMSearchFilter.ItemGroupFilter(stockItemId, conceptIdsForUom);
+				        return new StockItemSearch.PackagingGroup(stockItemId, conceptIdsForUom);
 			        }).filter(p -> p != null).collect(Collectors.toList())).stream()
 			        .collect(Collectors.groupingBy(p -> p.getStockItem().getId()));
 		}
@@ -533,7 +536,7 @@ public class StockItemImportJob {
 			} else {
 				List<Object[]> rowToUpdate = rowsToUpdate.get(recordToProcess.getKey());
 				List<StockItem> stockItemCollection = stockItemsToUpdate
-				        .getOrDefault(((Optional<StockItemDTO>) (rowToUpdate.get(0)[1])).get().getId(), null);
+				        .getOrDefault(((Optional<StockItem>) (rowToUpdate.get(0)[1])).get().getId(), null);
 				if (stockItemCollection != null) {
 					stockItem = stockItemCollection.get(0);
 				}
@@ -883,9 +886,9 @@ public class StockItemImportJob {
 				stockItem.setDateChanged(new Date());
 				stockItem.setChangedBy(Context.getAuthenticatedUser());
 				if (saveDispensingStockItemPackagingUOM) {
-					stockManagementService.saveStockItem(stockItem, dispensingStockItemPackagingUOM);
+					Context.getService(StockItemService.class).saveStockItem(stockItem, dispensingStockItemPackagingUOM);
 				} else {
-					stockManagementService.saveStockItem(stockItem);
+					Context.getService(StockItemService.class).saveStockItem(stockItem);
 				}
 				if (isVeryNewRecordDrug != null) {
 					if (isVeryNewRecordDrug) {
@@ -899,7 +902,7 @@ public class StockItemImportJob {
 					result.setUpdatedCount(result.getUpdatedCount() + 1);
 				}
 			} else if (saveDispensingStockItemPackagingUOM) {
-				stockManagementService.saveStockItemPackagingUOM(dispensingStockItemPackagingUOM);
+				Context.getService(StockItemService.class).saveStockItemPackagingUOM(dispensingStockItemPackagingUOM);
 				result.setUpdatedCount(result.getUpdatedCount() + 1);
 			} else {
 				result.setNotChangedCount(result.getNotChangedCount() + 1);

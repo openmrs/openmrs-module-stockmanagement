@@ -19,23 +19,26 @@ import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.StockLocationTags;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.db.StockItemDAO;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob;
 import org.openmrs.module.stockmanagement.api.jobs.StockBatchExpiryJob;
 import org.openmrs.module.stockmanagement.api.jobs.StockRuleEvaluationJob;
 import org.openmrs.module.stockmanagement.api.reporting.Report;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.openmrs.module.stockmanagement.api.utils.*;
-import org.openmrs.module.stockmanagement.api.jobs.StockItemImportJob;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.openmrs.module.stockmanagement.api.utils.StockItemFields;
 import org.openmrs.module.stockmanagement.tasks.StockOperationNotificationTask;
 import org.openmrs.notification.Alert;
 import org.openmrs.notification.Template;
@@ -44,7 +47,6 @@ import org.springframework.util.Assert;
 
 import javax.mail.Session;
 import java.math.BigDecimal;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,6 +55,25 @@ import java.util.stream.Stream;
 public class StockManagementServiceImpl extends BaseOpenmrsService implements StockManagementService {
 	
 	StockManagementDao dao;
+	
+	private StockItemDAO stockItemDAO;
+	
+	/** Keeps internal operation and dispensing lookups under their existing service authorization. */
+	public void setStockItemDAO(StockItemDAO stockItemDAO) {
+		this.stockItemDAO = stockItemDAO;
+	}
+	
+	@Override
+	@Deprecated
+	public StockItem getStockItemByUuid(String uuid) {
+		return stockItemDAO.getStockItemByUuid(uuid);
+	}
+	
+	@Override
+	@Deprecated
+	public List<StockItem> getStockItemByDrug(Integer drugId) {
+		return stockItemDAO.getStockItemByDrug(drugId);
+	}
 	
 	private Log log = LogFactory.getLog(this.getClass());
 	
@@ -330,213 +351,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	public void voidUserRoleScopeOperationTypes(List<String> userRoleScopeOperationTypeIds, String reason, int voidedBy) {
 		dao.voidUserRoleScopeOperationTypes(userRoleScopeOperationTypeIds, reason, voidedBy);
 		
-	}
-	
-	public Result<StockItem> findStockItemEntities(StockItemSearchFilter filter) {
-		return dao.findStockItemEntities(filter);
-	}
-	
-	public List<Integer> searchStockItemCommonName(String text, Boolean isDrugSearch, boolean includeAll, int maxItems) {
-		return dao.searchStockItemCommonName(text, isDrugSearch, includeAll, maxItems);
-	}
-	
-	public Result<StockItemDTO> findStockItems(StockItemSearchFilter filter) {
-		Result<StockItemDTO> result = dao.findStockItems(filter);
-		List<UserPersonNameDTO> personNames = dao.getPersonNameByUserIds(result.getData().stream().map(p -> p.getCreator())
-		        .filter(p -> p != null).distinct().collect(Collectors.toList()));
-		for (StockItemDTO stockItemDTO : result.getData()) {
-			if (stockItemDTO.getCreator() != null) {
-				Optional<UserPersonNameDTO> userPersonNameDTO = personNames.stream()
-				        .filter(p -> p.getUserId().equals(stockItemDTO.getCreator())).findFirst();
-				if (userPersonNameDTO.isPresent()) {
-					stockItemDTO.setCreatorFamilyName(userPersonNameDTO.get().getFamilyName());
-					stockItemDTO.setCreatorGivenName(userPersonNameDTO.get().getGivenName());
-				}
-			}
-		}
-		return result;
-	}
-	
-	public StockItem saveStockItem(StockItem stockItem) {
-		dao.saveStockItem(stockItem);
-		return stockItem;
-	}
-	
-	public StockItem saveStockItem(StockItem stockItem, StockItemPackagingUOM stockItemPackagingUOM) {
-		dao.saveStockItem(stockItem);
-		dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
-		return stockItem;
-	}
-	
-	public StockItem saveStockItem(StockItemDTO stockItemDTO) {
-		StockItem stockItem = null;
-		boolean isNew = false;
-		if (stockItemDTO.getUuid() == null) {
-			isNew = true;
-			stockItem = new StockItem();
-			stockItem.setCreator(Context.getAuthenticatedUser());
-			stockItem.setDateCreated(new Date());
-			
-			if (!StringUtils.isBlank(stockItemDTO.getDrugUuid())) {
-				Drug drug = Context.getConceptService().getDrugByUuid(stockItemDTO.getDrugUuid());
-				if (drug != null) {
-					StockItemSearchFilter filter = new StockItemSearchFilter();
-					filter.setDrugId(drug.getDrugId());
-					filter.setIsDrug(true);
-					filter.setIncludeVoided(true);
-					filter.setStartIndex(0);
-					filter.setLimit(1);
-					Result<StockItemDTO> stockItemResult = findStockItems(filter);
-					if (!stockItemResult.getData().isEmpty()) {
-						invalidRequest("stockmanagement.stockitem.drugexists");
-					}
-					stockItem.setDrug(drug);
-					stockItem.setIsDrug(true);
-					stockItem.setConcept(drug.getConcept());
-				} else {
-					invalidRequest("stockmanagement.stockitem.drugnoexist");
-				}
-			} else if (!StringUtils.isBlank(stockItemDTO.getConceptUuid())) {
-				Concept concept = Context.getConceptService().getConceptByUuid(stockItemDTO.getConceptUuid());
-				if (concept != null) {
-					StockItemSearchFilter filter = new StockItemSearchFilter();
-					filter.setIsDrug(false);
-					filter.setConceptId(concept.getConceptId());
-					filter.setIncludeVoided(true);
-					filter.setStartIndex(0);
-					filter.setLimit(1);
-					Result<StockItemDTO> stockItemResult = findStockItems(filter);
-					if (!stockItemResult.getData().isEmpty()) {
-						invalidRequest("stockmanagement.stockitem.conceptexists");
-					}
-					
-					stockItem.setIsDrug(false);
-					stockItem.setConcept(concept);
-				} else {
-					invalidRequest("stockmanagement.stockitem.conceptnoexist");
-				}
-			} else {
-				invalidRequest("stockmanagement.stockitem.drugorconceptrequired");
-			}
-		} else {
-			stockItem = getStockItemByUuid(stockItemDTO.getUuid());
-			if (stockItem == null) {
-				invalidRequest("stockmanagement.stockitem.notexists");
-			}
-			if (stockItem.getIsDrug() == null) {
-				stockItem.setIsDrug(stockItem.getDrug() != null);
-			}
-			stockItem.setChangedBy(Context.getAuthenticatedUser());
-			stockItem.setDateChanged(new Date());
-		}
-		
-		stockItem.setCommonName(stockItemDTO.getCommonName());
-		stockItem.setAcronym(stockItemDTO.getAcronym());
-		stockItem.setHasExpiration(stockItemDTO.getHasExpiration());
-		stockItem.setExpiryNotice(stockItemDTO.getExpiryNotice());
-		
-		if (!StringUtils.isBlank(stockItemDTO.getPreferredVendorUuid())) {
-			StockSource stockSource = getStockSourceByUuid(stockItemDTO.getPreferredVendorUuid());
-			if (stockSource == null) {
-				invalidRequest("stockmanagement.stockitem.preferredvendornoexist");
-			}
-			stockItem.setPreferredVendor(stockSource);
-		} else {
-			stockItem.setPreferredVendor(null);
-		}
-		
-		if (!StringUtils.isBlank(stockItemDTO.getDispensingUnitUuid())) {
-			Concept concept = Context.getConceptService().getConceptByUuid(stockItemDTO.getDispensingUnitUuid());
-			if (concept != null) {
-				stockItem.setDispensingUnit(concept);
-			} else {
-				invalidRequest("stockmanagement.stockitem.dispensingunitnoexist");
-			}
-		} else {
-			stockItem.setDispensingUnit(null);
-		}
-		
-		if (!StringUtils.isBlank(stockItemDTO.getCategoryUuid())) {
-			Concept concept = Context.getConceptService().getConceptByUuid(stockItemDTO.getCategoryUuid());
-			if (concept != null) {
-				stockItem.setCategory(concept);
-			} else {
-				invalidRequest("stockmanagement.stockitem.categorynoexist");
-			}
-		} else {
-			stockItem.setCategory(null);
-		}
-		
-		if (!isNew) {
-			
-			if (!StringUtils.isBlank(stockItemDTO.getPurchasePriceUoMUuid()) && stockItemDTO.getPurchasePrice() != null) {
-				StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(
-				    stockItemDTO.getPurchasePriceUoMUuid());
-				if (stockItemPackagingUOM == null) {
-					invalidRequest("stockmanagement.stockitem.purchasepriceuomnoexist");
-				} else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
-					invalidRequest("stockmanagement.stockitem.purchasepriceuomnotrelatedtostockitem");
-				}
-				stockItem.setPurchasePriceUoM(stockItemPackagingUOM);
-				stockItem.setPurchasePrice(stockItemDTO.getPurchasePrice());
-			} else {
-				stockItem.setPurchasePrice(null);
-				stockItem.setPurchasePriceUoM(null);
-			}
-			
-			if (!StringUtils.isBlank(stockItemDTO.getReorderLevelUoMUuid()) && stockItemDTO.getReorderLevel() != null) {
-				StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(
-				    stockItemDTO.getReorderLevelUoMUuid());
-				if (stockItemPackagingUOM == null) {
-					invalidRequest("stockmanagement.stockitem.reorderleveluomnoexist");
-				} else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
-					invalidRequest("stockmanagement.stockitem.reorderleveluomnotrelatedtostockitem");
-				}
-				stockItem.setReorderLevelUOM(stockItemPackagingUOM);
-				stockItem.setReorderLevel(stockItemDTO.getReorderLevel());
-			} else {
-				stockItem.setReorderLevel(null);
-				stockItem.setReorderLevelUOM(null);
-			}
-			
-			if (!StringUtils.isBlank(stockItemDTO.getDispensingUnitPackagingUoMUuid())) {
-				StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(
-				    stockItemDTO.getDispensingUnitPackagingUoMUuid());
-				if (stockItemPackagingUOM == null) {
-					invalidRequest("stockmanagement.stockitem.dispensingunituomnoexist");
-				} else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
-					invalidRequest("stockmanagement.stockitem.dispensingunituomnotrelatedtostockitem");
-				}
-				stockItem.setDispensingUnitPackagingUoM(stockItemPackagingUOM);
-			} else {
-				stockItem.setDispensingUnitPackagingUoM(null);
-			}
-			
-			if (!StringUtils.isBlank(stockItemDTO.getDefaultStockOperationsUoMUuid())) {
-				StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(
-				    stockItemDTO.getDefaultStockOperationsUoMUuid());
-				if (stockItemPackagingUOM == null) {
-					throw new StockManagementException("stockmanagement.stockitem.defaultstockoperationsuomnoexist");
-				} else if (!stockItemPackagingUOM.getStockItem().getId().equals(stockItem.getId())) {
-					invalidRequest("stockmanagement.stockitem.defaultstockoperationsuomnotrelatedtostockitem");
-				}
-				stockItem.setDefaultStockOperationsUoM(stockItemPackagingUOM);
-			} else {
-				stockItem.setDefaultStockOperationsUoM(null);
-			}
-		}
-		
-		dao.saveStockItem(stockItem);
-		
-		return stockItem;
-	}
-	
-	public StockItemPackagingUOM getStockItemPackagingUOMByUuid(String uuid) {
-		return dao.getStockItemPackagingUOMByUuid(uuid);
-	}
-	
-	public StockItem getStockItemByUuid(String uuid) {
-		return dao.getStockItemByUuid(uuid);
 	}
 	
 	public Result<StockOperationLinkDTO> getParentStockOperationLinks(String stockOperationUuid) {
@@ -972,46 +786,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		return userRoleScope;
 	}
 	
-	public Result<StockItemPackagingUOMDTO> findStockItemPackagingUOMs(StockItemPackagingUOMSearchFilter filter) {
-		return dao.findStockItemPackagingUOMs(filter);
-	}
-	
-	public StockItemPackagingUOM saveStockItemPackagingUOM(StockItemPackagingUOM stockItemPackagingUOM) {
-		dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
-		return stockItemPackagingUOM;
-	}
-	
-	public StockItemPackagingUOM saveStockItemPackagingUOM(StockItemPackagingUOMDTO stockItemPackagingUOMDTO) {
-		StockItemPackagingUOM stockItemPackagingUOM = null;
-		if (stockItemPackagingUOMDTO.getUuid() != null) {
-			stockItemPackagingUOM = getStockItemPackagingUOMByUuid(stockItemPackagingUOMDTO.getUuid());
-			if (stockItemPackagingUOM == null) {
-				invalidRequest("stockmanagement.stockitempackagingunit.notexists");
-			}
-			stockItemPackagingUOM.setChangedBy(Context.getAuthenticatedUser());
-			stockItemPackagingUOM.setDateChanged(new Date());
-		} else {
-			stockItemPackagingUOM = new StockItemPackagingUOM();
-			stockItemPackagingUOM.setCreator(Context.getAuthenticatedUser());
-			stockItemPackagingUOM.setDateCreated(new Date());
-			StockItem stockItem = getStockItemByUuid(stockItemPackagingUOMDTO.getStockItemUuid());
-			if (stockItem == null) {
-				invalidRequest("stockmanagement.stockitem.notexists");
-			}
-			stockItemPackagingUOM.setStockItem(stockItem);
-		}
-		
-		Concept concept = Context.getConceptService().getConceptByUuid(stockItemPackagingUOMDTO.getPackagingUomUuid());
-		if (concept == null) {
-			invalidRequest("stockmanagement.stockitempackagingunit.packaginguomnotexist");
-		}
-		stockItemPackagingUOM.setPackagingUom(concept);
-		stockItemPackagingUOM.setFactor(stockItemPackagingUOMDTO.getFactor());
-		
-		return dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
-		
-	}
-	
 	public List<StockOperationItem> getStockOperationItemsByStockOperation(Integer stockOperationId) {
 		return dao.getStockOperationItemsByStockOperation(stockOperationId);
 	}
@@ -1026,21 +800,21 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			return new Result<>(new ArrayList<>(), 0);
 		}
 		
-		StockItemSearchFilter stockItemSearchFilter = new StockItemSearchFilter();
+		StockItemSearch stockItemSearchFilter = new StockItemSearch();
 		stockItemSearchFilter.setStockItemIds(
 		    stockOperationItems.getData().stream().map(p -> p.getStockItemId()).distinct().collect(Collectors.toList()));
 		stockItemSearchFilter.setIncludeVoided(true);
-		Map<Integer, List<StockItemDTO>> stockItems = findStockItems(stockItemSearchFilter).getData().stream()
-		        .collect(Collectors.groupingBy(StockItemDTO::getId));
+		Map<Integer, List<StockItem>> stockItems = stockItemDAO.findStockItems(stockItemSearchFilter).getData().stream()
+		        .collect(Collectors.groupingBy(StockItem::getId));
 		if (stockItems.isEmpty()) {
 			return new Result<>(new ArrayList<>(), 0);
 		}
-		StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
+		StockItemSearch uomFilter = new StockItemSearch();
 		uomFilter.setStockItemIds(stockOperationItems.getData().stream().map(p -> p.getStockItemId()).filter(p -> p != null)
 		        .collect(Collectors.toList()));
 		uomFilter.setIncludeVoided(true);
-		Map<Integer, List<StockItemPackagingUOMDTO>> uoms = findStockItemPackagingUOMs(uomFilter).getData().stream()
-		        .collect(Collectors.groupingBy(StockItemPackagingUOMDTO::getStockItemId));
+		Map<Integer, List<StockItemPackagingUOM>> uoms = stockItemDAO.findStockItemPackagingUOMs(uomFilter).getData()
+		        .stream().collect(Collectors.groupingBy(u -> u.getStockItem().getId()));
 		
 		List<StockOperationItemCost> stockOperationItemCosts = new ArrayList<>();
 		for (StockOperationItemDTO stockOperationItem : stockOperationItems.getData()) {
@@ -1056,12 +830,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			itemCost.setQuantity(stockOperationItem.getQuantity());
 			stockOperationItemCosts.add(itemCost);
 			
-			List<StockItemDTO> stockItemDtos = stockItems.getOrDefault(stockOperationItem.getStockItemId(), null);
+			List<StockItem> stockItemDtos = stockItems.getOrDefault(stockOperationItem.getStockItemId(), null);
 			if (stockItemDtos == null) {
 				continue;
 			}
-			StockItemDTO stockItem = stockItemDtos.get(0);
-			if (stockItem.getPurchasePrice() == null || stockItem.getPurchasePriceUoMId() == null) {
+			StockItem stockItem = stockItemDtos.get(0);
+			if (stockItem.getPurchasePrice() == null
+			        || (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getId()) == null) {
 				continue;
 			}
 			
@@ -1069,18 +844,27 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			// set the purchase price but no total cost since we cant do conversion
 			if (itemCost.getPackagingUoMId() == null || itemCost.getQuantity() == null) {
 				itemCost.setUnitCost(stockItem.getPurchasePrice());
-				itemCost.setUnitCostUOMId(stockItem.getPurchasePriceUoMId());
-				itemCost.setUnitCostUOMName(stockItem.getPurchasePriceUoMName());
-				itemCost.setUnitCostUOMUuid(stockItem.getPurchasePriceUoMUuid());
+				itemCost.setUnitCostUOMId(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getId()));
+				itemCost.setUnitCostUOMName(StockItemFields.name(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getPackagingUom()),
+				    false));
+				itemCost.setUnitCostUOMUuid(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getUuid()));
 				continue;
 			}
 			
 			// No need for conversion if the packaging unit is same as purchase price
-			if (itemCost.getPackagingUoMId().equals(stockItem.getPurchasePriceUoMId())) {
+			if (itemCost.getPackagingUoMId()
+			        .equals((stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getId()))) {
 				itemCost.setUnitCost(stockItem.getPurchasePrice());
-				itemCost.setUnitCostUOMId(stockItem.getPurchasePriceUoMId());
-				itemCost.setUnitCostUOMName(stockItem.getPurchasePriceUoMName());
-				itemCost.setUnitCostUOMUuid(stockItem.getPurchasePriceUoMUuid());
+				itemCost.setUnitCostUOMId(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getId()));
+				itemCost.setUnitCostUOMName(StockItemFields.name(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getPackagingUom()),
+				    false));
+				itemCost.setUnitCostUOMUuid(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getUuid()));
 				if (itemCost.getQuantity() != null) {
 					itemCost.setTotalCost(itemCost.getQuantity().multiply(stockItem.getPurchasePrice()));
 				}
@@ -1088,25 +872,35 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			}
 			
 			// convert the purchase price to the packaging uom
-			List<StockItemPackagingUOMDTO> stockItemUoms = uoms.getOrDefault(itemCost.getStockItemId(), null);
+			List<StockItemPackagingUOM> stockItemUoms = uoms.getOrDefault(itemCost.getStockItemId(), null);
 			if (stockItemUoms == null) {
 				itemCost.setUnitCost(stockItem.getPurchasePrice());
-				itemCost.setUnitCostUOMId(stockItem.getPurchasePriceUoMId());
-				itemCost.setUnitCostUOMName(stockItem.getPurchasePriceUoMName());
-				itemCost.setUnitCostUOMUuid(stockItem.getPurchasePriceUoMUuid());
+				itemCost.setUnitCostUOMId(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getId()));
+				itemCost.setUnitCostUOMName(StockItemFields.name(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getPackagingUom()),
+				    false));
+				itemCost.setUnitCostUOMUuid(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getUuid()));
 				continue;
 			}
 			
 			// if unable to find the purchase price, set only unit cost and move one
-			Optional<StockItemPackagingUOMDTO> purchasePricePackagingUoMDTO = stockItemUoms.stream()
-			        .filter(p -> p.getUuid().equals(stockItem.getPurchasePriceUoMUuid())).findFirst();
-			Optional<StockItemPackagingUOMDTO> quantityUoMDTO = stockItemUoms.stream()
+			Optional<StockItemPackagingUOM> purchasePricePackagingUoMDTO = stockItemUoms.stream()
+			        .filter(p -> p.getUuid().equals(
+			            (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getUuid())))
+			        .findFirst();
+			Optional<StockItemPackagingUOM> quantityUoMDTO = stockItemUoms.stream()
 			        .filter(p -> p.getUuid().equals(stockOperationItem.getStockItemPackagingUOMUuid())).findFirst();
 			if (!purchasePricePackagingUoMDTO.isPresent() || !quantityUoMDTO.isPresent()) {
 				itemCost.setUnitCost(stockItem.getPurchasePrice());
-				itemCost.setUnitCostUOMId(stockItem.getPurchasePriceUoMId());
-				itemCost.setUnitCostUOMName(stockItem.getPurchasePriceUoMName());
-				itemCost.setUnitCostUOMUuid(stockItem.getPurchasePriceUoMUuid());
+				itemCost.setUnitCostUOMId(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getId()));
+				itemCost.setUnitCostUOMName(StockItemFields.name(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getPackagingUom()),
+				    false));
+				itemCost.setUnitCostUOMUuid(
+				    (stockItem.getPurchasePriceUoM() == null ? null : stockItem.getPurchasePriceUoM().getUuid()));
 				continue;
 			}
 			
@@ -1118,9 +912,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			itemCost.setTotalCost(packagingUnitPrice.multiply(itemCost.getQuantity()));
 			
 			itemCost.setUnitCost(packagingUnitPrice);
-			itemCost.setUnitCostUOMId(quantityUoMDTO.get().getPackagingUomId());
-			itemCost.setUnitCostUOMName(quantityUoMDTO.get().getPackagingUomName());
-			itemCost.setUnitCostUOMUuid(quantityUoMDTO.get().getPackagingUomUuid());
+			itemCost.setUnitCostUOMId(quantityUoMDTO.get().getPackagingUom().getId());
+			itemCost.setUnitCostUOMName(StockItemFields.name(quantityUoMDTO.get().getPackagingUom(), true));
+			itemCost.setUnitCostUOMUuid(quantityUoMDTO.get().getPackagingUom().getUuid());
 		}
 		Result<StockOperationItemCost> result = new Result<>(stockOperationItemCosts, 0);
 		stockOperationItems.copyPagingInfoTo(result);
@@ -1225,10 +1019,10 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		preloadPackagingUomIds.addAll(
 		    dto.getStockOperationItems().stream().filter(p -> !StringUtils.isBlank(p.getQuantityRequestedPackagingUOMUuid()))
 		            .map(p -> p.getQuantityRequestedPackagingUOMUuid()).collect(Collectors.toList()));
-		List<StockItemPackagingUOM> preloadStockItemPackagingUOMs = dao
+		List<StockItemPackagingUOM> preloadStockItemPackagingUOMs = stockItemDAO
 		        .getStockItemPackagingUOMsByUuids(preloadPackagingUomIds);
 		
-		List<StockItem> preloadStockItems = dao.getStockItemsByUuids(
+		List<StockItem> preloadStockItems = stockItemDAO.getStockItemsByUuids(
 		    dto.getStockOperationItems().stream().filter(p -> !StringUtils.isBlank(p.getStockItemUuid()))
 		            .map(p -> p.getStockItemUuid()).collect(Collectors.toList()));
 		
@@ -1281,7 +1075,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				item.setStockItem(stockItem);
 			}
 			if (processor.requiresBatchUuid()) {
-				StockBatch stockBatch = getStockBatchByUuid(itemDto.getStockBatchUuid());
+				StockBatch stockBatch = stockItemDAO.getStockBatchByUuid(itemDto.getStockBatchUuid());
 				if (stockBatch == null) {
 					throw new StockManagementException(String.format(
 					    messageSourceService.getMessage("stockmanagement.stockoperation.stockbatchnotfound"),
@@ -1290,7 +1084,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				item.setStockBatch(stockBatch);
 			} else if (processor.requiresActualBatchInformation()) {
 				{
-					StockBatch stockBatch = findStockBatch(stockItem, itemDto.getBatchNo(), itemDto.getExpiration());
+					StockBatch stockBatch = stockItemDAO.findStockBatch(stockItem, itemDto.getBatchNo(),
+					    itemDto.getExpiration());
 					if (stockBatch == null) {
 						Optional<StockBatch> newlyAddedStockBatch = newStockBatches.stream().filter(
 						    p -> p.getStockItem().getId().equals(stockItem.getId())
@@ -1340,7 +1135,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		}
 		
 		for (StockBatch stockBatch : newStockBatches) {
-			dao.saveStockBatch(stockBatch);
+			Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 		}
 		
 		dao.saveStockOperation(stockOperation);
@@ -1363,47 +1158,6 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		}
 		
 		return stockOperation;
-	}
-	
-	public StockBatch getStockBatchByUuid(String uuid) {
-		return dao.getStockBatchByUuid(uuid);
-	}
-	
-	public StockBatch findStockBatch(StockItem stockItem, String batchNo, Date expiration) {
-		return dao.findStockBatch(stockItem, batchNo, expiration);
-	}
-	
-	public Result<StockBatchDTO> findStockBatches(StockBatchSearchFilter filter) {
-		Result<StockBatchDTO> stockBatchDTOResult = dao.findStockBatches(filter);
-		if (!stockBatchDTOResult.getData().isEmpty() && !StringUtils.isBlank(filter.getLocationUuid())) {
-			Location location = Context.getLocationService().getLocationByUuid(filter.getLocationUuid());
-			if (location == null)
-				return new Result<>(new ArrayList<>(), 0);
-			
-			Party party = getPartyByLocation(location);
-			if (party == null)
-				return new Result<>(new ArrayList<>(), 0);
-			
-			List<StockItemInventorySearchFilter.ItemGroupFilter> itemsToSearch = stockBatchDTOResult.getData().stream()
-			        .map(p -> {
-				        StockItemInventorySearchFilter.ItemGroupFilter k = new StockItemInventorySearchFilter.ItemGroupFilter();
-				        k.setStockItemUuid(filter.getStockItemUuid());
-				        k.setStockBatchIds(Arrays.asList(p.getId()));
-				        k.setPartyIds(Arrays.asList(party.getId()));
-				        return k;
-			        }).collect(Collectors.toList());
-			
-			StockItemInventorySearchFilter searchFilter = new StockItemInventorySearchFilter();
-			searchFilter.setItemGroupFilters(itemsToSearch);
-			List<StockItemInventory> stockItemInventories = dao.getStockItemInventory(searchFilter, null).getData();
-			stockBatchDTOResult
-			        .setData(stockBatchDTOResult.getData().stream()
-			                .filter(p -> stockItemInventories.stream().anyMatch(x -> x.getStockBatchId().equals(p.getId())
-			                        && (!filter.getExcludeEmptyStock() || x.getQuantity().compareTo(BigDecimal.ZERO) > 0)))
-			                .collect(Collectors.toList()));
-		}
-		
-		return stockBatchDTOResult;
 	}
 	
 	public StockOperationItem getStockOperationItemByUuid(String uuid) {
@@ -1650,17 +1404,17 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 					}
 				}
 				if (StringUtils.isBlank(displayUom)) {
-					StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
+					StockItemSearch uomFilter = new StockItemSearch();
 					uomFilter.setStockItemIds(Arrays.asList(stockOperationItem.getStockItem().getId()));
-					Result<StockItemPackagingUOMDTO> uoms = findStockItemPackagingUOMs(uomFilter);
+					Result<StockItemPackagingUOM> uoms = stockItemDAO.findStockItemPackagingUOMs(uomFilter);
 					if (!uoms.getData().isEmpty()) {
-						StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(netEffectBalance, uoms.getData(),
+						StockItemPackagingUOM preferredUoM = getPreferredPackagingUoM(netEffectBalance, uoms.getData(),
 						    false, uomPriorityIsBigToSmall,
 						    stockOperationItem.getStockItemPackagingUOM() != null
 						            ? stockOperationItem.getStockItemPackagingUOM().getId()
 						            : null);
 						displayUnitValue = netEffectBalance.divide(preferredUoM.getFactor(), 5, BigDecimal.ROUND_HALF_EVEN);
-						displayUom = preferredUoM.getPackagingUomName();
+						displayUom = StockItemFields.name(preferredUoM.getPackagingUom(), true);
 					}
 				}
 				
@@ -1735,16 +1489,16 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				}
 			}
 			if (finalAdjustmentUom == null) {
-				StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
+				StockItemSearch uomFilter = new StockItemSearch();
 				uomFilter.setStockItemIds(Arrays.asList(itemGroupItems.get(0).getStockItem().getId()));
-				Result<StockItemPackagingUOMDTO> uoms = findStockItemPackagingUOMs(uomFilter);
+				Result<StockItemPackagingUOM> uoms = stockItemDAO.findStockItemPackagingUOMs(uomFilter);
 				if (!uoms.getData().isEmpty()) {
-					StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(absAdjustment, uoms.getData(), false,
+					StockItemPackagingUOM preferredUoM = getPreferredPackagingUoM(absAdjustment, uoms.getData(), false,
 					    uomPriorityIsBigToSmall,
 					    itemGroupItems.get(0).getStockItemPackagingUOM() != null
 					            ? itemGroupItems.get(0).getStockItemPackagingUOM().getId()
 					            : null);
-					finalAdjustmentUom = dao.getStockItemPackagingUOMByUuid(preferredUoM.getUuid());
+					finalAdjustmentUom = stockItemDAO.getStockItemPackagingUOMByUuid(preferredUoM.getUuid());
 					finalAdjustmentUnitValue = adjustment.divide(preferredUoM.getFactor(), 5, BigDecimal.ROUND_HALF_EVEN);
 				}
 			}
@@ -2065,7 +1819,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			if (!StringUtils.isBlank(dispenseRequest.getStockItemUuid())) {
 				stockItem = stockItemMap.getOrDefault(dispenseRequest.getStockItemUuid(), null);
 				if (stockItem == null) {
-					stockItem = getStockItemByUuid(dispenseRequest.getStockItemUuid());
+					stockItem = stockItemDAO.getStockItemByUuid(dispenseRequest.getStockItemUuid());
 					if (stockItem != null) {
 						stockItemMap.putIfAbsent(dispenseRequest.getStockItemUuid(), stockItem);
 					}
@@ -2081,7 +1835,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			if (!StringUtils.isBlank(dispenseRequest.getStockBatchUuid())) {
 				stockBatch = stockBatchMap.getOrDefault(dispenseRequest.getStockBatchUuid(), null);
 				if (stockBatch == null) {
-					stockBatch = getStockBatchByUuid(dispenseRequest.getStockBatchUuid());
+					stockBatch = stockItemDAO.getStockBatchByUuid(dispenseRequest.getStockBatchUuid());
 					if (stockBatch != null) {
 						stockItemMap.putIfAbsent(dispenseRequest.getStockBatchUuid(), stockItem);
 					}
@@ -2150,7 +1904,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				stockItemPackagingUOM = stockItemPackagingUOMMap.getOrDefault(dispenseRequest.getStockItemPackagingUOMUuid(),
 				    null);
 				if (stockItemPackagingUOM == null) {
-					stockItemPackagingUOM = getStockItemPackagingUOMByUuid(dispenseRequest.getStockItemPackagingUOMUuid());
+					stockItemPackagingUOM = stockItemDAO
+					        .getStockItemPackagingUOMByUuid(dispenseRequest.getStockItemPackagingUOMUuid());
 					if (stockItemPackagingUOM != null) {
 						stockItemPackagingUOMMap.putIfAbsent(dispenseRequest.getStockItemPackagingUOMUuid(),
 						    stockItemPackagingUOM);
@@ -2250,15 +2005,15 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 							}
 						}
 						if (StringUtils.isBlank(displayUom)) {
-							StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
+							StockItemSearch uomFilter = new StockItemSearch();
 							uomFilter.setStockItemIds(Arrays.asList(stockItem.getId()));
-							Result<StockItemPackagingUOMDTO> uoms = findStockItemPackagingUOMs(uomFilter);
+							Result<StockItemPackagingUOM> uoms = stockItemDAO.findStockItemPackagingUOMs(uomFilter);
 							if (!uoms.getData().isEmpty()) {
-								StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(netEffectBalance,
+								StockItemPackagingUOM preferredUoM = getPreferredPackagingUoM(netEffectBalance,
 								    uoms.getData(), true, uomPriorityIsBigToSmall, null);
 								displayUnitValue = netEffectBalance.divide(preferredUoM.getFactor(), 5,
 								    BigDecimal.ROUND_HALF_EVEN);
-								displayUom = preferredUoM.getPackagingUomName();
+								displayUom = StockItemFields.name(preferredUoM.getPackagingUom(), true);
 							}
 						}
 						
@@ -2308,22 +2063,22 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	public List<StockItemInventory> getStockBatchLocationInventory(List<Integer> stockBatchIds) {
 		List<StockItemInventory> result = dao.getStockBatchLocationInventory(stockBatchIds);
 		if (!result.isEmpty()) {
-			StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
+			StockItemSearch uomFilter = new StockItemSearch();
 			uomFilter.setStockItemIds(
 			    result.stream().map(p -> p.getStockItemId()).filter(p -> p != null).collect(Collectors.toList()));
-			Map<Integer, List<StockItemPackagingUOMDTO>> uoms = findStockItemPackagingUOMs(uomFilter).getData().stream()
-			        .collect(Collectors.groupingBy(StockItemPackagingUOMDTO::getStockItemId));
+			Map<Integer, List<StockItemPackagingUOM>> uoms = stockItemDAO.findStockItemPackagingUOMs(uomFilter).getData()
+			        .stream().collect(Collectors.groupingBy(u -> u.getStockItem().getId()));
 			if (!uoms.isEmpty()) {
 				boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
-				for (Map.Entry<Integer, List<StockItemPackagingUOMDTO>> entry : uoms.entrySet()) {
+				for (Map.Entry<Integer, List<StockItemPackagingUOM>> entry : uoms.entrySet()) {
 					for (StockItemInventory stockItemInventory : result.stream()
 					        .filter(p -> p.getStockItemId().equals(entry.getKey())).collect(Collectors.toList())) {
-						List<StockItemPackagingUOMDTO> uomList = entry.getValue();
-						StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(stockItemInventory.getQuantity(),
+						List<StockItemPackagingUOM> uomList = entry.getValue();
+						StockItemPackagingUOM preferredUoM = getPreferredPackagingUoM(stockItemInventory.getQuantity(),
 						    uomList, false, uomPriorityIsBigToSmall, null);
 						stockItemInventory.setQuantity(stockItemInventory.getQuantity().divide(preferredUoM.getFactor(), 5,
 						    BigDecimal.ROUND_HALF_EVEN));
-						stockItemInventory.setQuantityUoM(preferredUoM.getPackagingUomName());
+						stockItemInventory.setQuantityUoM(StockItemFields.name(preferredUoM.getPackagingUom(), true));
 						stockItemInventory.setQuantityUoMUuid(preferredUoM.getUuid());
 					}
 				}
@@ -2357,7 +2112,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	public StockInventoryResult postProcessInventoryResult(StockItemInventorySearchFilter filter,
 	        StockInventoryResult result) {
 		Map<Integer, String> partyNames = null;
-		Map<Integer, StockBatchDTO> stockBatchNames = null;
+		Map<Integer, StockBatch> stockBatchNames = null;
 		if (!result.getData().isEmpty()) {
 			if (filter.getDoSetPartyNameField()) {
 				List<Integer> partyIds = result.getData().stream().filter(p -> p.getPartyId() != null)
@@ -2371,12 +2126,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				List<Integer> batchIds = result.getData().stream().filter(p -> p.getStockBatchId() != null)
 				        .map(p -> p.getStockBatchId()).distinct().collect(Collectors.toList());
 				if (!batchIds.isEmpty()) {
-					StockBatchSearchFilter stockBatchSearchFilter = new StockBatchSearchFilter();
+					StockItemSearch stockBatchSearchFilter = new StockItemSearch();
 					stockBatchSearchFilter.setStockBatchIds(batchIds);
-					Result<StockBatchDTO> stockBatches = dao.findStockBatches(stockBatchSearchFilter);
+					Result<StockBatch> stockBatches = stockItemDAO.findStockBatches(stockBatchSearchFilter);
 					if (!stockBatches.getData().isEmpty()) {
 						stockBatchNames = stockBatches.getData().stream()
-						        .collect(Collectors.toMap(StockBatchDTO::getId, p -> p));
+						        .collect(Collectors.toMap(StockBatch::getId, p -> p));
 					}
 				}
 			}
@@ -2387,7 +2142,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 						stockItemInventory.setPartyName(partyNames.getOrDefault(stockItemInventory.getPartyId(), null));
 					}
 					if (stockBatchNames != null && stockItemInventory.getStockBatchId() != null) {
-						StockBatchDTO batch = stockBatchNames.getOrDefault(stockItemInventory.getStockBatchId(), null);
+						StockBatch batch = stockBatchNames.getOrDefault(stockItemInventory.getStockBatchId(), null);
 						if (batch != null) {
 							stockItemInventory.setBatchNumber(batch.getBatchNo());
 							stockItemInventory.setExpiration(batch.getExpiration());
@@ -2432,40 +2187,38 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			
 			if (filter.getDoSetQuantityUoM()) {
 				boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
-				StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
+				StockItemSearch uomFilter = new StockItemSearch();
 				uomFilter.setStockItemIds(result.getData().stream().map(p -> p.getStockItemId()).filter(p -> p != null)
 				        .collect(Collectors.toList()));
 				if (filter.dispensing()) {
 					uomFilter.setIncludeDispensingUnit(true);
 				}
 				if (!uomFilter.getStockItemIds().isEmpty()) {
-					Map<Integer, List<StockItemPackagingUOMDTO>> uoms = findStockItemPackagingUOMs(uomFilter).getData()
-					        .stream().collect(Collectors.groupingBy(StockItemPackagingUOMDTO::getStockItemId));
+					Map<Integer, List<StockItemPackagingUOM>> uoms = stockItemDAO.findStockItemPackagingUOMs(uomFilter)
+					        .getData().stream().collect(Collectors.groupingBy(u -> u.getStockItem().getId()));
 					if (!uoms.isEmpty()) {
 						
-						for (Map.Entry<Integer, List<StockItemPackagingUOMDTO>> entry : uoms.entrySet()) {
+						for (Map.Entry<Integer, List<StockItemPackagingUOM>> entry : uoms.entrySet()) {
 							// When dispensing, trim non-dispensing units if the stock item has a unit for dispensing already setup.
 							if (filter.dispensing()) {
-								Optional<StockItemPackagingUOMDTO> dispensingUnit = entry.getValue().stream()
-								        .filter(p -> p.getIsDispensingUnit() && p.getStockItemDispensingUnitId() != null)
+								Optional<StockItemPackagingUOM> dispensingUnit = entry.getValue().stream().filter(
+								    p -> StockItemFields.isDispensingUnit(p) && p.getStockItem().getDispensingUnit() != null)
 								        .findFirst();
 								if (dispensingUnit.isPresent()) {
 									// remove the rest of other units and leave only the dispensing unit.
 									entry.getValue().removeIf(p -> !p.getId().equals(dispensingUnit.get().getId()));
-									// override the UoM name with the dispensing name.
-									dispensingUnit.get()
-									        .setPackagingUomName(dispensingUnit.get().getStockItemDispensingUnitName());
 								}
 							}
 							
 							for (StockItemInventory stockItemInventory : result.getData().stream()
 							        .filter(p -> p.getStockItemId().equals(entry.getKey())).collect(Collectors.toList())) {
-								List<StockItemPackagingUOMDTO> uomList = entry.getValue();
-								StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(
+								List<StockItemPackagingUOM> uomList = entry.getValue();
+								StockItemPackagingUOM preferredUoM = getPreferredPackagingUoM(
 								    stockItemInventory.getQuantity(), uomList, false, uomPriorityIsBigToSmall, null);
 								stockItemInventory.setQuantity(stockItemInventory.getQuantity()
 								        .divide(preferredUoM.getFactor(), 5, BigDecimal.ROUND_HALF_EVEN));
-								stockItemInventory.setQuantityUoM(preferredUoM.getPackagingUomName());
+								stockItemInventory
+								        .setQuantityUoM(StockItemFields.packagingName(preferredUoM, filter.dispensing()));
 								stockItemInventory.setQuantityUoMUuid(preferredUoM.getUuid());
 								stockItemInventory.setQuantityFactor(preferredUoM.getFactor());
 							}
@@ -2475,12 +2228,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 								for (StockItemInventory stockItemInventory : result.getTotals().stream()
 								        .filter(p -> p.getStockItemId().equals(entry.getKey()))
 								        .collect(Collectors.toList())) {
-									List<StockItemPackagingUOMDTO> uomList = entry.getValue();
-									StockItemPackagingUOMDTO preferredUoM = getPreferredPackagingUoM(
+									List<StockItemPackagingUOM> uomList = entry.getValue();
+									StockItemPackagingUOM preferredUoM = getPreferredPackagingUoM(
 									    stockItemInventory.getQuantity(), uomList, false, uomPriorityIsBigToSmall, null);
 									stockItemInventory.setQuantity(stockItemInventory.getQuantity()
 									        .divide(preferredUoM.getFactor(), 5, BigDecimal.ROUND_HALF_EVEN));
-									stockItemInventory.setQuantityUoM(preferredUoM.getPackagingUomName());
+									stockItemInventory.setQuantityUoM(
+									    StockItemFields.packagingName(preferredUoM, filter.dispensing()));
 									stockItemInventory.setQuantityUoMUuid(preferredUoM.getUuid());
 									stockItemInventory.setQuantityFactor(preferredUoM.getFactor());
 								}
@@ -2503,71 +2257,12 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		return result;
 	}
 	
-	public void voidStockItemPackagingUOM(String uuid, String reason, int voidedBy) {
-		dao.voidStockItemPackagingUOM(uuid, reason, voidedBy);
-	}
-	
-	public ImportResult importStockItems(Path file, boolean hasHeader) {
-		StockItemImportJob importJob = new StockItemImportJob(file, hasHeader);
-		importJob.execute();
-		return (ImportResult) importJob.getResult();
-	}
-	
-	public List<StockItemDTO> getExistingStockItemIds(Collection<StockItemSearchFilter.ItemGroupFilter> stockItemFilters) {
-		return dao.getExistingStockItemIds(stockItemFilters);
-	}
-	
 	public List<Drug> getDrugs(Collection<Integer> drugIds) {
 		return dao.getDrugs(drugIds);
 	}
 	
 	public List<Concept> getConcepts(Collection<Integer> conceptIds) {
 		return dao.getConcepts(conceptIds);
-	}
-	
-	public List<StockItem> getStockItems(Collection<Integer> stockItemIds) {
-		return dao.getStockItems(stockItemIds);
-	}
-	
-	public List<StockItemPackagingUOM> getStockItemPackagingUOMs(
-	        List<StockItemPackagingUOMSearchFilter.ItemGroupFilter> filters) {
-		return dao.getStockItemPackagingUOMs(filters);
-	}
-	
-	public List<StockItem> getStockItemByDrug(Integer drugId) {
-		return dao.getStockItemByDrug(drugId);
-	}
-	
-	public List<StockItem> getStockItemByConcept(Integer conceptId) {
-		return dao.getStockItemByConcept(conceptId);
-	}
-	
-	public StockItemPackagingUOM getStockItemPackagingUOMByConcept(Integer stockItemId, Integer conceptId) {
-		return dao.getStockItemPackagingUOMByConcept(stockItemId, conceptId);
-	}
-	
-	public StockItemPackagingUOM getStockItemPackagingUOMByConcept(Integer stockItemId, String conceptUuid) {
-		Concept concept = Context.getConceptService().getConceptByUuid(conceptUuid);
-		if (concept == null)
-			return null;
-		return getStockItemPackagingUOMByConcept(stockItemId, concept.getConceptId());
-	}
-	
-	public StockItemPackagingUOM getStockItemPackagingUOMByConcept(String stockItemUuid, Integer conceptId) {
-		Map<String, Integer> stockItemIds = dao.getStockItemIds(Arrays.asList(stockItemUuid));
-		if (stockItemIds.isEmpty())
-			return null;
-		return getStockItemPackagingUOMByConcept(stockItemIds.values().iterator().next(), conceptId);
-	}
-	
-	public StockItemPackagingUOM getStockItemPackagingUOMByConcept(String stockItemUuid, String conceptUuid) {
-		Concept concept = Context.getConceptService().getConceptByUuid(conceptUuid);
-		if (concept == null)
-			return null;
-		Map<String, Integer> stockItemIds = dao.getStockItemIds(Arrays.asList(stockItemUuid));
-		if (stockItemIds.isEmpty())
-			return null;
-		return getStockItemPackagingUOMByConcept(stockItemIds.values().iterator().next(), concept.getId());
 	}
 	
 	public List<OrderItem> getOrderItemsByOrder(Integer... orderIds) {
@@ -2621,7 +2316,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			stockRule = new StockRule();
 			stockRule.setCreator(Context.getAuthenticatedUser());
 			stockRule.setDateCreated(new Date());
-			stockRule.setStockItem(dao.getStockItemByUuid(stockRuleDTO.getStockItemUuid()));
+			stockRule.setStockItem(stockItemDAO.getStockItemByUuid(stockRuleDTO.getStockItemUuid()));
 			stockRule.setLocation(Context.getLocationService().getLocationByUuid(stockRuleDTO.getLocationUuid()));
 			if (stockRule.getLocation() == null || !userHasStockManagementPrivilege(Context.getAuthenticatedUser(),
 			    stockRule.getLocation(), null, Privileges.TASK_STOCKMANAGEMENT_STOCKITEMS_MUTATE)) {
@@ -2631,7 +2326,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		stockRule.setName(stockRuleDTO.getName());
 		stockRule.setDescription(stockRuleDTO.getDescription());
 		stockRule.setQuantity(stockRuleDTO.getQuantity());
-		stockRule.setStockItemPackagingUOM(dao.getStockItemPackagingUOMByUuid(stockRuleDTO.getStockItemPackagingUOMUuid()));
+		stockRule.setStockItemPackagingUOM(
+		    stockItemDAO.getStockItemPackagingUOMByUuid(stockRuleDTO.getStockItemPackagingUOMUuid()));
 		stockRule.setEnabled(stockRuleDTO.getEnabled());
 		if (!isNew && stockRule.getLastEvaluation() != null && stockRuleDTO.getEvaluationFrequency() != null) {
 			if (!stockRuleDTO.getEvaluationFrequency().equals(stockRule.getEvaluationFrequency())) {
@@ -3221,22 +2917,22 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		dao.deleteBatchJob(batchJob);
 	}
 	
-	private StockItemPackagingUOMDTO getPreferredPackagingUoM(BigDecimal value, List<StockItemPackagingUOMDTO> uoms,
+	private StockItemPackagingUOM getPreferredPackagingUoM(BigDecimal value, List<StockItemPackagingUOM> uoms,
 	        boolean isDispensing, boolean uomPriorityIsBigToSmall, Integer preferredStockItemPackagingUOMId) {
 		if (isDispensing || !uomPriorityIsBigToSmall) {
 			// When dispensing or the priority is small to big, we order the units from small pack size to biggest
-			uoms.sort(Comparator.comparing(StockItemPackagingUOMDTO::getIsDefaultStockOperationsUoM).reversed()
-			        .thenComparing(StockItemPackagingUOMDTO::getFactor));
+			uoms.sort(Comparator.comparing(StockItemFields::isDefaultUnit).reversed()
+			        .thenComparing(StockItemPackagingUOM::getFactor));
 		} else {
 			// When not dispensing or the priority is big to small, we order the units from small pack size to biggest
-			uoms.sort(Comparator.comparing(StockItemPackagingUOMDTO::getIsDefaultStockOperationsUoM).reversed()
-			        .thenComparing(Comparator.comparing(StockItemPackagingUOMDTO::getFactor).reversed()));
+			uoms.sort(Comparator.comparing(StockItemFields::isDefaultUnit).reversed()
+			        .thenComparing(Comparator.comparing(StockItemPackagingUOM::getFactor).reversed()));
 		}
-		StockItemPackagingUOMDTO foundUoM = null;
+		StockItemPackagingUOM foundUoM = null;
 		boolean checkedPreferred = false;
 		boolean checkPreferred = preferredStockItemPackagingUOMId != null;
 		boolean thisIsThePreferred = false;
-		for (StockItemPackagingUOMDTO uom : uoms) {
+		for (StockItemPackagingUOM uom : uoms) {
 			if (checkPreferred) {
 				thisIsThePreferred = preferredStockItemPackagingUOMId.equals(uom.getId());
 			}
@@ -3350,7 +3046,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 				}
 				
 				StockItem stockItem = existingItemDto.get().getStockItem();
-				StockBatch stockBatch = findStockBatch(stockItem, batchNumber.getBatchNo(), batchNumber.getExpiration());
+				StockBatch stockBatch = stockItemDAO.findStockBatch(stockItem, batchNumber.getBatchNo(),
+				    batchNumber.getExpiration());
 				if (stockBatch == null) {
 					if (stockBatchHasTransactions.containsKey(existingItemDto.get().getStockBatch().getId())) {
 						invalidRequestWithKey("stockmanagement.stockoperation.updatebatchnumbersalreadyinuse",
@@ -3391,7 +3088,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			}
 			
 			for (StockBatch stockBatch : newStockBatches) {
-				dao.saveStockBatch(stockBatch);
+				Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 			}
 			
 			boolean saveStockOperation = false;
@@ -3418,171 +3115,5 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		}
 		
 		return stockOperationBatchNumbers;
-	}
-	
-	@Override
-	public StockItem getStockItemByReference(StockSource stockSource, String code) {
-		StockItemReference stockItemReference = dao.getStockItemByReference(stockSource, code);
-		if (stockItemReference != null) {
-			return dao.getStockItemByReference(stockSource, code).getStockItem();
-		}
-		
-		return null;
-	}
-	
-	@Override
-	public StockItemReference saveStockItemReference(StockItemReference stockItemReference) {
-		return dao.saveStockItemReference(stockItemReference);
-	}
-	
-	@Override
-	public void voidStockItemReference(String uuid, String reason, Integer userId) {
-		dao.voidStockItemReference(uuid, reason, userId);
-	}
-	
-	@Override
-	public StockItemReference getStockItemReferenceByUuid(String uuid) {
-		return dao.getStockItemReferenceByUuid(uuid);
-	}
-	
-	@Override
-	public List<StockItemReference> getStockItemReferenceByStockItem(String uuid) {
-		
-		StockItem stockItem = getStockItemByUuid(uuid);
-		if (stockItem != null) {
-			return dao.getStockItemReferenceByStockItem(stockItem);
-		} else {
-			return null;
-		}
-	}
-	
-	@Override
-	public StockItemPackagingUomReference saveStockItemPackagingUomReference(
-	        StockItemPackagingUomReference stockItemPackagingUomReference) {
-		if (stockItemPackagingUomReference == null) {
-			throw new APIException("Stock item packaging UOM reference is required");
-		}
-		if (Boolean.TRUE.equals(stockItemPackagingUomReference.getVoided())) {
-			throw new APIException("A voided stock item packaging UOM reference cannot be edited");
-		}
-		
-		StockItemPackagingUOM stockItemPackagingUOM = stockItemPackagingUomReference.getStockItemPackagingUOM();
-		StockItemPackagingUOM storedPackagingUOM = stockItemPackagingUOM == null ? null
-		        : dao.getStockItemPackagingUOMByUuid(stockItemPackagingUOM.getUuid());
-		if (stockItemPackagingUOM == null || stockItemPackagingUOM.getId() == null || storedPackagingUOM == null) {
-			throw new APIException("Stock item packaging UOM is required and must exist");
-		}
-		//test the fetched row, not the caller's object: a detached copy may predate a void
-		if (storedPackagingUOM.getVoided()) {
-			throw new APIException("References cannot be created for a voided stock item packaging UOM");
-		}
-		
-		StockSource referenceSource = stockItemPackagingUomReference.getReferenceSource();
-		StockSource storedSource = referenceSource == null ? null : dao.getStockSourceByUuid(referenceSource.getUuid());
-		if (referenceSource == null || referenceSource.getId() == null || storedSource == null) {
-			throw new APIException("Stock source is required and must exist");
-		}
-		//mirror the packaging UOM check on the fetched row: a reference of a voided source would
-		//never resolve, yet its code would keep occupying the unique key on that source
-		if (Boolean.TRUE.equals(storedSource.getVoided())) {
-			throw new APIException("References cannot be created for a voided stock source");
-		}
-		
-		if (stockItemPackagingUomReference.getStockReferenceCode() == null
-		        || stockItemPackagingUomReference.getStockReferenceCode().trim().isEmpty()) {
-			throw new APIException("Stock reference code is required");
-		}
-		stockItemPackagingUomReference.setStockReferenceCode(stockItemPackagingUomReference.getStockReferenceCode().trim());
-		
-		// voiding suffixes the stored code with the (voided <id>) format the entity owns, to free
-		// the code for reuse, and stock_reference_code is a bounded column: refuse codes that
-		// could no longer hold that suffix, so every active reference can still be voided
-		if (stockItemPackagingUomReference.getStockReferenceCode().length() > StockItemPackagingUomReference
-		        .maxSaveableCodeLength()) {
-			throw new APIException("Stock reference code is too long: a code can be at most "
-			        + StockItemPackagingUomReference.maxSaveableCodeLength()
-			        + " characters so voiding can append its (voided <id>) suffix");
-		}
-		
-		// Mirrors the database unique constraint on (stock_source_id, stock_reference_code);
-		// voided rows are excluded because voiding suffixes their stored code, so only active
-		// references collide. The query must not auto-flush the pending edits or the database
-		// constraint fires before this friendly duplicate check runs. Dormant references (a
-		// voided packaging UOM or source) still hold the unique key, so they must collide too —
-		// the message names the reference that holds the code, which the resolve and search
-		// queries stop finding
-		List<StockItemPackagingUomReference> matches = dao.getStockItemPackagingUomReferenceBySourceAndCode(
-		    stockItemPackagingUomReference.getReferenceSource(), stockItemPackagingUomReference.getStockReferenceCode());
-		if (!matches.isEmpty() && !matches.get(0).getId().equals(stockItemPackagingUomReference.getId())) {
-			throw new APIException(
-			        "Stock item packaging UOM reference code " + stockItemPackagingUomReference.getStockReferenceCode()
-			                + " already exists for the given stock source (reference " + matches.get(0).getUuid() + ")");
-		}
-		
-		return dao.saveStockItemPackagingUomReference(stockItemPackagingUomReference);
-	}
-	
-	@Override
-	public void voidStockItemPackagingUomReference(String uuid, String reason, int userId) {
-		if (uuid == null || uuid.trim().isEmpty()) {
-			throw new APIException("Stock item packaging UOM reference uuid is required");
-		}
-		dao.voidStockItemPackagingUomReference(uuid, reason, userId);
-	}
-	
-	@Override
-	public StockItemPackagingUomReference getStockItemPackagingUomReferenceByUuid(String uuid) {
-		return dao.getStockItemPackagingUomReferenceByUuid(uuid);
-	}
-	
-	@Override
-	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesByPackagingUom(
-	        String stockItemPackagingUomUuid, boolean includeVoided) {
-		StockItemPackagingUOM stockItemPackagingUOM = getStockItemPackagingUOMByUuid(stockItemPackagingUomUuid);
-		if (stockItemPackagingUOM == null) {
-			return Collections.emptyList();
-		}
-		return dao.getStockItemPackagingUomReferenceByPackagingUom(stockItemPackagingUOM, includeVoided);
-	}
-	
-	@Override
-	public StockItemPackagingUOM getStockItemPackagingUomByReference(StockSource stockSource, String stockReferenceCode) {
-		if (stockSource == null || stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
-			throw new APIException("Stock source and stock reference code are required");
-		}
-		List<StockItemPackagingUomReference> matches = getResolvableReferences(stockSource, stockReferenceCode.trim());
-		if (matches.isEmpty()) {
-			return null;
-		}
-		if (matches.size() > 1) {
-			throw new APIException("Multiple stock item packaging UOM references found for stock reference code "
-			        + stockReferenceCode + " and the given stock source");
-		}
-		return matches.get(0).getStockItemPackagingUOM();
-	}
-	
-	@Override
-	public List<StockItemPackagingUomReference> getStockItemPackagingUomReferencesBySourceAndCode(String stockSourceUuid,
-	        String stockReferenceCode) {
-		StockSource stockSource = getStockSourceByUuid(stockSourceUuid);
-		if (stockSource == null) {
-			//a stale source uuid is just an empty result, matching the stale packaging uuid lookup
-			return Collections.emptyList();
-		}
-		if (stockReferenceCode == null || stockReferenceCode.trim().isEmpty()) {
-			throw new APIException("Stock reference code is required");
-		}
-		return getResolvableReferences(stockSource, stockReferenceCode.trim());
-	}
-	
-	//a voided packaging UOM or source must not resolve: its references stay stored but dormant,
-	//and a client must not be handed a stockItemPackagingUomUuid that the UOM resource answers
-	//404 for
-	private List<StockItemPackagingUomReference> getResolvableReferences(StockSource stockSource,
-	        String stockReferenceCode) {
-		return dao.getStockItemPackagingUomReferenceBySourceAndCode(stockSource, stockReferenceCode).stream()
-		        .filter(r -> !Boolean.TRUE.equals(r.getStockItemPackagingUOM().getVoided())
-		                && !Boolean.TRUE.equals(r.getReferenceSource().getVoided()))
-		        .collect(Collectors.toList());
 	}
 }

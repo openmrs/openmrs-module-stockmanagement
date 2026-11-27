@@ -27,6 +27,7 @@ import org.openmrs.api.context.Context;
 import org.openmrs.api.db.hibernate.DbSessionFactory;
 import org.openmrs.module.stockmanagement.EntityUtil;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventory;
@@ -774,7 +775,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		stockItem.setVoided(false);
 		stockItem.setCreator(Context.getAuthenticatedUser());
 		stockItem.setDateCreated(new Date());
-		return stockManagementService.saveStockItem(stockItem);
+		return Context.getService(StockItemService.class).saveStockItem(stockItem);
 	}
 	
 	private StockItemPackagingUOM createPackagingUOM(StockItem stockItem, BigDecimal factor) {
@@ -786,7 +787,7 @@ public class StockOperationLifecycleAndScopeRestTest extends BaseModuleWebContex
 		packagingUom.setVoided(false);
 		packagingUom.setCreator(Context.getAuthenticatedUser());
 		packagingUom.setDateCreated(new Date());
-		return stockManagementService.saveStockItemPackagingUOM(packagingUom);
+		return Context.getService(StockItemService.class).saveStockItemPackagingUOM(packagingUom);
 	}
 	
 	private Party createSupplierParty() {

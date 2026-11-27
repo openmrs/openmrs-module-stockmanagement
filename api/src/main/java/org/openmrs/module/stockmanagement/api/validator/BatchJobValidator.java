@@ -18,6 +18,7 @@ import org.openmrs.annotation.Handler;
 import org.openmrs.api.context.Context;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.BatchJobDTO;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
@@ -260,7 +261,7 @@ public class BatchJobValidator implements Validator {
 			}
 		} else if (reportParameter.isStockItem()) {
 			if (!StringUtils.isBlank(value)) {
-				StockItem stockItem = stockManagementService.getStockItemByUuid(value);
+				StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(value);
 				if (stockItem == null) {
 					return false;
 				}

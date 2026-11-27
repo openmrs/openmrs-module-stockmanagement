@@ -12,13 +12,14 @@ package org.openmrs.module.stockmanagement;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.time.DateUtils;
 import org.openmrs.*;
-
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+
 import java.util.Date;
 import java.util.Random;
-
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.StockItemService;
+
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
@@ -191,13 +192,13 @@ public class EntityUtil {
 	
 	public StockItemTransaction newStockItemTransaction(StockManagementDao dao) {
 		StockItem stockItem = newStockItem(dao, false);
-		dao.saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		
 		StockBatch stockBatch = newStockBatch(dao);
-		dao.saveStockBatch(stockBatch);
+		Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 		
 		StockItemPackagingUOM stockItemPackagingUOM = newStockItemPackagingUOM(dao);
-		dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(stockItemPackagingUOM);
 		
 		return newStockItemTransaction(dao, stockItem, stockBatch, stockItemPackagingUOM);
 	}
@@ -225,7 +226,7 @@ public class EntityUtil {
 	
 	public StockItemPackagingUOM newStockItemPackagingUOM(StockManagementDao dao, boolean associateStockItemUoms) {
 		StockItem stockItem = newStockItem(dao, false);
-		dao.saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		return newStockItemPackagingUOM(dao, associateStockItemUoms, stockItem);
 	}
 	
@@ -298,13 +299,13 @@ public class EntityUtil {
 		stockItem.setPurchasePrice(getRandomBigDecimal());
 		if (associateUoMs) {
 			StockItemPackagingUOM purchasePriceUoM = newStockItemPackagingUOM(dao, false);
-			dao.saveStockItemPackagingUOM(purchasePriceUoM);
+			Context.getService(StockItemService.class).saveStockItemPackagingUOM(purchasePriceUoM);
 			stockItem.setPurchasePriceUoM(purchasePriceUoM);
 		}
 		stockItem.setDispensingUnit(getConcept());
 		if (associateUoMs) {
 			StockItemPackagingUOM defaultStockOperationsUoM = newStockItemPackagingUOM(dao, false);
-			dao.saveStockItemPackagingUOM(defaultStockOperationsUoM);
+			Context.getService(StockItemService.class).saveStockItemPackagingUOM(defaultStockOperationsUoM);
 			stockItem.setDefaultStockOperationsUoM(defaultStockOperationsUoM);
 		}
 		return stockItem;
@@ -312,7 +313,7 @@ public class EntityUtil {
 	
 	public StockBatch newStockBatch(StockManagementDao dao) {
 		StockItem stockItem = newStockItem(dao, false);
-		dao.saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		return newStockBatch(dao, stockItem);
 	}
 	
@@ -374,9 +375,9 @@ public class EntityUtil {
 	
 	public StockRule newStockRule(StockManagementDao dao) {
 		StockItem stockItem = newStockItem(dao, false);
-		dao.saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		StockItemPackagingUOM stockItemPackagingUOM = newStockItemPackagingUOM(dao);
-		dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(stockItemPackagingUOM);
 		return newStockRule(dao, stockItem, stockItemPackagingUOM);
 	}
 	
@@ -420,13 +421,13 @@ public class EntityUtil {
 		stockOperationItem.setQuantity(getRandomBigDecimal());
 		stockOperationItem.setPurchasePrice(getRandomBigDecimal());
 		StockBatch stockBatch = newStockBatch(dao);
-		dao.saveStockBatch(stockBatch);
+		Context.getService(StockItemService.class).saveStockBatch(stockBatch);
 		stockOperationItem.setStockBatch(stockBatch);
 		StockItemPackagingUOM stockItemPackagingUOM = newStockItemPackagingUOM(dao);
-		dao.saveStockItemPackagingUOM(stockItemPackagingUOM);
+		Context.getService(StockItemService.class).saveStockItemPackagingUOM(stockItemPackagingUOM);
 		stockOperationItem.setStockItemPackagingUOM(stockItemPackagingUOM);
 		StockItem stockItem = newStockItem(dao, false);
-		dao.saveStockItem(stockItem);
+		Context.getService(StockItemService.class).saveStockItem(stockItem);
 		stockOperationItem.setStockItem(stockItem);
 		StockOperation stockOperation = newStockOperation(dao);
 		dao.saveStockOperation(stockOperation);

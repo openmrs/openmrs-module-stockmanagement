@@ -21,10 +21,12 @@ import org.openmrs.api.ValidationException;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
+import org.openmrs.module.stockmanagement.api.StockItemService;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
+import org.openmrs.module.stockmanagement.api.search.StockItemSearch;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -156,7 +158,7 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		
 		param = context.getParameter("stockItemUuid");
 		if (StringUtils.isNotBlank(param)) {
-			StockItem stockItem = stockManagementService.getStockItemByUuid(param);
+			StockItem stockItem = Context.getService(StockItemService.class).getStockItemByUuid(param);
 			if (stockItem == null) {
 				return emptyResult(context);
 			}
@@ -538,11 +540,11 @@ public class StockOperationResource extends ResourceBase<StockOperationDTO> {
 		itemSearchFilter.setStockOperationUuids(Arrays.asList(stockOperationDTO.getUuid()));
 		Result<StockOperationItemDTO> items = getStockManagementService().findStockOperationItems(itemSearchFilter);
 		
-		StockItemPackagingUOMSearchFilter filter = new StockItemPackagingUOMSearchFilter();
+		StockItemSearch filter = new StockItemSearch();
 		filter.setIncludeVoided(false);
 		filter.setStockItemUuids(
 		    items.getData().stream().map(p -> p.getStockItemUuid()).distinct().collect(Collectors.toList()));
-		List<StockItemPackagingUOMDTO> packagingUnits = getStockManagementService().findStockItemPackagingUOMs(filter)
+		List<StockItemPackagingUOMDTO> packagingUnits = new StockItemRestMapper().findStockItemPackagingUOMs(filter)
 		        .getData();
 		
 		boolean canUpdateBatchInformation = false;
