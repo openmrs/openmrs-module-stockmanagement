@@ -17,7 +17,6 @@ import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.ImportResult;
 import org.openmrs.module.stockmanagement.api.dto.SessionInfo;
 import org.openmrs.module.stockmanagement.api.utils.FileUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 import org.openmrs.module.stockmanagement.web.resource.PrivilegeScopeResource;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.ConversionUtil;
@@ -69,14 +68,16 @@ public class StockItemImportController {
 			return importResult;
 		}
 		
-		if (file.getSize() > (GlobalProperties.getStockItemsMaxUploadSize() * 1024 * 1024)) {
+		long maxUploadFileSizeMb = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.STOCK_ITEMS_MAX_UPLOAD_FILE_SIZE, 2L);
+		if (file.getSize() > (maxUploadFileSizeMb * 1024 * 1024)) {
 			ImportResult importResult = new ImportResult();
 			importResult.setSuccess(false);
 			importResult.setErrors(new ArrayList<>());
 			importResult.getErrors()
 			        .add(String.format(
 			            Context.getMessageSourceService().getMessage("stockmanagement.importoperation.maxfilesizeexceeded"),
-			            GlobalProperties.getStockItemsMaxUploadSize()));
+			            maxUploadFileSizeMb));
 			return importResult;
 		}
 		

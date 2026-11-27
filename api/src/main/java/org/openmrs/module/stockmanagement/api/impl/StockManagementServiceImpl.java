@@ -15,16 +15,17 @@ import org.apache.commons.lang.time.DateUtils;
 import org.openmrs.*;
 import org.openmrs.api.APIException;
 import org.openmrs.api.LocationService;
+import org.openmrs.api.context.Context;
 import org.openmrs.api.impl.BaseOpenmrsService;
 import org.openmrs.messagesource.MessageSourceService;
 import org.openmrs.module.stockmanagement.StockLocationTags;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.StockOperationTypeProcessor;
 import org.openmrs.module.stockmanagement.api.StockOperationPrivelegeTarget;
 import org.openmrs.module.stockmanagement.api.dao.StockManagementDao;
-import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.dto.reporting.*;
 import org.openmrs.module.stockmanagement.api.jobs.AsyncTasksBatchJob;
@@ -1206,8 +1207,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 					throw new StockManagementException(messageSourceService
 					        .getMessage("stockmanagement.stockoperation.requisitionstocksperationnnotfound"));
 				}
-			} else if (stockOperationType == StockOperationType.STOCK_ISSUE
-			        && !GlobalProperties.allowStockIssueWithoutRequisition()) {
+			} else if (stockOperationType == StockOperationType.STOCK_ISSUE && !Context.getAdministrationService()
+			        .getGlobalPropertyValue(ModuleConstants.ALLOW_STOCK_ISSUE_WITHOUT_REQUISITION, Boolean.FALSE)) {
 				throw new StockManagementException(messageSourceService
 				        .getMessage("stockmanagement.stockoperation.requisitionstocksperationnrequired"));
 			}
@@ -1474,7 +1475,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			        messageSourceService.getMessage("stockmanagement.stockoperation.nopermission"));
 		}
 		
-		BigDecimal threshold = GlobalProperties.getExcessReceivedItemThreshold();
+		BigDecimal threshold = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.EXCESS_RECIEVED_ITEM_THRESHOLD, BigDecimal.valueOf(10));
 		for (StockOperationActionLineItem lineItem : lineItems) {
 			if (lineItem.getAmount().compareTo(BigDecimal.ZERO) < 0) {
 				throw new StockManagementException(
@@ -1602,7 +1604,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		
 		List<String> errors = new ArrayList<>();
 		
-		boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
+		boolean uomPriorityIsBigToSmall = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, Boolean.TRUE);
 		
 		for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : itemsToSearch) {
 			
@@ -1696,7 +1699,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		StockItemInventorySearchFilter searchFilter = new StockItemInventorySearchFilter();
 		searchFilter.setItemGroupFilters(itemsToSearch);
 		List<StockItemInventory> stockItemInventories = dao.getStockItemInventory(searchFilter, null).getData();
-		boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
+		boolean uomPriorityIsBigToSmall = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, Boolean.TRUE);
 		List<ReservedTransaction> reservedTransactions = new ArrayList<ReservedTransaction>();
 		for (StockItemInventorySearchFilter.ItemGroupFilter itemGroupFilter : itemsToSearch) {
 			
@@ -1884,8 +1888,9 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			                || action.equals(StockOperationAction.Action.DISPATCH)))) {
 				if (!processor.isQuantityOptional()) {
 					if (processor.shouldVerifyNegativeStockAmountsAtSource()
-					        && !GlobalProperties.getNegativeStockBalanceAllowed() && stockOperation.getSource() != null
-					        && stockOperation.getSource().getLocation() != null) {
+					        && !Context.getAdministrationService()
+					                .getGlobalPropertyValue(ModuleConstants.NEGATIVE_STOCK_BALANCE_ALLOWED, Boolean.FALSE)
+					        && stockOperation.getSource() != null && stockOperation.getSource().getLocation() != null) {
 						validateStockInventoryAfterOperation(stockOperation, stockOperationType, messageSourceService);
 					}
 					
@@ -2039,7 +2044,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		Map<Integer, Order> orderMap = new HashMap<>();
 		Map<Integer, Encounter> encounterMap = new HashMap<>();
 		Map<String, Location> locationMap = new HashMap<>();
-		boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
+		boolean uomPriorityIsBigToSmall = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, Boolean.TRUE);
 		List<DispenseRequestProcessingInfo> processingInformation = new ArrayList<>();
 		
 		for (DispenseRequest dispenseRequest : dispenseRequests) {
@@ -2314,7 +2320,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			Map<Integer, List<StockItemPackagingUOMDTO>> uoms = findStockItemPackagingUOMs(uomFilter).getData().stream()
 			        .collect(Collectors.groupingBy(StockItemPackagingUOMDTO::getStockItemId));
 			if (!uoms.isEmpty()) {
-				boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
+				boolean uomPriorityIsBigToSmall = Context.getAdministrationService().getGlobalPropertyValue(
+				    ModuleConstants.PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, Boolean.TRUE);
 				for (Map.Entry<Integer, List<StockItemPackagingUOMDTO>> entry : uoms.entrySet()) {
 					for (StockItemInventory stockItemInventory : result.stream()
 					        .filter(p -> p.getStockItemId().equals(entry.getKey())).collect(Collectors.toList())) {
@@ -2431,7 +2438,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			}
 			
 			if (filter.getDoSetQuantityUoM()) {
-				boolean uomPriorityIsBigToSmall = GlobalProperties.uomPriorityIsBigToSmall();
+				boolean uomPriorityIsBigToSmall = Context.getAdministrationService().getGlobalPropertyValue(
+				    ModuleConstants.PACKAGING_UNIT_PACK_SIZE_PRIORITY_IS_BIG_TO_SMALL, Boolean.TRUE);
 				StockItemPackagingUOMSearchFilter uomFilter = new StockItemPackagingUOMSearchFilter();
 				uomFilter.setStockItemIds(result.getData().stream().map(p -> p.getStockItemId()).filter(p -> p != null)
 				        .collect(Collectors.toList()));
@@ -2746,7 +2754,7 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 	}
 	
 	public String getHealthCenterName() {
-		String healthCenterName = GlobalProperties.getHealthCenterName();
+		String healthCenterName = Context.getAdministrationService().getGlobalProperty(ModuleConstants.HEALTH_CENTER_NAME);
 		if (StringUtils.isBlank(healthCenterName)) {
 			List<Location> locations = Context.getLocationService().getAllLocations();
 			Optional<Pair<String, Long>> topLocation = locations.stream().filter(p -> p.getParentLocation() == null)
@@ -2835,11 +2843,13 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 		if (stockOperationDTO == null)
 			return;
 		
-		String emailToNotity = GlobalProperties.getStockOperationNotificationEmail();
+		String emailToNotity = Context.getAdministrationService()
+		        .getGlobalProperty(ModuleConstants.STOCK_OPERATION_NOTIFICATION_EMAIL);
 		if (!org.openmrs.module.stockmanagement.api.utils.StringUtils.isValidEmail(emailToNotity)) {
 			emailToNotity = null;
 		}
-		String roleToNotify = GlobalProperties.getStockOperationNotificationRole();
+		String roleToNotify = Context.getAdministrationService()
+		        .getGlobalProperty(ModuleConstants.STOCK_OPERATION_NOTIFICATION_ROLE);
 		if (StringUtils.isBlank(emailToNotity) && StringUtils.isBlank(roleToNotify)) {
 			log.info(String.format("Stock Operation %1$s Action %2$s not sent. Email and role notification settings not set",
 			    stockOperationDTO.getOperationNumber(), action.toString()));
@@ -3031,7 +3041,8 @@ public class StockManagementServiceImpl extends BaseOpenmrsService implements St
 			batchJob.setBatchJobType(batchJobDTO.getBatchJobType());
 			batchJob.setStatus(BatchJobStatus.Pending);
 			batchJob.setDescription(batchJobDTO.getDescription());
-			batchJob.setExpiration(DateUtils.addMinutes(new Date(), GlobalProperties.getBatchJobExpiryInMinutes()));
+			batchJob.setExpiration(DateUtils.addMinutes(new Date(), Math.max(1440, Context.getAdministrationService()
+			        .getGlobalPropertyValue(ModuleConstants.BATCH_JOB_EXPIRY_IN_MINUTES, 1440))));
 			batchJob.setParameters(batchJobDTO.getParameters());
 			batchJob.setPrivilegeScope(batchJobDTO.getPrivilegeScope());
 			

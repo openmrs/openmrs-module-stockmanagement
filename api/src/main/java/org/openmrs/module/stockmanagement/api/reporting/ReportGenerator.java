@@ -11,6 +11,8 @@ package org.openmrs.module.stockmanagement.api.reporting;
 
 import org.apache.commons.lang.*;
 import org.apache.commons.logging.Log;
+import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter;
 import org.openmrs.module.stockmanagement.api.dto.reporting.Fullfillment;
@@ -65,6 +67,20 @@ public abstract class ReportGenerator {
 	
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		throw new NotImplementedException();
+	}
+	
+	protected int getReportingRecordsPageSize() {
+		int defaultPageSize = 1000;
+		int pageSize = Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.REPORTING_RECORDS_PAGE_SIZE,
+		    defaultPageSize);
+		return pageSize > 0 ? pageSize : defaultPageSize;
+	}
+	
+	protected BigDecimal getReportingCalculationsNoDaysInMonth() {
+		BigDecimal defaultDaysInMonth = BigDecimal.valueOf(30.5);
+		BigDecimal daysInMonth = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.REPORTING_CALCULATIONS_NO_DAYS_IN_MONTH, defaultDaysInMonth);
+		return daysInMonth.signum() > 0 ? daysInMonth : defaultDaysInMonth;
 	}
 	
 	public void setRecordsProcessed(Properties properties, Integer recordsProcessed) {
@@ -300,7 +316,7 @@ public abstract class ReportGenerator {
 		boolean resetExecutionState = false;
 		if (batchJob.getExecutionState() != null) {
 			try {
-				executionState = GlobalProperties.fromString(batchJob.getExecutionState());
+				executionState = PropertiesUtil.fromString(batchJob.getExecutionState());
 				pageIndex = getCurrentPageIndex(executionState);
 				recordsProcessed = getRecordsProcessed(executionState);
 				lastRecordProcessed = getLastRecordProcessed(executionState);
@@ -371,7 +387,7 @@ public abstract class ReportGenerator {
 		
 		if (executionState != null) {
 			stockManagementService.updateBatchJobExecutionState(batchJob.getUuid(),
-			    GlobalProperties.toString(executionState, null));
+			    PropertiesUtil.toString(executionState, null));
 		}
 	}
 	

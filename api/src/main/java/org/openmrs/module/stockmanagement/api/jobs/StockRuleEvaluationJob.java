@@ -17,10 +17,10 @@ import org.openmrs.Role;
 import org.openmrs.User;
 import org.openmrs.api.UserService;
 import org.openmrs.api.context.Context;
+import org.openmrs.module.stockmanagement.api.ModuleConstants;
 import org.openmrs.module.stockmanagement.api.StockManagementService;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleCurrentQuantity;
 import org.openmrs.module.stockmanagement.api.dto.StockRuleNotificationUser;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 import org.openmrs.module.stockmanagement.api.utils.NumberFormatUtil;
 import org.openmrs.module.stockmanagement.api.utils.Pair;
 import org.openmrs.module.stockmanagement.api.utils.SmtpUtil;
@@ -66,7 +66,8 @@ public class StockRuleEvaluationJob extends AbstractTask {
 	}
 	
 	protected void executeInternal() {
-		if (!GlobalProperties.isStockRuleJobEnabled()) {
+		if (!Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.ENABLE_STOCK_RULE_JOB,
+		    Boolean.FALSE)) {
 			log.debug("Stock rule job is not enabled under settings");
 			return;
 		}
@@ -74,7 +75,8 @@ public class StockRuleEvaluationJob extends AbstractTask {
 		log.debug("Fetching the rules");
 		StockManagementService stockManagementService = Context.getService(StockManagementService.class);
 		Integer lastStockRuleId = 0;
-		int batchSize = GlobalProperties.getStockRuleJobBatchSize().intValue();
+		int batchSize = Math.max(1,
+		    Context.getAdministrationService().getGlobalPropertyValue(ModuleConstants.STOCK_RULE_JOB_BATCH_SIZE, 100));
 		List<StockRuleNotificationUser> rules = new ArrayList<>();
 		boolean hasMoreResults = false;
 		do {

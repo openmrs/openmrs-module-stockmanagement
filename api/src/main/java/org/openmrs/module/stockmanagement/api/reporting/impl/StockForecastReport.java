@@ -30,7 +30,7 @@ import org.openmrs.module.stockmanagement.api.model.StockItem;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
 import org.openmrs.module.stockmanagement.api.utils.FileUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.utils.PropertiesUtil;
 import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
 
 import java.io.*;
@@ -92,7 +92,7 @@ public class StockForecastReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
-		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
+		Integer pageSize = getReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;
@@ -105,7 +105,7 @@ public class StockForecastReport extends ReportGenerator {
 		Properties parameters = null;
 		
 		try {
-			parameters = GlobalProperties.fromString(batchJob.getParameters());
+			parameters = PropertiesUtil.fromString(batchJob.getParameters());
 		}
 		catch (IOException e) {
 			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");
@@ -114,7 +114,7 @@ public class StockForecastReport extends ReportGenerator {
 		}
 		
 		todaysDate = DateUtil.today();
-		daysInMonth = GlobalProperties.GetReportingCalculationsNoDaysInMonth();
+		daysInMonth = getReportingCalculationsNoDaysInMonth();
 		startDate = getStartDate(parameters);
 		endDate = getEndDate(parameters);
 		String locationUuid = getLocation(parameters);

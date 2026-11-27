@@ -20,7 +20,7 @@ import org.openmrs.module.stockmanagement.api.model.BatchJobType;
 import org.openmrs.module.stockmanagement.api.reporting.Report;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.FileUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.utils.PropertiesUtil;
 import org.openmrs.scheduler.SchedulerException;
 import org.openmrs.scheduler.SchedulerService;
 import org.openmrs.scheduler.TaskDefinition;
@@ -140,7 +140,7 @@ public class AsyncTasksBatchJob extends AbstractTask {
 	private void executeReportBatchJob(BatchJob batchJob, StockManagementService stockManagementService) {
 		Properties properties = null;
 		try {
-			properties = GlobalProperties.fromString(batchJob.getParameters());
+			properties = PropertiesUtil.fromString(batchJob.getParameters());
 		}
 		catch (Exception e) {
 			log.error(e.getMessage(), e);

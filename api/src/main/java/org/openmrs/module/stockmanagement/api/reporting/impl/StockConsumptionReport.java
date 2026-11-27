@@ -16,7 +16,6 @@ import org.openmrs.module.stockmanagement.api.dto.StockItemInventorySearchFilter
 import org.openmrs.module.stockmanagement.api.dto.reporting.StockItemInventoryConsumption;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 
 import java.math.BigDecimal;
 import java.util.Date;
@@ -32,6 +31,7 @@ public class StockConsumptionReport extends StockItemInventoryReport<StockItemIn
 			stockManagementService.setStockItemInformation(stockInventoryResult.getData());
 			if (!stockInventoryResult.getData().isEmpty()) {
 				stockManagementService.postProcessInventoryResult(inventorySearchFilter, stockInventoryResult);
+				BigDecimal daysInMonth = getReportingCalculationsNoDaysInMonth();
 				stockInventoryResult.getData().forEach(p -> {
 					StockItemInventoryConsumption consumption = ((StockItemInventoryConsumption) p);
 					if (consumption.getQuantityFactor() != null) {
@@ -53,10 +53,9 @@ public class StockConsumptionReport extends StockItemInventoryReport<StockItemIn
 						long totalMiliseconds = Math.abs(
 						    inventorySearchFilter.getEndDate().getTime() - inventorySearchFilter.getStartDate().getTime());
 						long dayCount = Math.max(TimeUnit.DAYS.convert(totalMiliseconds, TimeUnit.MILLISECONDS), 1);
-						consumption.setConsumptionRate(consumption.getQuantityConsumed()
-						        .divide(BigDecimal.valueOf(dayCount).divide(
-						            GlobalProperties.GetReportingCalculationsNoDaysInMonth(), 5, BigDecimal.ROUND_HALF_EVEN),
-						            5, BigDecimal.ROUND_HALF_EVEN));
+						consumption.setConsumptionRate(consumption.getQuantityConsumed().divide(
+						    BigDecimal.valueOf(dayCount).divide(daysInMonth, 5, BigDecimal.ROUND_HALF_EVEN), 5,
+						    BigDecimal.ROUND_HALF_EVEN));
 					}
 				});
 			}

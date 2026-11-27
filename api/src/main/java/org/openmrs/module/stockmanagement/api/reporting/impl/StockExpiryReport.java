@@ -26,7 +26,7 @@ import org.openmrs.module.stockmanagement.api.model.BatchJob;
 import org.openmrs.module.stockmanagement.api.model.Party;
 import org.openmrs.module.stockmanagement.api.reporting.ReportGenerator;
 import org.openmrs.module.stockmanagement.api.utils.DateUtil;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
+import org.openmrs.module.stockmanagement.api.utils.PropertiesUtil;
 import org.openmrs.module.stockmanagement.api.utils.csv.CSVWriter;
 
 import java.io.IOException;
@@ -51,7 +51,7 @@ public class StockExpiryReport extends ReportGenerator {
 	public void generateReport(BatchJob batchJob, Function<BatchJob, Boolean> shouldStopExecution) {
 		this.batchJob = batchJob;
 		stockManagementService = Context.getService(StockManagementService.class);
-		Integer pageSize = GlobalProperties.GetReportingRecordsPageSize();
+		Integer pageSize = getReportingRecordsPageSize();
 		
 		if (!restoreExecutionState(batchJob, stockManagementService, log)) {
 			return;
@@ -64,7 +64,7 @@ public class StockExpiryReport extends ReportGenerator {
 		Properties parameters = null;
 		
 		try {
-			parameters = GlobalProperties.fromString(batchJob.getParameters());
+			parameters = PropertiesUtil.fromString(batchJob.getParameters());
 		}
 		catch (IOException e) {
 			stockManagementService.failBatchJob(batchJob.getUuid(), "Failed to read parameters");

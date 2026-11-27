@@ -22,7 +22,6 @@ import org.openmrs.module.stockmanagement.api.Privileges;
 import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
-import org.openmrs.module.stockmanagement.api.utils.GlobalProperties;
 import org.openmrs.module.stockmanagement.api.validator.StockItemDTOValidator;
 import org.openmrs.module.webservices.rest.SimpleObject;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -164,7 +163,8 @@ public class StockItemResource extends ResourceBase<StockItemDTO> {
 		}
 		
 		ConceptService service = Context.getConceptService();
-		Integer maxIntermediateResult = GlobalProperties.getStockItemSearchMaxDrugConceptIntermediateResult();
+		Integer maxIntermediateResult = Context.getAdministrationService()
+		        .getGlobalPropertyValue(ModuleConstants.STOCK_ITEM_SEARCH_MAX_INTERMEDIATE_RESULT, 50);
 		List<Integer> itemsFound = getStockManagementService().searchStockItemCommonName(searchToken, filter.getIsDrug(),
 		    context.getIncludeAll(), maxIntermediateResult);
 		if (!itemsFound.isEmpty()) {
