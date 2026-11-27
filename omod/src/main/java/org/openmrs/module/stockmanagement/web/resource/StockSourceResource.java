@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.openmrs.Concept;
 import org.openmrs.api.context.Context;
 import org.openmrs.module.stockmanagement.api.ModuleConstants;
+import org.openmrs.module.stockmanagement.api.StockManagementException;
 import org.openmrs.module.stockmanagement.api.dto.*;
 import org.openmrs.module.stockmanagement.api.model.*;
 import org.openmrs.module.webservices.rest.web.RequestContext;
@@ -106,7 +107,12 @@ public class StockSourceResource extends ResourceBase<StockSource> {
 	
 	@Override
 	public StockSource save(StockSource delegate) {
-		return getStockManagementService().saveStockSource(delegate);
+		try {
+			return getStockManagementService().saveStockSource(delegate);
+		}
+		catch (StockManagementException exception) {
+			throw new IllegalRequestException(exception.getMessage());
+		}
 	}
 	
 	@Override
